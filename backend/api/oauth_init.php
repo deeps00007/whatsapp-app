@@ -1,8 +1,8 @@
 <?php
 // We redirect to Meta's OAuth screen.
 $user_id = $_GET['user_id'] ?? 'growbychat_user';
-$client_id = getenv('FACEBOOK_CLIENT_ID') ?: '2023182691569993';
-$config_id = getenv('FACEBOOK_CONFIG_ID') ?: '1304929174886880';
+$client_id = getenv('FACEBOOK_CLIENT_ID') ?: '3371677636326324';
+$config_id = getenv('FACEBOOK_CONFIG_ID') ?: '982162267897292';
 
 // Dynamically construct redirect URI based on the request host
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

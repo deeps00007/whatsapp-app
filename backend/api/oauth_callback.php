@@ -23,7 +23,7 @@ if (!$user_id) {
 }
 
 // 2. Exchange code for token securely (backend to Meta communication)
-$client_id = getenv('FACEBOOK_CLIENT_ID') ?: '2023182691569993';
+$client_id = getenv('FACEBOOK_CLIENT_ID') ?: '3371677636326324';
 $client_secret = getenv('FACEBOOK_CLIENT_SECRET') ?: '';
 
 $long_lived_token = "";
