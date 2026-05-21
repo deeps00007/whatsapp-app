@@ -37,7 +37,8 @@ if (!empty($client_secret)) {
     $protocol = 'http';
     if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
         (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
-        (!empty($_SERVER['HTTP_FRONTEND_HTTPS']) && $_SERVER['HTTP_FRONTEND_HTTPS'] === 'on')) {
+        (!empty($_SERVER['HTTP_FRONTEND_HTTPS']) && $_SERVER['HTTP_FRONTEND_HTTPS'] === 'on') ||
+        (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'growbychat.app') !== false)) {
         $protocol = 'https';
     }
     $host = $_SERVER['HTTP_HOST'];
