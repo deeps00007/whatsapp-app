@@ -46,7 +46,8 @@ if (!empty($client_secret)) {
     $host = $_SERVER['HTTP_HOST'];
     $redirect_uri = "{$protocol}://{$host}/api/oauth_callback.php";
     
-    $token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+    // EXCHANGE CODE FOR ACCESS TOKEN (v23.0)
+    $token_url = "https://graph.facebook.com/v23.0/oauth/access_token"
                . "?client_id=" . urlencode($client_id)
                . "&redirect_uri=" . urlencode($redirect_uri)
                . "&client_secret=" . urlencode($client_secret)
@@ -62,9 +63,39 @@ if (!empty($client_secret)) {
         $res_data = json_decode($response, true);
         $long_lived_token = $res_data['access_token'] ?? '';
         
-        // Fetch detailed profile mapping (WABA details) from Meta Cloud endpoints if configured
-        // In typical Embedded Signup, token contains granular claims.
-        // We'll read them or default if Meta sandbox permissions are partial.
+        if (!empty($long_lived_token)) {
+            // STEP 2: FETCH THE WHATSAPP ACCOUNT DIRECTLY (v23.0)
+            $waba_url = "https://graph.facebook.com/v23.0/me/whatsapp_business_accounts?access_token=" . urlencode($long_lived_token);
+            $ch_waba = curl_init($waba_url);
+            curl_setopt($ch_waba, CURLOPT_RETURNTRANSFER, true);
+            $waba_response = curl_exec($ch_waba);
+            $waba_code = curl_getinfo($ch_waba, CURLINFO_HTTP_CODE);
+            curl_close($ch_waba);
+
+            if ($waba_code === 200) {
+                $waba_data = json_decode($waba_response, true);
+                if (isset($waba_data['data'][0]['id'])) {
+                    $waba_id = $waba_data['data'][0]['id'];
+                    $business_name = $waba_data['data'][0]['name'] ?? $business_name;
+                    
+                    // STEP 3: FETCH TARGET PHONE ID METADATA (v23.0)
+                    $phone_url = "https://graph.facebook.com/v23.0/" . $waba_id . "/phone_numbers?access_token=" . urlencode($long_lived_token);
+                    $ch_phone = curl_init($phone_url);
+                    curl_setopt($ch_phone, CURLOPT_RETURNTRANSFER, true);
+                    $phone_response = curl_exec($ch_phone);
+                    $phone_code = curl_getinfo($ch_phone, CURLINFO_HTTP_CODE);
+                    curl_close($ch_phone);
+                    
+                    if ($phone_code === 200) {
+                        $phone_data = json_decode($phone_response, true);
+                        if (isset($phone_data['data'][0]['id'])) {
+                            $phone_number_id = $phone_data['data'][0]['id'];
+                            $phone_number = $phone_data['data'][0]['display_phone_number'] ?? $phone_number;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

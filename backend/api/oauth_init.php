@@ -26,7 +26,25 @@ $state = base64_encode(json_encode([
     'frontend_host' => $frontend_host
 ]));
 
-$oauth_url = "https://www.facebook.com/v18.0/dialog/oauth?client_id={$client_id}&redirect_uri={$redirect_uri}&state={$state}&config_id={$config_id}&response_type=code";
+// Hidden metadata configurations to switch Meta's onboarding view into Coexistence Mode
+$extras = [
+    'version' => 'v3',
+    'sessionInfoVersion' => '3',
+    'featureType' => 'whatsapp_business_app_onboarding',
+    'setup' => new stdClass()
+];
+$extras_json = json_encode($extras);
+
+// BUILD COEXISTENCE EMBEDDED SIGNUP URL (v23.0)
+$oauth_url = "https://www.facebook.com/v23.0/dialog/oauth?"
+           . "client_id=" . urlencode($client_id)
+           . "&redirect_uri=" . urlencode($redirect_uri)
+           . "&state=" . urlencode($state)
+           . "&config_id=" . urlencode($config_id)
+           . "&response_type=code"
+           . "&override_default_response_type=true"
+           . "&scope=whatsapp_business_management,whatsapp_business_messaging"
+           . "&extras=" . urlencode($extras_json);
 
 header("Location: $oauth_url");
 exit;
