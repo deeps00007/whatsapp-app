@@ -57,13 +57,13 @@ export default function Hero({ scrollToSection }) {
               <polyline points="2 17 12 22 22 17"></polyline>
               <polyline points="2 12 12 17 22 12"></polyline>
             </svg>
-            No Meta Cloud API Setup Required
+            Verified Meta Business Partner Integration
           </div>
           <h1>
             Automate WhatsApp in <span className="gradient-green-text">Under 2 Minutes</span>
           </h1>
           <p>
-            The easiest WhatsApp SaaS on the market. Skip the complex Meta developer setups, custom tokens, and billing configuration. Just log in with your Facebook account, connect your existing business number, and instantly scale broadcasts, run automated chats, and trigger high-speed OTP services.
+            The easiest WhatsApp SaaS on the market. Don't worry about complex Meta Cloud API setups, developer credentials, or complicated token renewals. As a secure Meta partner integration, we handle the heavy lifting for you. Just connect your Facebook page, link your existing business number, and instantly launch automated campaigns, broadcasts, and high-speed OTP services.
           </p>
           <div className="hero-actions">
             <button className="btn btn-primary" onClick={() => scrollToSection('pricing')}>
@@ -132,9 +132,9 @@ export default function Hero({ scrollToSection }) {
             {/* Virtual Phone Viewport */}
             <div className="virtual-phone">
               <div className="phone-header">
-                <div className="phone-avatar">S</div>
+                <div className="phone-avatar">G</div>
                 <div className="phone-user-info">
-                  <h5>SwiftFlow Auto-Bot</h5>
+                  <h5>Growbychat Auto-Bot</h5>
                   <span>Active & Connected</span>
                 </div>
               </div>

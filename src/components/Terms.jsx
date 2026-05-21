@@ -18,7 +18,7 @@ export default function Terms({ setPage }) {
           <section>
             <h2>1. Agreement to Terms</h2>
             <p>
-              By creating an account, syncing your WhatsApp details, or using the API endpoints provided by SwiftFlow (&quot;the Service,&quot; &quot;we,&quot; &quot;our&quot;), you agree to enter a legally binding contract governed by these Terms &amp; Conditions.
+              By creating an account, syncing your WhatsApp details, or using the API endpoints provided by Growbychat (&quot;the Service,&quot; &quot;we,&quot; &quot;our&quot;), you agree to enter a legally binding contract governed by these Terms &amp; Conditions.
             </p>
             <p>
               If you disagree with any segment of these clauses, you must immediately terminate use of our environments and revoke dashboard tokens.
@@ -64,12 +64,12 @@ export default function Terms({ setPage }) {
           <section>
             <h2>5. Service Adjustments & Liability Boundaries</h2>
             <p>
-              SwiftFlow acts as a bridging layer to the Meta WhatsApp network.
+              Growbychat acts as a bridging layer to the Meta WhatsApp network.
             </p>
             <ul>
               <li>We are not responsible for account bans, delivery delays, or channel blockages initiated directly by Meta, WhatsApp, or carrier entities.</li>
               <li>We make no warranties, explicit or implied, that the Service will remain completely error-free or operate with 100% uninterrupted uptime, though we strive for maximum service availability.</li>
-              <li>In no event shall SwiftFlow be liable for lost profits, data erasure, or incidental damages arising from service usage or third-party modifications.</li>
+              <li>In no event shall Growbychat be liable for lost profits, data erasure, or incidental damages arising from service usage or third-party modifications.</li>
             </ul>
           </section>
 

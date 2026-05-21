@@ -44,7 +44,7 @@ export default function App() {
               <div className="footer-cta-card glass-card">
                 <h2>Scale Your WhatsApp Reach Today</h2>
                 <p>
-                  Join over 12,000+ modern teams using SwiftFlow to manage auto-responders, run high-converting broadcasts, and power reliable OTP verifications.
+                  Join over 12,000+ modern teams using Growbychat to manage auto-responders, run high-converting broadcasts, and power reliable OTP verifications.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
                   <button className="btn btn-primary" onClick={() => scrollToSection('pricing')}>

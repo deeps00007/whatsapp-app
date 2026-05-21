@@ -25,7 +25,7 @@ export default function Workflow() {
         <div className="section-header">
           <div className="accent-badge">The 3-Step Setup</div>
           <h2>Forget the Meta API Headaches</h2>
-          <p>Traditional WhatsApp platforms require developer approval, credit cards, complex authorization tokens, and API templates. Here is how SwiftFlow flips the script.</p>
+          <p>Traditional WhatsApp platforms require developer approval, credit cards, complex authorization tokens, and API templates. Here is how Growbychat flips the script.</p>
         </div>
 
         <div className="flow-cards">

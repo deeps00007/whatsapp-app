@@ -18,7 +18,7 @@ export default function Privacy({ setPage }) {
           <section>
             <h2>1. Introduction</h2>
             <p>
-              At SwiftFlow (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), your privacy is our absolute priority. This Privacy Policy details how we collect, process, manage, and safeguard information when you use our WhatsApp SaaS platform, including dashboards, automation tools, and API environments.
+              At Growbychat (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), your privacy is our absolute priority. This Privacy Policy details how we collect, process, manage, and safeguard information when you use our WhatsApp SaaS platform, including dashboards, automation tools, and API environments.
             </p>
             <p>
               By accessing or using our services, you consent to the data collection and processing methods described in this policy.
@@ -40,7 +40,7 @@ export default function Privacy({ setPage }) {
           <section>
             <h2>3. How We Process Meta & WhatsApp Data</h2>
             <p>
-              SwiftFlow bridges your workspace directly to the WhatsApp infrastructure via secure Facebook OAuth channels.
+              Growbychat bridges your workspace directly to the WhatsApp infrastructure via secure Facebook OAuth channels.
             </p>
             <ul>
               <li>Our integration utilizes direct Page tokens to manage chat events, bot replies, and broadcasts.</li>
@@ -69,7 +69,7 @@ export default function Privacy({ setPage }) {
             <ul>
               <li>You may request complete erasure of your workspace, including contact databases, messaging history logs, and subscription metadata.</li>
               <li>You can instantly revoke our Meta page authorization directly within your Facebook Account settings.</li>
-              <li>You can request a complete archive download of all records stored inside your SwiftFlow dashboard at any time.</li>
+              <li>You can request a complete archive download of all records stored inside your Growbychat dashboard at any time.</li>
             </ul>
           </section>
 

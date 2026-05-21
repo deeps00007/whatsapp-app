@@ -6,7 +6,7 @@ export default function FAQ() {
   const faqs = [
     {
       q: "Can I use my existing active WhatsApp number?",
-      a: "Yes, absolutely! Unlike standard APIs which force you to buy or map an empty, unused phone number, SwiftFlow lets you map your current WhatsApp or WhatsApp Business profile directly in seconds with zero loss of existing chats."
+      a: "Yes, absolutely! Unlike standard APIs which force you to buy or map an empty, unused phone number, Growbychat lets you map your current WhatsApp or WhatsApp Business profile directly in seconds with zero loss of existing chats."
     },
     {
       q: "Do I need a Meta Developer account or custom billing mapping?",
@@ -17,7 +17,7 @@ export default function FAQ() {
       a: "We have built-in smart throttle algorithms that distribute outbound broadcasts over soft, randomized intervals instead of blasting thousands of texts at the exact same millisecond. We also support tags to personalize every single message. Note: You should only message contacts who have consented to receive your communications."
     },
     {
-      q: "Can I connect SwiftFlow to my custom website or backend app?",
+      q: "Can I connect Growbychat to my custom website or backend app?",
       a: "Yes, we support comprehensive REST API hooks. Developers can trigger real-time transaction updates, shipping notifications, and high-priority OTP code verifications using simple JSON payloads in under 5 minutes."
     },
     {

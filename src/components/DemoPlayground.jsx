@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function DemoPlayground() {
   const [activeTemplate, setActiveTemplate] = useState('welcome'); // welcome, marketing, otp
-  const [customText, setCustomText] = useState('Hey {{name}}, thank you for choosing SwiftFlow! To complete your registration, select one of the quick options below.');
+  const [customText, setCustomText] = useState('Hey {{name}}, thank you for choosing Growbychat! To complete your registration, select one of the quick options below.');
   const [includeImage, setIncludeImage] = useState(true);
   const [buttonsCount, setButtonsCount] = useState(2); // 1, 2, or 3
   
@@ -16,13 +16,13 @@ export default function DemoPlayground() {
 
   const resetDemo = () => {
     if (activeTemplate === 'welcome') {
-      setCustomText('Hey {{name}}, thank you for choosing SwiftFlow! To complete your registration, select one of the quick options below.');
+      setCustomText('Hey {{name}}, thank you for choosing Growbychat! To complete your registration, select one of the quick options below.');
       setIncludeImage(true);
       setButtonsCount(2);
       setMessages([
         {
           id: 'initial',
-          text: 'Hey John, thank you for choosing SwiftFlow! To complete your registration, select one of the quick options below.',
+          text: 'Hey John, thank you for choosing Growbychat! To complete your registration, select one of the quick options below.',
           incoming: false,
           time: '10:00 AM',
           image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&h=200&fit=crop',
@@ -51,13 +51,13 @@ export default function DemoPlayground() {
         '🚀 Safe queue throttle limit set: 1 text every 1.5 seconds.'
       ]);
     } else if (activeTemplate === 'otp') {
-      setCustomText('Your SwiftFlow authorization code is: 582-903. Do not share this token. It will expire in 5 minutes.');
+      setCustomText('Your Growbychat authorization code is: 582-903. Do not share this token. It will expire in 5 minutes.');
       setIncludeImage(false);
       setButtonsCount(0);
       setMessages([
         {
           id: 'initial',
-          text: 'Your SwiftFlow authorization code is: 582-903. Do not share this token. It will expire in 5 minutes.',
+          text: 'Your Growbychat authorization code is: 582-903. Do not share this token. It will expire in 5 minutes.',
           incoming: false,
           time: '5:41 PM'
         }
@@ -130,7 +130,7 @@ export default function DemoPlayground() {
       let replyText = "Awesome! Your response was registered instantly. This chatbot response took less than 200ms to calculate and fire back ⚡";
       
       if (btnText === 'Verify Account') {
-        replyText = "🔒 Your account has been verified successfully! Welcome to SwiftFlow.";
+        replyText = "🔒 Your account has been verified successfully! Welcome to Growbychat.";
       } else if (btnText === 'View Dashboard') {
         replyText = "🖥️ Directing you to your admin control center...";
       } else if (btnText === 'Claim 30% Discount') {
@@ -248,9 +248,9 @@ export default function DemoPlayground() {
           <div>
             <div className="virtual-phone" style={{ height: '540px', maxWidth: '340px', margin: '0 auto' }}>
               <div className="phone-header" style={{ background: '#075E54' }}>
-                <div className="phone-avatar" style={{ background: '#128C7E', color: 'white' }}>SF</div>
+                <div className="phone-avatar" style={{ background: '#128C7E', color: 'white' }}>GC</div>
                 <div className="phone-user-info">
-                  <h5 style={{ color: 'white' }}>SwiftFlow Campaign</h5>
+                  <h5 style={{ color: 'white' }}>Growbychat Campaign</h5>
                   <span style={{ color: '#25D366' }}>Online / Interactive</span>
                 </div>
               </div>
