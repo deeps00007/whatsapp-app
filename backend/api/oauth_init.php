@@ -5,7 +5,12 @@ $client_id = getenv('FACEBOOK_CLIENT_ID') ?: '3371677636326324';
 $config_id = getenv('FACEBOOK_CONFIG_ID') ?: '982162267897292';
 
 // Dynamically construct redirect URI based on the request host
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$protocol = 'http';
+if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+    (!empty($_SERVER['HTTP_FRONTEND_HTTPS']) && $_SERVER['HTTP_FRONTEND_HTTPS'] === 'on')) {
+    $protocol = 'https';
+}
 $host = $_SERVER['HTTP_HOST'];
 $redirect_uri = "{$protocol}://{$host}/api/oauth_callback.php";
 
