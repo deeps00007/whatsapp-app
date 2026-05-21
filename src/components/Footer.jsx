@@ -8,6 +8,15 @@ export default function Footer({ scrollToSection }) {
     }, 100);
   };
 
+  const getBackendUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+    return 'https://api.growbychat.app';
+  };
+  const backendUrl = getBackendUrl();
+  const authInitUrl = `${backendUrl}/api/oauth_init.php?user_id=growbychat_user&frontend_host=${encodeURIComponent(window.location.origin)}`;
+
   return (
     <footer className="footer">
       <div className="container">
@@ -18,7 +27,7 @@ export default function Footer({ scrollToSection }) {
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
               </svg>
               <span>Growbychat</span>
-              <div class="logo-dot"></div>
+              <div className="logo-dot"></div>
             </a>
             <p style={{ color: 'var(--text-secondary)' }}>
               Supercharging customer communication with modern WhatsApp broadcasts, APIs, and no-code automation workflows. Simple, fast, and secure.
@@ -39,7 +48,7 @@ export default function Footer({ scrollToSection }) {
             <h4>Integrations</h4>
             <ul>
               <li><a href="#playground" onClick={(e) => handleLinkClick(e, 'playground')}>REST API Devs</a></li>
-              <li><a href="#home" onClick={(e) => handleLinkClick(e, 'home')}>Facebook Sign-In</a></li>
+              <li><a href={authInitUrl}>Facebook Sign-In</a></li>
               <li><a href="#home" onClick={(e) => handleLinkClick(e, 'home')}>WhatsApp QR Web</a></li>
               <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')}>Active Webhooks</a></li>
             </ul>

@@ -1,6 +1,10 @@
 <?php
 // Store this securely in Environment Variables in production!
-define('ENCRYPTION_KEY', 'your-secure-32-byte-env-secret-key-here!');
+$env_key = getenv('ENCRYPTION_KEY');
+if (empty($env_key)) {
+    $env_key = 'your-secure-32-byte-env-secret-key-here!';
+}
+define('ENCRYPTION_KEY', $env_key);
 
 function encrypt_token($data) {
     $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));

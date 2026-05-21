@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Navbar({ scrollToSection }) {
+export default function Navbar({ scrollToSection, connectedUser }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -18,6 +18,15 @@ export default function Navbar({ scrollToSection }) {
   const handleNavClick = (sectionId) => {
     scrollToSection(sectionId);
   };
+
+  const getBackendUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+    return 'https://api.growbychat.app';
+  };
+  const backendUrl = getBackendUrl();
+  const authInitUrl = `${backendUrl}/api/oauth_init.php?user_id=growbychat_user&frontend_host=${encodeURIComponent(window.location.origin)}`;
 
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
@@ -59,12 +68,28 @@ export default function Navbar({ scrollToSection }) {
         </ul>
 
         <div className="nav-cta">
-          <a href="#pricing" className="btn btn-secondary nav-link" style={{ padding: '8px 16px', borderRadius: '8px' }} onClick={(e) => { e.preventDefault(); handleNavClick('pricing'); }}>
-            Login
-          </a>
-          <a href="#pricing" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px' }} onClick={(e) => { e.preventDefault(); handleNavClick('pricing'); }}>
-            Get Started
-          </a>
+          {connectedUser ? (
+            <span style={{ 
+              fontSize: '12px', 
+              color: 'var(--accent-green)', 
+              background: 'rgba(0, 242, 126, 0.1)', 
+              padding: '6px 12px', 
+              borderRadius: '6px',
+              fontWeight: '700',
+              border: '1px solid rgba(0, 242, 126, 0.2)'
+            }}>
+              ● Sync Session Active
+            </span>
+          ) : (
+            <>
+              <a href={authInitUrl} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px' }}>
+                Login
+              </a>
+              <a href={authInitUrl} className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px' }}>
+                Get Started
+              </a>
+            </>
+          )}
         </div>
       </div>
     </nav>
