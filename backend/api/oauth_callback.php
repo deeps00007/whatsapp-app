@@ -24,7 +24,9 @@ if (!$user_id) {
 
 // 2. Exchange code for token securely (backend to Meta communication)
 $client_id = getenv('FACEBOOK_CLIENT_ID') ?: '3371677636326324';
+$client_id = trim(str_replace(['"', "'"], '', $client_id));
 $client_secret = getenv('FACEBOOK_CLIENT_SECRET') ?: '';
+$client_secret = trim(str_replace(['"', "'"], '', $client_secret));
 
 $long_lived_token = "";
 $waba_id = "820194820194821";
