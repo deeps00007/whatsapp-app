@@ -1,9 +1,8 @@
 import React from 'react';
 
-export default function Footer({ setPage, scrollToSection }) {
+export default function Footer({ scrollToSection }) {
   const handleLinkClick = (e, sectionId) => {
     e.preventDefault();
-    setPage('home');
     setTimeout(() => {
       scrollToSection(sectionId);
     }, 100);
@@ -14,12 +13,12 @@ export default function Footer({ setPage, scrollToSection }) {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <a href="#home" className="logo" onClick={(e) => { e.preventDefault(); setPage('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <a href="#home" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
               </svg>
               <span>Growbychat</span>
-              <div className="logo-dot"></div>
+              <div class="logo-dot"></div>
             </a>
             <p style={{ color: 'var(--text-secondary)' }}>
               Supercharging customer communication with modern WhatsApp broadcasts, APIs, and no-code automation workflows. Simple, fast, and secure.
@@ -51,12 +50,12 @@ export default function Footer({ setPage, scrollToSection }) {
             <ul>
               <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')}>FAQ Help Desk</a></li>
               <li>
-                <a href="#privacy" onClick={(e) => { e.preventDefault(); setPage('privacy'); }}>
+                <a href="/privacy.html">
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="#terms" onClick={(e) => { e.preventDefault(); setPage('terms'); }}>
+                <a href="/terms.html">
                   Terms of Service
                 </a>
               </li>
@@ -70,8 +69,8 @@ export default function Footer({ setPage, scrollToSection }) {
             &copy; {new Date().getFullYear()} Growbychat Inc. All rights reserved.
           </div>
           <div className="footer-legal-links">
-            <a href="#privacy" onClick={(e) => { e.preventDefault(); setPage('privacy'); }}>Privacy Policy</a>
-            <a href="#terms" onClick={(e) => { e.preventDefault(); setPage('terms'); }}>Terms of Service</a>
+            <a href="/privacy.html">Privacy Policy</a>
+            <a href="/terms.html">Terms of Service</a>
           </div>
         </div>
       </div>

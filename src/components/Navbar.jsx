@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Navbar({ page, setPage, scrollToSection }) {
+export default function Navbar({ scrollToSection }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -16,21 +16,13 @@ export default function Navbar({ page, setPage, scrollToSection }) {
   }, []);
 
   const handleNavClick = (sectionId) => {
-    if (page !== 'home') {
-      setPage('home');
-      // Delay scrolling slightly to let the home page mount
-      setTimeout(() => {
-        scrollToSection(sectionId);
-      }, 100);
-    } else {
-      scrollToSection(sectionId);
-    }
+    scrollToSection(sectionId);
   };
 
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
-        <a href="#home" className="logo" onClick={(e) => { e.preventDefault(); setPage('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+        <a href="#home" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
           </svg>
