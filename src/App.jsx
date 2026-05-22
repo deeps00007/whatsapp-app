@@ -93,17 +93,17 @@ export default function App() {
 
   return (
     <>
-      <Navbar scrollToSection={scrollToSection} connectedUser={connectedUser} onDisconnect={handleDisconnect} />
+      {profileData ? (
+        <DashboardWorkspace 
+          profileData={profileData} 
+          onDisconnect={handleDisconnect} 
+          backendUrl={backendUrl}
+        />
+      ) : (
+        <>
+          <Navbar scrollToSection={scrollToSection} connectedUser={connectedUser} onDisconnect={handleDisconnect} />
 
-      <main className="fade-in">
-        {profileData ? (
-          <DashboardWorkspace 
-            profileData={profileData} 
-            onDisconnect={handleDisconnect} 
-            backendUrl={backendUrl}
-          />
-        ) : (
-          <>
+          <main className="fade-in">
             <Hero scrollToSection={scrollToSection} />
             
             <Features />
@@ -135,11 +135,11 @@ export default function App() {
                 </div>
               </div>
             </section>
-          </>
-        )}
-      </main>
+          </main>
 
-      <Footer scrollToSection={scrollToSection} />
+          <Footer scrollToSection={scrollToSection} />
+        </>
+      )}
 
       {/* Premium OAuth Success Modal */}
       {showSuccessModal && (

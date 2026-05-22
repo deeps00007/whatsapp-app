@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase Credentials & Local DB Cache
+backend/api/firebase-service-account.json
+backend/api/database.json

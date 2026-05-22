@@ -1,9 +1,98 @@
 <?php
 // Firestore REST API Integration Helper
-// Supports local file fallback if FIREBASE_PROJECT_ID is not configured in env.
+// Supports local file fallback and authenticated Google Service Account credentials.
 
-define('FIREBASE_PROJECT_ID', getenv('FIREBASE_PROJECT_ID') ?: '');
+define('FIREBASE_PROJECT_ID', getenv('FIREBASE_PROJECT_ID') ?: 'whatsapp-betasaas');
 define('LOCAL_DB_FILE', __DIR__ . '/database.json');
+
+/**
+ * Retrieve or generate a Google OAuth2 Access Token using a Service Account JSON file.
+ * Returns null if no service account credentials are provided, enabling unauthenticated REST calls.
+ */
+function get_firestore_access_token() {
+    $service_account_path = getenv('FIREBASE_SERVICE_ACCOUNT_JSON');
+    if (!$service_account_path) {
+        $possible_path = __DIR__ . '/firebase-service-account.json';
+        if (file_exists($possible_path)) {
+            $service_account_path = $possible_path;
+        }
+    }
+
+    if (!$service_account_path || !file_exists($service_account_path)) {
+        return null; // Fall back to unauthenticated REST calls
+    }
+
+    $sa_data = json_decode(file_get_contents($service_account_path), true);
+    if (!$sa_data || !isset($sa_data['private_key']) || !isset($sa_data['client_email'])) {
+        return null;
+    }
+
+    // Cache the access token locally to prevent overhead of OAuth handshake on every request
+    $cache_file = sys_get_temp_dir() . '/firestore_access_token_' . md5($sa_data['client_email']) . '.json';
+    if (file_exists($cache_file)) {
+        $cached = json_decode(@file_get_contents($cache_file), true);
+        if ($cached && isset($cached['access_token']) && isset($cached['expires_at']) && $cached['expires_at'] > time() + 60) {
+            return $cached['access_token'];
+        }
+    }
+
+    // Generate JWT (JSON Web Token) for Google Service Account Auth
+    $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
+    $now = time();
+    $payload = json_encode([
+        'iss' => $sa_data['client_email'],
+        'scope' => 'https://www.googleapis.com/auth/datastore',
+        'aud' => 'https://oauth2.googleapis.com/token',
+        'exp' => $now + 3600,
+        'iat' => $now
+    ]);
+
+    // Base64Url encoding helper
+    $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+
+    $signature_input = $base64UrlHeader . "." . $base64UrlPayload;
+    $signature = '';
+    
+    // Sign JWT using standard OpenSSL RSA-SHA256
+    if (!openssl_sign($signature_input, $signature, $sa_data['private_key'], OPENSSL_ALGO_SHA256)) {
+        return null;
+    }
+
+    $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    $jwt = $signature_input . "." . $base64UrlSignature;
+
+    // Exchange JWT for OAuth2 Access Token
+    $token_url = 'https://oauth2.googleapis.com/token';
+    $post_fields = http_build_query([
+        'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion' => $jwt
+    ]);
+
+    $ch = curl_init($token_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code === 200) {
+        $res = json_decode($response, true);
+        if (isset($res['access_token'])) {
+            $expires_in = $res['expires_in'] ?? 3600;
+            $cache_data = [
+                'access_token' => $res['access_token'],
+                'expires_at' => time() + $expires_in
+            ];
+            @file_put_contents($cache_file, json_encode($cache_data));
+            return $res['access_token'];
+        }
+    }
+
+    return null;
+}
 
 // Convert a flat associative array into Firestore's specific nested JSON schema
 function to_firestore_fields($data) {
@@ -39,24 +128,23 @@ function from_firestore_fields($doc) {
 // Write/Update user in database
 function firestore_set_user($user_id, $data) {
     if (empty(FIREBASE_PROJECT_ID)) {
-        // Fallback: Local file database
-        $db = [];
-        if (file_exists(LOCAL_DB_FILE)) {
-            $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
-        }
-        $db[$user_id] = $data;
-        file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT));
-        return true;
+        return save_to_local_db($user_id, $data);
     }
 
     $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/users/" . urlencode($user_id);
     $payload = to_firestore_fields($data);
 
+    $headers = ['Content-Type: application/json'];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PATCH");
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -65,31 +153,30 @@ function firestore_set_user($user_id, $data) {
         return true;
     }
 
-    // Smart Resilient Fallback: If Firestore API returns error (e.g. 403 Forbidden/404), use local database
-    $db = [];
-    if (file_exists(LOCAL_DB_FILE)) {
-        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
-    }
-    $db[$user_id] = $data;
-    file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT));
-    return true;
+    // Smart Resilient Fallback: If Firestore API returns error, log it and fallback to local file
+    error_log("Firestore set failed. Status Code: " . $http_code . ". Error: " . $response);
+    return save_to_local_db($user_id, $data);
 }
 
 // Read user from database
 function firestore_get_user($user_id) {
     if (empty(FIREBASE_PROJECT_ID)) {
-        // Fallback: Local file database
-        if (!file_exists(LOCAL_DB_FILE)) {
-            return null;
-        }
-        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
-        return $db[$user_id] ?? null;
+        return read_from_local_db($user_id);
     }
 
     $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/users/" . urlencode($user_id);
     
+    $headers = [];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -100,40 +187,67 @@ function firestore_get_user($user_id) {
     }
 
     // Smart Resilient Fallback: If Firestore read fails, check local database
-    if (file_exists(LOCAL_DB_FILE)) {
-        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
-        if (isset($db[$user_id])) {
-            return $db[$user_id];
-        }
-    }
-
-    return null;
+    return read_from_local_db($user_id);
 }
 
 // Delete user from database
 function firestore_delete_user($user_id) {
     if (empty(FIREBASE_PROJECT_ID)) {
-        // Fallback: Local file database
-        if (!file_exists(LOCAL_DB_FILE)) {
-            return true;
-        }
-        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
-        if (isset($db[$user_id])) {
-            unset($db[$user_id]);
-            file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT));
-        }
-        return true;
+        return delete_from_local_db($user_id);
     }
 
     $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/users/" . urlencode($user_id);
     
+    $headers = [];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    return ($http_code >= 200 && $http_code < 300);
+    if ($http_code >= 200 && $http_code < 300) {
+        return true;
+    }
+
+    return delete_from_local_db($user_id);
+}
+
+// Helpers for Local Database Fallbacks
+function save_to_local_db($user_id, $data) {
+    $db = [];
+    if (file_exists(LOCAL_DB_FILE)) {
+        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
+    }
+    $db[$user_id] = $data;
+    return (file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT)) !== false);
+}
+
+function read_from_local_db($user_id) {
+    if (!file_exists(LOCAL_DB_FILE)) {
+        return null;
+    }
+    $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
+    return $db[$user_id] ?? null;
+}
+
+function delete_from_local_db($user_id) {
+    if (!file_exists(LOCAL_DB_FILE)) {
+        return true;
+    }
+    $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
+    if (isset($db[$user_id])) {
+        unset($db[$user_id]);
+        return (file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT)) !== false);
+    }
+    return true;
 }
 ?>
