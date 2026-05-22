@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Navbar({ scrollToSection, connectedUser }) {
+export default function Navbar({ scrollToSection, connectedUser, onDisconnect }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -69,17 +69,33 @@ export default function Navbar({ scrollToSection, connectedUser }) {
 
         <div className="nav-cta">
           {connectedUser ? (
-            <span style={{
-              fontSize: '12px',
-              color: 'var(--accent-green)',
-              background: 'rgba(0, 242, 126, 0.1)',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontWeight: '700',
-              border: '1px solid rgba(0, 242, 126, 0.2)'
-            }}>
-              ● Sync Session Active
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{
+                fontSize: '12px',
+                color: 'var(--accent-green)',
+                background: 'rgba(0, 242, 126, 0.1)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                border: '1px solid rgba(0, 242, 126, 0.2)'
+              }}>
+                ● Session Active
+              </span>
+              <button 
+                onClick={onDisconnect} 
+                className="btn btn-secondary" 
+                style={{ 
+                  padding: '8px 16px', 
+                  borderRadius: '8px', 
+                  fontSize: '13px', 
+                  border: '1px solid rgba(248, 113, 113, 0.25)', 
+                  color: '#f87171',
+                  background: 'rgba(248, 113, 113, 0.05)'
+                }}
+              >
+                Revoke Session
+              </button>
+            </div>
           ) : (
             <>
               <a href={authInitUrl} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px' }}>

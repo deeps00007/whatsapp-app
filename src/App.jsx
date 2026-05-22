@@ -32,26 +32,14 @@ export default function App() {
     }
   };
 
-  const fetchProfile = async (userId) => {
-    try {
-      const res = await fetch(`${backendUrl}/api/get_profile.php?user_id=${encodeURIComponent(userId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProfileData(data);
-        localStorage.setItem('growbychat_profile', JSON.stringify(data));
-      }
-    } catch (err) {
-      console.error("Failed to fetch WABA profile from Firestore:", err);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!connectedUser) return;
+  const handleDisconnect = async (forcedUserId) => {
+    const targetUserId = forcedUserId || connectedUser;
+    if (!targetUserId) return;
     try {
       await fetch(`${backendUrl}/api/disconnect.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: connectedUser })
+        body: JSON.stringify({ user_id: targetUserId })
       });
     } catch (err) {
       console.error("Failed to revoke active token on server:", err);
@@ -62,6 +50,30 @@ export default function App() {
       localStorage.removeItem('growbychat_profile');
     }
   };
+
+  const fetchProfile = async (userId) => {
+    try {
+      const res = await fetch(`${backendUrl}/api/get_profile.php?user_id=${encodeURIComponent(userId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData(data);
+        localStorage.setItem('growbychat_profile', JSON.stringify(data));
+      } else if (res.status === 404) {
+        console.warn("WABA profile not found on backend. Clearing session.");
+        await handleDisconnect(userId);
+      }
+    } catch (err) {
+      console.error("Failed to fetch WABA profile from Firestore:", err);
+    }
+  };
+
+  // Verify WABA session health on mount
+  useEffect(() => {
+    const savedUserId = localStorage.getItem('growbychat_user_id');
+    if (savedUserId) {
+      fetchProfile(savedUserId);
+    }
+  }, []);
 
   // Premium Hash Auto-scroll Utility & OAuth Callback Listener
   useEffect(() => {
