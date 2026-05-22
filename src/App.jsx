@@ -141,7 +141,7 @@ export default function App() {
                       Get Started Instantly
                     </button>
                     <button className="btn btn-secondary" onClick={() => scrollToSection('playground')}>
-                      Test Live Sandbox
+                      Test Live Demo
                     </button>
                   </div>
                 </div>
@@ -211,10 +211,10 @@ export default function App() {
                 </svg>
               </div>
 
-              <div className="accent-badge" style={{ margin: '0 auto 12px auto', display: 'inline-block' }}>Meta Partner Verified</div>
+              <div className="accent-badge" style={{ margin: '0 auto 12px auto', display: 'inline-block' }}>WhatsApp API Connected</div>
               <h3 style={{ fontSize: '26px', fontWeight: '800', marginBottom: '12px', color: '#FFF', fontFamily: 'Outfit' }}>Integration Successful!</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.6', marginBottom: '28px' }}>
-                Your Facebook page and WhatsApp Business profile have been successfully synced through our authorized partner gateway.
+                Your Facebook page and WhatsApp Business profile have been successfully connected via Meta's secure login.
               </p>
 
               {/* Status parameters table */}
@@ -227,21 +227,21 @@ export default function App() {
                 textAlign: 'left'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>OAuth Channel Integrity</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>Connection Status</span>
                   <span style={{ fontSize: '13px', color: '#00F27E', fontWeight: '600' }}>Active / Secure</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>Token Storage</span>
-                  <span style={{ fontSize: '13px', color: '#00E5FF', fontWeight: '600' }}>AES-256 Encrypted</span>
+                  <span style={{ fontSize: '13px', color: '#00E5FF', fontWeight: '600' }}>Securely Encrypted</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>Webhook Event Nodes</span>
-                  <span style={{ fontSize: '13px', color: '#7C3AED', fontWeight: '600' }}>Listening (100% Uptime)</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>Webhook Status</span>
+                  <span style={{ fontSize: '13px', color: '#7C3AED', fontWeight: '600' }}>Active</span>
                 </div>
               </div>
 
               <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '15px' }} onClick={() => setShowSuccessModal(false)}>
-                Enter Dashboard Sandbox
+                Enter Business Dashboard
               </button>
             </div>
           </div>

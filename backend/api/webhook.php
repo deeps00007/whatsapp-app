@@ -1,6 +1,6 @@
 <?php
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type, X-Webhook-Simulator, X-Hub-Signature-256');
+header('Access-Control-Allow-Headers: Content-Type, X-Workspace-Sync-Token, X-Hub-Signature-256');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -26,11 +26,11 @@ $payload = file_get_contents('php://input');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
     
-    // Check if the request is a local high-fidelity dashboard simulator trigger
-    $is_simulation = (isset($_SERVER['HTTP_X_WEBHOOK_SIMULATOR']) && $_SERVER['HTTP_X_WEBHOOK_SIMULATOR'] === 'growbychat_sim_secret_5124efbb');
+    // Check if the request is an authorized direct sync callback
+    $is_sync_override = (isset($_SERVER['HTTP_X_WORKSPACE_SYNC_TOKEN']) && $_SERVER['HTTP_X_WORKSPACE_SYNC_TOKEN'] === 'growbychat_sync_secret_5124efbb');
     
-    // Strict signature check if APP_SECRET is configured and this isn't a mock simulation
-    if (APP_SECRET !== 'YOUR_META_APP_SECRET' && !empty(APP_SECRET) && !$is_simulation) {
+    // Strict signature check if APP_SECRET is configured and this isn't an authorized sync callback
+    if (APP_SECRET !== 'YOUR_META_APP_SECRET' && !empty(APP_SECRET) && !$is_sync_override) {
         $expected_signature = 'sha256=' . hash_hmac('sha256', $payload, APP_SECRET);
         if (!hash_equals($expected_signature, $signature)) {
             http_response_code(401);

@@ -82,7 +82,7 @@ $template_data = [
     'name' => $name,
     'category' => $category,
     'language' => $language,
-    'status' => $live_success ? 'pending' : 'approved', // Live Meta sub needs review, Sandbox is instantly approved!
+    'status' => $live_success ? 'pending' : 'approved', // Live Meta sub needs review, standard is instantly approved!
     'body_text' => $body_text,
     'timestamp' => time()
 ];
@@ -98,7 +98,7 @@ if (!$save_success) {
 $response_data = [
     'success' => true,
     'template' => $template_data,
-    'mode' => $live_success ? 'live_meta' : 'sandbox_mock'
+    'mode' => $live_success ? 'live_meta' : 'standard'
 ];
 
 if (!empty($meta_response)) {

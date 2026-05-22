@@ -57,13 +57,13 @@ export default function Hero({ scrollToSection }) {
               <polyline points="2 17 12 22 22 17"></polyline>
               <polyline points="2 12 12 17 22 12"></polyline>
             </svg>
-            Verified Meta Business Partner Integration
+            Official WhatsApp API Integration
           </div>
           <h1>
             Automate WhatsApp in <span className="gradient-green-text">Under 2 Minutes</span>
           </h1>
           <p>
-            The easiest WhatsApp SaaS on the market. Don't worry about complex Meta Cloud API setups, developer credentials, or complicated token renewals. As a secure Meta partner integration, we handle the heavy lifting for you. Just connect your Facebook page, link your existing business number, and instantly launch automated campaigns, broadcasts, and high-speed OTP services.
+            The easiest WhatsApp SaaS on the market. Don't worry about complex Meta Cloud API setups, developer credentials, or complicated token renewals. We handle the heavy lifting for you using secure WhatsApp Business API endpoints. Just connect your account, link your existing business number, and instantly launch automated campaigns, broadcasts, and high-speed OTP services.
           </p>
           <div className="hero-actions">
             <button className="btn btn-primary" onClick={() => scrollToSection('pricing')}>
@@ -86,7 +86,7 @@ export default function Hero({ scrollToSection }) {
               <div className="dash-header">
                 <div className="dash-title">
                   <span>Connection Console</span>
-                  <span className="dash-badge">Real-time Sandbox</span>
+                  <span className="dash-badge">Interactive Workspace</span>
                 </div>
               </div>
 
@@ -110,8 +110,8 @@ export default function Hero({ scrollToSection }) {
                 >
                   <div className="dash-step-num">2</div>
                   <div className="dash-step-content">
-                    <h4>Scan QR or Link Existing Number</h4>
-                    <p>Direct WhatsApp Web mapping or Facebook Page pairing in seconds.</p>
+                    <h4>Link WhatsApp Phone Number</h4>
+                    <p>Select your connected business phone number from Meta settings.</p>
                   </div>
                 </div>
 
@@ -122,8 +122,8 @@ export default function Hero({ scrollToSection }) {
                 >
                   <div className="dash-step-num">3</div>
                   <div className="dash-step-content">
-                    <h4>Dive into Automation</h4>
-                    <p>Send OTPs, auto-respond, launch broadcasts to infinite users instantly.</p>
+                    <h4>Launch Campaigns & Webhooks</h4>
+                    <p>Send marketing messages, sync real-time delivery status, or connect developer webhooks.</p>
                   </div>
                 </div>
               </div>

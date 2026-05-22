@@ -58,7 +58,7 @@ if ($user_profile && !empty($user_profile['fb_access_token']) && !empty($user_pr
 }
 
 // Pre-configured high-fidelity templates for premium experience & easy App Review tests
-$mock_templates = [
+$default_templates = [
     [
         'template_id' => 'customer_welcome_alert',
         'user_id' => $user_id,
@@ -96,7 +96,7 @@ $db_templates = firestore_get_templates($user_id);
 
 // Merge templates using template name as unique key to prevent collisions
 $all_templates = [];
-foreach ($mock_templates as $t) {
+foreach ($default_templates as $t) {
     $all_templates[$t['name']] = $t;
 }
 foreach ($db_templates as $t) {

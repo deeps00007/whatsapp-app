@@ -5,17 +5,17 @@ export default function Workflow() {
     {
       num: "01",
       title: "Secure Facebook Login",
-      description: "Click connect and log in with your standard Facebook credentials. We establish a secure Meta partner pipeline to find your registered pages instantly."
+      description: "Connect using your official Facebook account. We establish a secure connection using Meta's Cloud API to link your WhatsApp Business profile instantly."
     },
     {
       num: "02",
-      title: "Sync Your Existing Number",
-      description: "No need for a brand new, empty phone number. Hook your active WhatsApp Business profile by scanning a direct, end-to-end encrypted dashboard QR code."
+      title: "Sync Phone & Templates",
+      description: "Select your connected WhatsApp Business phone number and automatically import your pre-approved templates directly from your dashboard."
     },
     {
       num: "03",
-      title: "Instantly Deploy at Scale",
-      description: "Launch targeted marketing broadcasts, configure no-code chatbots to auto-respond to clients, or trigger instant OTP tokens using our developer API keys."
+      title: "Broadcast & Automate",
+      description: "Launch targeted campaign broadcasts to your contacts, monitor delivery status receipts, or set up secure webhooks for real-time messaging updates."
     }
   ];
 

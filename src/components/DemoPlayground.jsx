@@ -31,7 +31,7 @@ export default function DemoPlayground() {
       ]);
       setSystemLogs([
         '🟢 Bot Server active and listening.',
-        '🔄 Webhook mapped to Facebook page secure tunnel.'
+        '🔄 Webhook event subscription active.'
       ]);
     } else if (activeTemplate === 'marketing') {
       setCustomText('⚡ FLASH SALE: Hey {{name}}, get 30% off our pro tier today only. Use code PRO30 at checkout.');
@@ -48,7 +48,7 @@ export default function DemoPlayground() {
       ]);
       setSystemLogs([
         '📈 Bulk campaign "Sarah & 4,500 contacts" created.',
-        '🚀 Safe queue throttle limit set: 1 text every 1.5 seconds.'
+        '🚀 Campaign dispatch rate: 1 message per second.'
       ]);
     } else if (activeTemplate === 'otp') {
       setCustomText('Your Growbychat authorization code is: 582-903. Do not share this token. It will expire in 5 minutes.');
@@ -155,9 +155,9 @@ export default function DemoPlayground() {
     <section className="sandbox" id="playground">
       <div className="container">
         <div className="section-header">
-          <div className="accent-badge">Live Interactive Simulator</div>
+          <div className="accent-badge">Interactive Workflow Preview</div>
           <h2>Playground: Craft Your Perfect Flow</h2>
-          <p>Don't take our word for it. Try customizing a mock message below and interact directly with our simulated phone dashboard to watch our system in action!</p>
+          <p>Don't take our word for it. Try customizing a campaign template below and interact directly with our interactive phone preview to watch our system in action!</p>
         </div>
 
         <div className="sandbox-container">
@@ -320,7 +320,7 @@ export default function DemoPlayground() {
                   type="text" 
                   className="phone-input" 
                   style={{ background: '#FFFFFF', color: '#000000' }}
-                  placeholder="Interactive sandbox..." 
+                  placeholder="Interactive preview..." 
                   disabled
                 />
                 <button className="phone-send" style={{ background: '#075E54' }} disabled>

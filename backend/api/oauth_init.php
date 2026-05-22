@@ -26,7 +26,7 @@ $state = base64_encode(json_encode([
     'frontend_host' => $frontend_host
 ]));
 
-// Hidden metadata configurations to switch Meta's onboarding view into Coexistence Mode
+// Standard Meta Embedded Signup configurations
 $extras = [
     'version' => 'v3',
     'sessionInfoVersion' => '3',
@@ -35,7 +35,7 @@ $extras = [
 ];
 $extras_json = json_encode($extras);
 
-// BUILD COEXISTENCE EMBEDDED SIGNUP URL (v23.0)
+// BUILD EMBEDDED SIGNUP URL (v23.0)
 $oauth_url = "https://www.facebook.com/v23.0/dialog/oauth?"
            . "client_id=" . urlencode($client_id)
            . "&redirect_uri=" . urlencode($redirect_uri)

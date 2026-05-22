@@ -32,7 +32,7 @@ $long_lived_token = "";
 $waba_id = "820194820194821";
 $phone_number_id = "392019485720194";
 $phone_number = "+1 (555) 019-2834";
-$business_name = "Growbychat Sandbox Retail";
+$business_name = "Growbychat Business Hub";
 
 if (!empty($client_secret)) {
     // Live Meta Graph API Integration

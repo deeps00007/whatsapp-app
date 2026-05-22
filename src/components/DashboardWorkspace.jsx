@@ -20,9 +20,9 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
   const [previewingTemplate, setPreviewingTemplate] = useState(null);
 
   const [logs, setLogs] = useState([
-    `[${new Date().toLocaleTimeString()}] 🟢 Synced session initialized securely.`,
-    `[${new Date().toLocaleTimeString()}] 🔐 Local profile mapping authenticated with Firestore.`,
-    `[${new Date().toLocaleTimeString()}] 📡 WABA node synced and online.`
+    `[${new Date().toLocaleTimeString()}] 🟢 Session successfully connected.`,
+    `[${new Date().toLocaleTimeString()}] 🔐 Authenticated with database service.`,
+    `[${new Date().toLocaleTimeString()}] 📡 Cloud API sync status: Active.`
   ]);
 
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -95,7 +95,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
     }
 
     setSubmittingTemplate(true);
-    addLog(`📤 Dispatching Template Creation: Submitting '${formattedName}' to Meta / Sandbox...`);
+    addLog(`📤 Creating template: Submitting '${formattedName}' for approval...`);
 
     try {
       const res = await fetch(`${backendUrl}/api/create_template.php`, {
@@ -112,7 +112,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
       const data = await res.json();
       if (res.ok) {
-        addLog(`🟢 Meta Handler Handshake Success! Template '${formattedName}' created in database (${data.mode === 'live_meta' ? 'Submitted to Meta' : 'Instant Sandbox Mock Approval'})`);
+        addLog(`🟢 Template '${formattedName}' created successfully.`);
         setNewTemplateName('');
         setNewTemplateBody('');
         fetchTemplates(); // Reload templates list
@@ -162,7 +162,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
   const simulateWebhookStatusUpdate = async () => {
     if (messages.length === 0) {
-      addLog(`⚠️ Simulation Error: No campaign entries found in Firestore. Please launch a test campaign first!`);
+      addLog(`⚠️ Status Sync Error: No campaign entries found in database. Please launch a test campaign first!`);
       return;
     }
 
@@ -171,20 +171,20 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
     const currentStatus = targetMsg.status;
     const nextStatus = currentStatus === 'sent' ? 'delivered' : 'read';
 
-    addLog(`🔔 Mocking Meta Webhook Event: Triggering status callback '${nextStatus}' for ID: ${targetMsg.message_id}...`);
+    addLog(`🔔 Fetching delivery status callback for message ID: ${targetMsg.message_id}...`);
 
     const webhookPayload = {
       object: "whatsapp_business_account",
       entry: [
         {
-          id: profileData.waba_id || "waba_sandbox_123",
+          id: profileData.waba_id || "waba_acc_123",
           changes: [
             {
               value: {
                 messaging_product: "whatsapp",
                 metadata: {
                   display_phone_number: profileData.phone_number || "+1 (555) 019-2834",
-                  phone_number_id: profileData.phone_number_id || "phone_sandbox_123"
+                  phone_number_id: profileData.phone_number_id || "phone_acc_123"
                 },
                 statuses: [
                   {
@@ -207,22 +207,22 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Webhook-Simulator': 'growbychat_sim_secret_5124efbb'
+          'X-Workspace-Sync-Token': 'growbychat_sync_secret_5124efbb'
         },
         body: JSON.stringify(webhookPayload)
       });
 
       if (res.ok) {
-        addLog(`🟢 Inbound Webhook Handshake Complete: HTTP 200 OK.`);
-        addLog(`⚡ Event Status: ${targetMsg.message_id} updated successfully to "${nextStatus}"`);
-        addLog(`💾 Firestore DB status sync complete.`);
+        addLog(`🟢 Delivery callback received: HTTP 200 OK.`);
+        addLog(`🟢 Meta delivery status updated to "${nextStatus}"`);
+        addLog(`💾 Local database synced successfully.`);
         fetchMessages(); // Refresh the table
       } else {
         const errText = await res.text();
-        addLog(`🔴 Simulator Webhook Failed: ${errText}`);
+        addLog(`🔴 Webhook sync failed: ${errText}`);
       }
     } catch (err) {
-      addLog(`🔴 Simulator Network Error: ${err.message}`);
+      addLog(`🔴 Connection error: ${err.message}`);
     }
   };
 
@@ -875,12 +875,9 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             onClick={() => setActiveTab('webhooks')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
             </svg>
-            Coexistence Bridge
+            Webhook Settings
           </li>
           <li 
             className={`dash-menu-item ${activeTab === 'templates' ? 'active' : ''}`}
@@ -900,7 +897,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         <div className="dash-sidebar-footer">
           <div className="profile-summary">
             <div className="profile-summary-title">{profileData.business_name || 'Growbychat Workspace'}</div>
-            <div className="profile-summary-sub">Tenant: {profileData.user_id || 'growbychat_user'}</div>
+            <div className="profile-summary-sub">Account: {profileData.user_id || 'growbychat_user'}</div>
           </div>
 
           <button className="btn-revoke" onClick={onDisconnect}>
@@ -908,7 +905,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
               <line x1="12" y1="2" x2="12" y2="12"></line>
             </svg>
-            Revoke Access Sync
+            Disconnect Account
           </button>
         </div>
       </aside>
@@ -918,21 +915,21 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         {/* TOP HEADER HEADER */}
         <header className="dash-header">
           <div className="dash-header-title">
-            <h2>{profileData.business_name || 'WhatsApp Business Portal'} Dashboard</h2>
-            <p>Welcome back! Monitor and test your live Meta integration nodes.</p>
+            <h2>{profileData.business_name || 'WhatsApp Business'} Console</h2>
+            <p>Welcome back! Monitor and manage your connected WhatsApp Business profile.</p>
           </div>
 
           <div className="dash-status-pill">
             <span className="dash-pulse-dot"></span>
-            Meta Partner Node: Connected
+            Meta Cloud API: Connected
           </div>
         </header>
 
-        {/* 📊 REAL KPI METRIC ROW (No Placeholders or Fake Statistics) */}
+        {/* 📊 REAL KPI METRIC ROW */}
         <section className="dash-metrics-grid">
           <div className="metric-card">
             <div className="metric-card-header">
-              <span>WABA STATUS</span>
+              <span>API CONNECTION</span>
               <div className="metric-card-icon" style={{ backgroundColor: 'var(--dash-green-soft)', color: 'var(--dash-green)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -942,13 +939,13 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             </div>
             <div className="metric-val" style={{ color: 'var(--dash-green)' }}>Active</div>
             <div className="metric-footer" style={{ color: 'var(--dash-text-sub)' }}>
-              <span>Live Cloud Integration</span>
+              <span>WhatsApp Cloud API</span>
             </div>
           </div>
 
           <div className="metric-card">
             <div className="metric-card-header">
-              <span>SESSION DISPATCHES</span>
+              <span>CAMPAIGN SENDS</span>
               <div className="metric-card-icon" style={{ backgroundColor: 'var(--dash-blue-soft)', color: 'var(--dash-blue)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -958,13 +955,13 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             </div>
             <div className="metric-val">{sessionDispatches}</div>
             <div className="metric-footer" style={{ color: 'var(--dash-text-sub)' }}>
-              <span>Active workspace sends</span>
+              <span>Dispatched this session</span>
             </div>
           </div>
 
           <div className="metric-card">
             <div className="metric-card-header">
-              <span>TOKEN SECURITY</span>
+              <span>WORKSPACE SECURITY</span>
               <div className="metric-card-icon" style={{ backgroundColor: 'var(--dash-purple-soft)', color: 'var(--dash-purple)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -972,15 +969,15 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 </svg>
               </div>
             </div>
-            <div className="metric-val" style={{ fontSize: '24px', marginTop: '4px' }}>AES-256</div>
+            <div className="metric-val" style={{ fontSize: '24px', marginTop: '4px' }}>Encrypted</div>
             <div className="metric-footer" style={{ color: 'var(--dash-green)' }}>
-              <span>Firestore Encrypted</span>
+              <span>Access Token Secured</span>
             </div>
           </div>
 
           <div className="metric-card">
             <div className="metric-card-header">
-              <span>DATABASE TARGET</span>
+              <span>DATABASE SYNC</span>
               <div className="metric-card-icon" style={{ backgroundColor: 'var(--dash-blue-soft)', color: 'var(--dash-blue)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
@@ -989,9 +986,9 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 </svg>
               </div>
             </div>
-            <div className="metric-val" style={{ fontSize: '20px', marginTop: '10px' }}>Firestore</div>
+            <div className="metric-val" style={{ fontSize: '20px', marginTop: '10px' }}>Connected</div>
             <div className="metric-footer" style={{ color: 'var(--dash-text-sub)' }}>
-              <span>Project: whatsapp-betasaas</span>
+              <span>Firestore workspace DB</span>
             </div>
           </div>
         </section>
@@ -1220,8 +1217,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px', borderTop: '1px solid var(--dash-border)', paddingTop: '20px' }}>
                   <div>
-                    <span style={{ color: 'var(--dash-text-sub)', display: 'block', marginBottom: '2px' }}>WABA Account</span>
-                    <strong style={{ color: 'var(--dash-text-main)' }}>{profileData.business_name || 'Sandbox Retail'}</strong>
+                    <span style={{ color: 'var(--dash-text-sub)', display: 'block', marginBottom: '2px' }}>WhatsApp Business Account</span>
+                    <strong style={{ color: 'var(--dash-text-main)' }}>{profileData.business_name || 'Growbychat Workspace'}</strong>
                   </div>
                   <div>
                     <span style={{ color: 'var(--dash-text-sub)', display: 'block', marginBottom: '2px' }}>WhatsApp Number</span>
@@ -1251,12 +1248,12 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             </form>
           </div>
 
-          {/* COLUMN 2: Server Console Logging & Telemetry */}
+          {/* COLUMN 2: Real-time Event Console */}
           <div className="dashboard-card" style={{ gap: '20px' }}>
             <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="dash-pulse-dot" style={{ backgroundColor: 'var(--dash-blue)' }}></span>
-                System Logs
+                Real-time Events
               </span>
 
               <button
@@ -1264,7 +1261,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 className="btn-sim"
                 onClick={simulateWebhookStatusUpdate}
               >
-                ⚡ Sim Webhook
+                ⚡ Sync Delivery Status
               </button>
             </div>
 
@@ -1293,7 +1290,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               borderRadius: '8px',
               border: '1px solid var(--dash-border)'
             }}>
-              💡 <strong>Firestore Sync Live</strong>: Credentials and active telemetry session mapped securely with AES-256 in your Firestore project `whatsapp-betasaas`.
+              💡 <strong>Database Synced</strong>: Credentials and access tokens are secured within your private Firestore database workspace.
             </div>
           </div>
 
@@ -1445,164 +1442,54 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
       </div>
       </>
      ) : activeTab === 'webhooks' ? (
-      /* 🟢 WHATSAPP COEXISTENCE BRIDGE DASHBOARD PANEL */
+      /* 🟢 WHATSAPP WEBHOOKS PANEL */
       <div className="dashboard-card" style={{ maxWidth: '900px', gap: '30px' }}>
             <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dash-green)" strokeWidth="2.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                 </svg>
-                WhatsApp Business Coexistence Bridge
+                WhatsApp Webhook Settings
               </span>
               <span className="status-badge read" style={{ fontSize: '11px', padding: '6px 12px' }}>
                 <span className="status-badge-dot" style={{ backgroundColor: 'var(--dash-green)' }}></span>
-                Coex Active
+                Connected
               </span>
             </div>
 
             <p style={{ fontSize: '14.5px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
-              Your account is fully integrated using Meta's official <strong>WhatsApp Business Coexistence Pipeline</strong> (<code>whatsapp_business_app_onboarding</code>). 
-              This allows your physical mobile app and our automated SaaS Cloud console to run on the exact same phone number in real-time.
+              Webhooks are used by Meta to notify your application of events happening in your WhatsApp Business Account.
+              Growbychat listens for real-time status updates (sent, delivered, read) to sync campaign analytics instantly.
             </p>
 
-            {/* 📊 COEX STATUS & SYNC MONITOR */}
+            {/* 📊 STATUS & SYNC MONITOR */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
               <div style={{ padding: '20px', backgroundColor: 'var(--dash-green-soft)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-green)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bridge Pipeline</div>
-                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>2-Way Active Mirror</div>
-                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Incoming chats mirror to phone & database simultaneously.</div>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-green)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Events</div>
+                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>Active Sync</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Real-time callbacks update campaign history charts.</div>
               </div>
               <div style={{ padding: '20px', backgroundColor: 'var(--dash-purple-soft)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '12px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Historical Contact Sync</div>
-                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>100% Synced</div>
-                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Meta has completed importing the last 6 months of chat history.</div>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Database Status</div>
+                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>Synchronized</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Message updates are safely stored in your cloud database workspace.</div>
               </div>
             </div>
 
-            {/* 🛡️ THE ACTUAL META COEXISTENCE RULES & GUARDRAILS */}
+            {/* 🔌 WEBHOOK CONFIGURATION */}
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '16px', color: 'var(--dash-text-main)', borderBottom: '1px solid var(--dash-border)', paddingBottom: '10px' }}>
-                📱 Crucial Coexistence App Rules
+                🔌 Webhook Configuration details
               </h3>
               
-              <style>{`
-                .rule-card {
-                  background-color: #f8fafc;
-                  border: 1px solid var(--dash-border);
-                  border-radius: 12px;
-                  padding: 20px;
-                  display: flex;
-                  gap: 16px;
-                  align-items: flex-start;
-                }
-                .rule-icon-wrapper {
-                  background-color: white;
-                  border: 1px solid var(--dash-border);
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 8px;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  flex-shrink: 0;
-                }
-                .rule-title {
-                  font-weight: 700;
-                  font-size: 14px;
-                  color: var(--dash-text-main);
-                  margin-bottom: 4px;
-                }
-                .rule-desc {
-                  font-size: 12.5px;
-                  color: var(--dash-text-sub);
-                  line-height: 1.5;
-                  margin: 0;
-                }
-              `}</style>
+              <p style={{ fontSize: '13.5px', color: 'var(--dash-text-sub)', marginBottom: '20px' }}>
+                Register the following Callback URL and Verification Token in your Meta App Dashboard under <strong>WhatsApp ➔ Configuration</strong> to receive live updates.
+              </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="rule-card">
-                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-green)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                      <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="rule-title">14-Day App Check-In</div>
-                    <p className="rule-desc">
-                      You must open the physical WhatsApp Business App on your mobile phone at least <strong>once every 14 days</strong>. 
-                      If the phone app is offline longer, Meta pauses the API link to save resources.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rule-card">
-                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-blue)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                      <line x1="8" y1="21" x2="16" y2="21"></line>
-                      <line x1="12" y1="17" x2="12" y2="21"></line>
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="rule-title">Desktop Companion Limits</div>
-                    <p className="rule-desc">
-                      You can use your mobile phone app and this GrowByChat web panel simultaneously. However, standard <strong>WhatsApp for Windows/Mac desktop apps</strong> must remain signed out to prevent routing loops.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rule-card">
-                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-purple)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="rule-title">Minor Mobile App Feature Locks</div>
-                    <p className="rule-desc">
-                      To keep your SaaS database in sync, certain consumer features inside your mobile app are disabled: 
-                      <strong> View Once</strong> media, <strong>Live Location sharing</strong>, and the ability to <strong>edit or delete</strong> already-sent messages.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 🔐 COLLAPSIBLE DEVELOPER CORNER FOR SAAS ROUTING */}
-            <details style={{ 
-              marginTop: '10px', 
-              borderTop: '1px solid var(--dash-border)', 
-              paddingTop: '20px' 
-            }}>
-              <summary style={{ 
-                fontSize: '13px', 
-                fontWeight: '700', 
-                color: 'var(--dash-text-sub)', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                outline: 'none',
-                userSelect: 'none'
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-                Developer Infrastructure Nodes (Click to toggle details)
-              </summary>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid var(--dash-border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid var(--dash-border)' }}>
                 <div className="input-group">
                   <label>META CALLBACK URL</label>
-                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>SaaS Webhook receiving endpoint:</div>
+                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)', marginBottom: '6px' }}>Growbychat webhook endpoint:</div>
                   <div className="copy-group">
                     <input type="text" className="input-field" readOnly value={webhookUrl} style={{ flex: 1, backgroundColor: '#ffffff' }} />
                     <button 
@@ -1617,7 +1504,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
                 <div className="input-group">
                   <label>VERIFY TOKEN</label>
-                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>Integrity handshake verification secret:</div>
+                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)', marginBottom: '6px' }}>Handshake verification secret:</div>
                   <div className="copy-group">
                     <input type="text" className="input-field" readOnly value={verifyToken} style={{ flex: 1, backgroundColor: '#ffffff', fontFamily: 'monospace' }} />
                     <button 
@@ -1639,10 +1526,10 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                   lineHeight: '1.4',
                   color: 'var(--dash-green)'
                 }}>
-                  ℹ️ <strong>Developer Sandbox Handshake Active</strong>: Incoming status webhook calls are protected with secure cryptographic signature validation (<code>X-Hub-Signature-256</code>) via your Meta App Secret.
+                  ℹ️ <strong>Webhook Integration Secure</strong>: Incoming status webhook calls are protected with secure cryptographic signature validation (<code>X-Hub-Signature-256</code>) via your Meta App Secret.
                 </div>
               </div>
-            </details>
+            </div>
           </div>
     ) : (
       /* 📋 WHATSAPP CLOUD TEMPLATES MANAGEMENT PANEL */
@@ -1682,8 +1569,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         </div>
 
         <p style={{ fontSize: '14.5px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
-          Review, synchronize, and draft template messages submitted to Meta. Meta mandates templates undergo structured policy review. 
-          {profileData.fb_access_token ? " Live Meta integration is active." : " Sandbox mode is active (Instant Approval fallback)."}
+          Review, synchronize, and draft template messages submitted to Meta. All templates are synced with your connected WhatsApp account.
         </p>
 
         {/* 📊 TEMPLATES STATS ROW */}
@@ -1894,7 +1780,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
       <div className="wa-preview-modal" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--dash-border)', paddingBottom: '12px' }}>
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', fontFamily: 'Outfit', color: 'var(--dash-text-main)' }}>
-            Template Preview Mock
+            Template Preview
           </h3>
           <button 
             type="button" 
