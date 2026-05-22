@@ -417,4 +417,131 @@ function delete_from_local_db($user_id) {
     }
     return true;
 }
+
+// Write/Update template in database
+function firestore_set_template($template_id, $data) {
+    if (empty(FIREBASE_PROJECT_ID)) {
+        return save_template_to_local_db($template_id, $data);
+    }
+
+    $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/templates/" . urlencode($template_id);
+    $payload = to_firestore_fields($data);
+
+    $headers = ['Content-Type: application/json'];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PATCH");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code >= 200 && $http_code < 300) {
+        return true;
+    }
+
+    error_log("Firestore template set failed. Status Code: " . $http_code . ". Error: " . $response);
+    return save_template_to_local_db($template_id, $data);
+}
+
+// Retrieve templates for a user
+function firestore_get_templates($user_id) {
+    if (empty(FIREBASE_PROJECT_ID)) {
+        return read_templates_from_local_db($user_id);
+    }
+
+    $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents:runQuery";
+    
+    $query = [
+        'structuredQuery' => [
+            'from' => [['collectionId' => 'templates']],
+            'where' => [
+                'fieldFilter' => [
+                    'field' => ['fieldPath' => 'user_id'],
+                    'op' => 'EQUAL',
+                    'value' => ['stringValue' => $user_id]
+                ]
+            ],
+            'limit' => 100
+        ]
+    ];
+
+    $headers = ['Content-Type: application/json'];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($query));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code === 200) {
+        $res = json_decode($response, true);
+        if (is_array($res)) {
+            $results = [];
+            foreach ($res as $item) {
+                if (isset($item['document'])) {
+                    $data = from_firestore_fields($item['document']);
+                    if ($data) {
+                        if (!isset($data['template_id'])) {
+                            $parts = explode('/', $item['document']['name']);
+                            $data['template_id'] = end($parts);
+                        }
+                        $results[] = $data;
+                    }
+                }
+            }
+            // Sort in memory DESC by timestamp
+            usort($results, function($a, $b) {
+                return ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0);
+            });
+            return $results;
+        }
+    }
+
+    return read_templates_from_local_db($user_id);
+}
+
+// Helpers for Local Template DB fallback
+function save_template_to_local_db($template_id, $data) {
+    $db = [];
+    $file = __DIR__ . '/templates.json';
+    if (file_exists($file)) {
+        $db = json_decode(file_get_contents($file), true) ?: [];
+    }
+    $data['template_id'] = $template_id;
+    $db[$template_id] = $data;
+    return (file_put_contents($file, json_encode($db, JSON_PRETTY_PRINT)) !== false);
+}
+
+function read_templates_from_local_db($user_id) {
+    $file = __DIR__ . '/templates.json';
+    if (!file_exists($file)) {
+        return [];
+    }
+    $db = json_decode(file_get_contents($file), true) ?: [];
+    $filtered = [];
+    foreach ($db as $tid => $tmpl) {
+        if (($tmpl['user_id'] ?? '') === $user_id) {
+            $tmpl['template_id'] = $tmpl['template_id'] ?? $tid;
+            $filtered[] = $tmpl;
+        }
+    }
+    usort($filtered, function($a, $b) {
+        return ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0);
+    });
+    return $filtered;
+}
 ?>

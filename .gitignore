@@ -27,3 +27,4 @@ dist-ssr
 backend/api/firebase-service-account.json
 backend/api/database.json
 backend/api/messages.json
+backend/api/templates.json

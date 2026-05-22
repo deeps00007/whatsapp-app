@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 
 export default function DashboardWorkspace({ profileData, onDisconnect, backendUrl }) {
   const [phone, setPhone] = useState('+15550192834');
-  const [template, setTemplate] = useState('welcome');
+  const [template, setTemplate] = useState('welcome_message');
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [sessionDispatches, setSessionDispatches] = useState(0);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  
+  // Template management states
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState('MARKETING');
+  const [newTemplateLanguage, setNewTemplateLanguage] = useState('en_US');
+  const [newTemplateBody, setNewTemplateBody] = useState('');
+  const [submittingTemplate, setSubmittingTemplate] = useState(false);
+  const [previewingTemplate, setPreviewingTemplate] = useState(null);
+
   const [logs, setLogs] = useState([
     `[${new Date().toLocaleTimeString()}] 🟢 Synced session initialized securely.`,
     `[${new Date().toLocaleTimeString()}] 🔐 Local profile mapping authenticated with Firestore.`,
@@ -38,9 +49,74 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
     }
   };
 
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch(`${backendUrl}/api/get_templates.php?user_id=${profileData.user_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setTemplates(data);
+          // Auto select first template if default welcome picker is loaded
+          if (data.length > 0 && template === 'welcome') {
+            setTemplate(data[0].name);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
   useEffect(() => {
     fetchMessages();
+    fetchTemplates();
   }, [profileData.user_id, sessionDispatches]);
+
+  const handleCreateTemplate = async (e) => {
+    e.preventDefault();
+    if (submittingTemplate) return;
+
+    // Validate: lowercase letters, numbers, and underscores only
+    const formattedName = newTemplateName.toLowerCase().replace(/[^a-z0-9_]/g, '').replace(/\s+/g, '_');
+    if (!formattedName) {
+      addLog("🔴 Form Error: Template name can only contain lowercase letters, numbers, and underscores.");
+      return;
+    }
+
+    setSubmittingTemplate(true);
+    addLog(`📤 Dispatching Template Creation: Submitting '${formattedName}' to Meta / Sandbox...`);
+
+    try {
+      const res = await fetch(`${backendUrl}/api/create_template.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: profileData.user_id,
+          name: formattedName,
+          category: newTemplateCategory,
+          language: newTemplateLanguage,
+          body_text: newTemplateBody
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        addLog(`🟢 Meta Handler Handshake Success! Template '${formattedName}' created in database (${data.mode === 'live_meta' ? 'Submitted to Meta' : 'Instant Sandbox Mock Approval'})`);
+        setNewTemplateName('');
+        setNewTemplateBody('');
+        fetchTemplates(); // Reload templates list
+      } else {
+        addLog(`🔴 Template Creation Failed: ${data.error || 'Failed to submit template'}`);
+      }
+    } catch (err) {
+      addLog(`🔴 Template Sync Network Error: ${err.message}`);
+    } finally {
+      setSubmittingTemplate(false);
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -633,6 +709,137 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         .dash-spin {
           animation: dashSpinner 0.8s linear infinite;
         }
+
+        /* 📋 WhatsApp Message Templates Custom Styles */
+        .templates-grid {
+          display: grid;
+          grid-template-columns: 1fr 1.6fr;
+          gap: 30px;
+        }
+        @media (max-width: 1024px) {
+          .templates-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .stats-badge-row {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        .stats-badge-card {
+          flex: 1;
+          background-color: #ffffff;
+          border: 1px solid var(--dash-border);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.01);
+        }
+        .stats-badge-val {
+          font-size: 22px;
+          font-weight: 800;
+          color: var(--dash-text-main);
+          font-family: 'Outfit', sans-serif;
+        }
+        .stats-badge-lbl {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--dash-text-sub);
+          text-transform: uppercase;
+        }
+        
+        /* Interactive WhatsApp Chat Bubble Mock */
+        .wa-bubble-preview-container {
+          background-color: #efeae2;
+          background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+          background-repeat: repeat;
+          border-radius: 16px;
+          padding: 24px;
+          border: 1px solid var(--dash-border);
+          max-width: 100%;
+          box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .wa-bubble {
+          background-color: white;
+          border-radius: 8px;
+          padding: 10px 14px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+          position: relative;
+          max-width: 85%;
+          margin-left: 0;
+          font-size: 13.5px;
+          line-height: 1.4;
+          color: #111b21;
+        }
+        .wa-bubble-header {
+          font-weight: 700;
+          font-size: 11px;
+          color: var(--dash-text-sub);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 6px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px dashed #f1f5f9;
+          padding-bottom: 4px;
+        }
+        .wa-bubble-body {
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        .wa-bubble-footer {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 4px;
+          font-size: 10px;
+          color: #667781;
+          margin-top: 6px;
+        }
+        
+        /* Modal Backdrop */
+        .wa-preview-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+        .wa-preview-modal {
+          background-color: white;
+          border-radius: 16px;
+          border: 1px solid var(--dash-border);
+          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+          width: 90%;
+          max-width: 500px;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          position: relative;
+          text-align: left;
+        }
+        .status-badge.utility {
+          background-color: #eff6ff;
+          color: #1d4ed8;
+        }
+        .status-badge.marketing {
+          background-color: #f5f3ff;
+          color: #6d28d9;
+        }
+        .status-badge.authentication {
+          background-color: #fffbeb;
+          color: #b45309;
+        }
       `}</style>
 
       {/* 💻 SIDEBAR */}
@@ -666,6 +873,19 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             Coexistence Bridge
+          </li>
+          <li 
+            className={`dash-menu-item ${activeTab === 'templates' ? 'active' : ''}`}
+            onClick={() => setActiveTab('templates')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Cloud Templates
           </li>
         </ul>
 
@@ -786,17 +1006,32 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               <form onSubmit={handleSendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div className="input-group">
                   <label>Select Cloud Template</label>
-                  <div className="template-tabs">
-                    {['welcome', 'marketing', 'otp'].map(t => (
-                      <button
-                        key={t}
-                        type="button"
-                        className={`template-tab-btn ${template === t ? 'active' : ''}`}
-                        onClick={() => setTemplate(t)}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                  <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
+                    {templates.length > 0 ? (
+                      templates.slice(0, 5).map(t => (
+                        <button
+                          key={t.name}
+                          type="button"
+                          className={`template-tab-btn ${template === t.name ? 'active' : ''}`}
+                          onClick={() => setTemplate(t.name)}
+                          style={{ minWidth: '85px', padding: '8px 12px', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                          title={t.name}
+                        >
+                          {t.name}
+                        </button>
+                      ))
+                    ) : (
+                      ['welcome_message', 'marketing_offer', 'otp_code_auth'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`template-tab-btn ${template === t ? 'active' : ''}`}
+                          onClick={() => setTemplate(t)}
+                        >
+                          {t.replace(/_/g, ' ')}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -1027,18 +1262,18 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                           {msg.status || 'sent'}
                         </span>
                       </td>
-                      <td style={{ fontSize: '13px', color: 'var(--dash-text-sub)' }}>
-                        {formatTime(msg.timestamp)}
+                      <td>
+                        {msg.timestamp ? formatTime(msg.timestamp) : 'N/A'}
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+              </tbody>
+            </table>
+          )}
         </div>
+      </div>
       </>
-    ) : (
+     ) : activeTab === 'webhooks' ? (
       /* 🟢 WHATSAPP COEXISTENCE BRIDGE DASHBOARD PANEL */
       <div className="dashboard-card" style={{ maxWidth: '900px', gap: '30px' }}>
             <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1238,8 +1473,299 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               </div>
             </details>
           </div>
-        )}
-      </main>
+    ) : (
+      /* 📋 WHATSAPP CLOUD TEMPLATES MANAGEMENT PANEL */
+      <div className="dashboard-card" style={{ maxWidth: '950px', gap: '30px' }}>
+        <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dash-purple)" strokeWidth="2.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            WhatsApp Cloud Templates Manager
+          </span>
+          <button 
+            type="button" 
+            className="btn-sim" 
+            onClick={fetchTemplates}
+            disabled={loadingTemplates}
+            style={{ backgroundColor: 'var(--dash-purple-soft)', color: 'var(--dash-purple)', borderColor: 'rgba(139, 92, 246, 0.2)' }}
+          >
+            {loadingTemplates ? (
+              <>
+                <span className="dash-spin" style={{ width: '12px', height: '12px', border: '2px solid rgba(139,92,246,0.2)', borderTop: '2px solid var(--dash-purple)', borderRadius: '50%', display: 'inline-block' }}></span>
+                Syncing...
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                Sync Meta Templates
+              </>
+            )}
+          </button>
+        </div>
+
+        <p style={{ fontSize: '14.5px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
+          Review, synchronize, and draft template messages submitted to Meta. Meta mandates templates undergo structured policy review. 
+          {profileData.fb_access_token ? " Live Meta integration is active." : " Sandbox mode is active (Instant Approval fallback)."}
+        </p>
+
+        {/* 📊 TEMPLATES STATS ROW */}
+        <div className="stats-badge-row">
+          <div className="stats-badge-card">
+            <span className="stats-badge-val">{templates.length}</span>
+            <span className="stats-badge-lbl">Total Templates</span>
+          </div>
+          <div className="stats-badge-card" style={{ borderLeft: '3px solid var(--dash-green)' }}>
+            <span className="stats-badge-val" style={{ color: 'var(--dash-green)' }}>
+              {templates.filter(t => t.status === 'approved').length}
+            </span>
+            <span className="stats-badge-lbl">Approved Nodes</span>
+          </div>
+          <div className="stats-badge-card" style={{ borderLeft: '3px solid var(--dash-blue)' }}>
+            <span className="stats-badge-val" style={{ color: 'var(--dash-blue)' }}>
+              {templates.filter(t => t.status === 'pending').length}
+            </span>
+            <span className="stats-badge-lbl">Pending Review</span>
+          </div>
+        </div>
+
+        <div className="templates-grid">
+          
+          {/* COL 1: Template Builder Form */}
+          <div style={{ borderRight: '1px solid var(--dash-border)', paddingRight: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--dash-text-main)', margin: '0 0 10px' }}>
+              Create WABA Template
+            </h3>
+
+            <form onSubmit={handleCreateTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="input-group">
+                <label>Template Name</label>
+                <input 
+                  type="text"
+                  className="input-field"
+                  placeholder="e.g. promotional_discount_fall"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  required
+                  style={{ fontSize: '13px' }}
+                />
+                <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>
+                  * Lowercase, numbers, and underscores only. No spaces.
+                </span>
+              </div>
+
+              <div className="input-group">
+                <label>Category</label>
+                <select 
+                  className="input-field"
+                  value={newTemplateCategory}
+                  onChange={(e) => setNewTemplateCategory(e.target.value)}
+                  style={{ fontSize: '13px', backgroundColor: '#ffffff', cursor: 'pointer' }}
+                >
+                  <option value="MARKETING">MARKETING (Offers, Promos)</option>
+                  <option value="UTILITY">UTILITY (Customer updates, Receipts)</option>
+                  <option value="AUTHENTICATION">AUTHENTICATION (OTP login codes)</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label>Language</label>
+                <select 
+                  className="input-field"
+                  value={newTemplateLanguage}
+                  onChange={(e) => setNewTemplateLanguage(e.target.value)}
+                  style={{ fontSize: '13px', backgroundColor: '#ffffff', cursor: 'pointer' }}
+                >
+                  <option value="en_US">English (US)</option>
+                  <option value="es_LA">Spanish (LATAM)</option>
+                  <option value="hi_IN">Hindi (IN)</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label>Body Text Content</label>
+                <textarea 
+                  className="input-field"
+                  rows="4"
+                  placeholder="Hello {{1}}, your order {{2}} has been confirmed!"
+                  value={newTemplateBody}
+                  onChange={(e) => setNewTemplateBody(e.target.value)}
+                  required
+                  style={{ fontSize: '13px', minHeight: '100px', resize: 'vertical', fontFamily: 'sans-serif' }}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={submittingTemplate} 
+                className="btn-dispatch"
+                style={{ marginTop: '10px', padding: '14px' }}
+              >
+                {submittingTemplate ? (
+                  <>
+                    <span className="dash-spin" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid #FFF', borderRadius: '50%', display: 'inline-block' }}></span>
+                    Submitting to Meta...
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21.2 15a8.91 8.91 0 0 0-4.9-7.9A9 9 0 1 0 3 13a9 9 0 0 0 10.4 8.7 8.91 8.91 0 0 0 7.8-6.7z"></path>
+                      <path d="M12 12V3"></path>
+                      <path d="M16 7l-4-4-4 4"></path>
+                    </svg>
+                    Submit to Meta review
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* COL 2: Templates List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--dash-text-main)', margin: '0 0 10px' }}>
+              Active Cloud Nodes
+            </h3>
+            
+            <style>{`
+              .tmpl-table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+                font-size: 13px;
+              }
+              .tmpl-table th {
+                padding: 12px 14px;
+                font-weight: 700;
+                color: var(--dash-text-sub);
+                border-bottom: 2px solid var(--dash-border);
+                text-transform: uppercase;
+                font-size: 10px;
+                letter-spacing: 0.05em;
+              }
+              .tmpl-table td {
+                padding: 12px 14px;
+                border-bottom: 1px solid var(--dash-border);
+                color: var(--dash-text-main);
+              }
+              .tmpl-table tr:hover {
+                background-color: #f8fafc;
+              }
+            `}</style>
+
+            {templates.length === 0 ? (
+              <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--dash-text-sub)' }}>
+                <div style={{ fontWeight: 700 }}>No templates synchronized</div>
+                <p style={{ fontSize: '12px', margin: '4px 0 0' }}>Trigger sync or create your first custom template.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="tmpl-table">
+                  <thead>
+                    <tr>
+                      <th>Template Name</th>
+                      <th>Category</th>
+                      <th>Language</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {templates.map(t => (
+                      <tr key={t.template_id || t.name}>
+                        <td style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--dash-text-main)', fontSize: '12px' }}>
+                          {t.name}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${t.category?.toLowerCase() || 'marketing'}`}>
+                            {t.category}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>
+                          {t.language}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${t.status || 'approved'}`}>
+                            <span className="status-badge-dot"></span>
+                            {t.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button 
+                            type="button" 
+                            className="copy-btn"
+                            onClick={() => setPreviewingTemplate(t)}
+                            style={{ padding: '6px 10px', fontSize: '11px', minWidth: 'auto' }}
+                          >
+                            Preview
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </main>
+
+  {/* 🔮 INTERACTIVE CHAT BUBBLE PREVIEW MODAL */}
+  {previewingTemplate && (
+    <div className="wa-preview-backdrop" onClick={() => setPreviewingTemplate(null)}>
+      <div className="wa-preview-modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--dash-border)', paddingBottom: '12px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', fontFamily: 'Outfit', color: 'var(--dash-text-main)' }}>
+            Template Preview Mock
+          </h3>
+          <button 
+            type="button" 
+            onClick={() => setPreviewingTemplate(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dash-text-sub)', fontSize: '20px', padding: '0 4px' }}
+          >
+            &times;
+          </button>
+        </div>
+
+        <div className="wa-bubble-preview-container">
+          <div className="wa-bubble">
+            <div className="wa-bubble-header">
+              <span>{previewingTemplate.category}</span>
+              <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)' }}>{previewingTemplate.language}</span>
+            </div>
+            <div className="wa-bubble-body">
+              {previewingTemplate.body_text}
+            </div>
+            <div className="wa-bubble-footer">
+              <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#53bdeb" strokeWidth="2.5">
+                <path d="M20 6L9 17l-5-5"></path>
+                <path d="M20 6L9 17l-5-5" transform="translate(4, 0)"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button 
+            type="button" 
+            className="copy-btn" 
+            onClick={() => setPreviewingTemplate(null)}
+            style={{ padding: '10px 20px', borderRadius: '8px' }}
+          >
+            Close Preview
+          </button>
+        </div>
+      </div>
     </div>
-  );
+  )}
+</div>
+);
 }
