@@ -26,3 +26,4 @@ dist-ssr
 # Firebase Credentials & Local DB Cache
 backend/api/firebase-service-account.json
 backend/api/database.json
+backend/api/messages.json

@@ -221,6 +221,173 @@ function firestore_delete_user($user_id) {
     return delete_from_local_db($user_id);
 }
 
+// Write/Update message in database
+function firestore_set_message($message_id, $data) {
+    if (empty(FIREBASE_PROJECT_ID)) {
+        return save_message_to_local_db($message_id, $data);
+    }
+
+    $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/messages/" . urlencode($message_id);
+    $payload = to_firestore_fields($data);
+
+    $headers = ['Content-Type: application/json'];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PATCH");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code >= 200 && $http_code < 300) {
+        return true;
+    }
+
+    error_log("Firestore message set failed. Status Code: " . $http_code . ". Error: " . $response);
+    return save_message_to_local_db($message_id, $data);
+}
+
+// Get single message
+function firestore_get_message($message_id) {
+    if (empty(FIREBASE_PROJECT_ID)) {
+        return read_single_message_from_local_db($message_id);
+    }
+
+    $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents/messages/" . urlencode($message_id);
+    
+    $headers = [];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code === 200) {
+        $doc = json_decode($response, true);
+        return from_firestore_fields($doc);
+    }
+
+    return read_single_message_from_local_db($message_id);
+}
+
+// Retrieve last 50 messages for a user
+function firestore_get_messages($user_id) {
+    if (empty(FIREBASE_PROJECT_ID)) {
+        return read_messages_from_local_db($user_id);
+    }
+
+    $url = "https://firestore.googleapis.com/v1/projects/" . FIREBASE_PROJECT_ID . "/databases/(default)/documents:runQuery";
+    
+    $query = [
+        'structuredQuery' => [
+            'from' => [['collectionId' => 'messages']],
+            'where' => [
+                'fieldFilter' => [
+                    'field' => ['fieldPath' => 'user_id'],
+                    'op' => 'EQUAL',
+                    'value' => ['stringValue' => $user_id]
+                ]
+            ],
+            'limit' => 50
+        ]
+    ];
+
+    $headers = ['Content-Type: application/json'];
+    $access_token = get_firestore_access_token();
+    if ($access_token) {
+        $headers[] = 'Authorization: Bearer ' . $access_token;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($query));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code === 200) {
+        $res = json_decode($response, true);
+        if (is_array($res)) {
+            $results = [];
+            foreach ($res as $item) {
+                if (isset($item['document'])) {
+                    $data = from_firestore_fields($item['document']);
+                    if ($data) {
+                        if (!isset($data['message_id'])) {
+                            $parts = explode('/', $item['document']['name']);
+                            $data['message_id'] = end($parts);
+                        }
+                        $results[] = $data;
+                    }
+                }
+            }
+            // Sort in memory DESC by timestamp
+            usort($results, function($a, $b) {
+                return ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0);
+            });
+            return $results;
+        }
+    }
+
+    return read_messages_from_local_db($user_id);
+}
+
+// Helpers for Local Message DB
+function save_message_to_local_db($message_id, $data) {
+    $db = [];
+    $file = __DIR__ . '/messages.json';
+    if (file_exists($file)) {
+        $db = json_decode(file_get_contents($file), true) ?: [];
+    }
+    $data['message_id'] = $message_id;
+    $db[$message_id] = $data;
+    return (file_put_contents($file, json_encode($db, JSON_PRETTY_PRINT)) !== false);
+}
+
+function read_single_message_from_local_db($message_id) {
+    $file = __DIR__ . '/messages.json';
+    if (!file_exists($file)) {
+        return null;
+    }
+    $db = json_decode(file_get_contents($file), true) ?: [];
+    return $db[$message_id] ?? null;
+}
+
+function read_messages_from_local_db($user_id) {
+    $file = __DIR__ . '/messages.json';
+    if (!file_exists($file)) {
+        return [];
+    }
+    $db = json_decode(file_get_contents($file), true) ?: [];
+    $filtered = [];
+    foreach ($db as $mid => $msg) {
+        if (($msg['user_id'] ?? '') === $user_id) {
+            $msg['message_id'] = $msg['message_id'] ?? $mid;
+            $filtered[] = $msg;
+        }
+    }
+    usort($filtered, function($a, $b) {
+        return ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0);
+    });
+    return $filtered;
+}
+
 // Helpers for Local Database Fallbacks
 function save_to_local_db($user_id, $data) {
     $db = [];

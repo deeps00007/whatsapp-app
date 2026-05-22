@@ -69,9 +69,19 @@ if (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0) {
     $logs[] = "🚀 POST payload delivered to Meta node: {$url}";
     $logs[] = "🟢 Status response from graph.facebook.com: 200 OK";
     
+    $wamid = 'wamid.sim_' . bin2hex(random_bytes(10));
+    $msgData = [
+        'user_id' => $user_id,
+        'phone' => $phone,
+        'template' => $templateName,
+        'status' => 'sent',
+        'timestamp' => time()
+    ];
+    firestore_set_message($wamid, $msgData);
+    
     echo json_encode([
         'status' => 'sent',
-        'message_id' => 'wamid.HBgLOTE3ODkyODk1MDQ0FQIAERgSRDMzNDdBNkZDNDVDMjRGNzBCQQA=',
+        'message_id' => $wamid,
         'logs' => $logs,
         'simulated' => true
     ]);
@@ -97,6 +107,16 @@ $logs[] = "🟢 API call complete. HTTP status code returned: {$http_code}";
 if ($http_code == 200) {
     $resData = json_decode($result, true);
     $wamid = $resData['messages'][0]['id'] ?? 'wamid.unknown';
+    
+    $msgData = [
+        'user_id' => $user_id,
+        'phone' => $phone,
+        'template' => $templateName,
+        'status' => 'sent',
+        'timestamp' => time()
+    ];
+    firestore_set_message($wamid, $msgData);
+
     echo json_encode([
         'status' => 'sent',
         'message_id' => $wamid,

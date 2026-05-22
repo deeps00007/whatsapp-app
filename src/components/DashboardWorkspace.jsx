@@ -6,6 +6,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [sessionDispatches, setSessionDispatches] = useState(0);
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [logs, setLogs] = useState([
     `[${new Date().toLocaleTimeString()}] 🟢 Synced session initialized securely.`,
     `[${new Date().toLocaleTimeString()}] 🔐 Local profile mapping authenticated with Firestore.`,
@@ -18,6 +20,27 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
+
+  const fetchMessages = async () => {
+    setLoadingMessages(true);
+    try {
+      const res = await fetch(`${backendUrl}/api/get_messages.php?user_id=${profileData.user_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setMessages(data);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching campaign history:", err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, [profileData.user_id, sessionDispatches]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -53,12 +76,70 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
     }
   };
 
-  const simulateWebhookStatusUpdate = () => {
-    const statuses = ['delivered', 'read'];
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    addLog(`🔔 Simulated Webhook Event: Inbound Meta Delivery Update received.`);
-    addLog(`⚡ Event Status: wamid.HBgLOTE3ODkyODk1MDQ0FQIAERgSRDMzND... ➔ status: "${randomStatus}"`);
-    addLog(`💾 Firestore Status Sync Transaction Complete.`);
+  const simulateWebhookStatusUpdate = async () => {
+    if (messages.length === 0) {
+      addLog(`⚠️ Simulation Error: No campaign entries found in Firestore. Please launch a test campaign first!`);
+      return;
+    }
+
+    // Find the first message that is not fully 'read'
+    const targetMsg = messages.find(m => m.status !== 'read') || messages[0];
+    const currentStatus = targetMsg.status;
+    const nextStatus = currentStatus === 'sent' ? 'delivered' : 'read';
+
+    addLog(`🔔 Mocking Meta Webhook Event: Triggering status callback '${nextStatus}' for ID: ${targetMsg.message_id}...`);
+
+    const webhookPayload = {
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          id: profileData.waba_id || "waba_sandbox_123",
+          changes: [
+            {
+              value: {
+                messaging_product: "whatsapp",
+                metadata: {
+                  display_phone_number: profileData.phone_number || "+1 (555) 019-2834",
+                  phone_number_id: profileData.phone_number_id || "phone_sandbox_123"
+                },
+                statuses: [
+                  {
+                    id: targetMsg.message_id,
+                    status: nextStatus,
+                    timestamp: Math.floor(Date.now() / 1000).toString(),
+                    recipient_id: targetMsg.phone
+                  }
+                ]
+              },
+              field: "messages"
+            }
+          ]
+        }
+      ]
+    };
+
+    try {
+      const res = await fetch(`${backendUrl}/api/webhook.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Simulator': 'growbychat_sim_secret_5124efbb'
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      if (res.ok) {
+        addLog(`🟢 Inbound Webhook Handshake Complete: HTTP 200 OK.`);
+        addLog(`⚡ Event Status: ${targetMsg.message_id} updated successfully to "${nextStatus}"`);
+        addLog(`💾 Firestore DB status sync complete.`);
+        fetchMessages(); // Refresh the table
+      } else {
+        const errText = await res.text();
+        addLog(`🔴 Simulator Webhook Failed: ${errText}`);
+      }
+    } catch (err) {
+      addLog(`🔴 Simulator Network Error: ${err.message}`);
+    }
   };
 
   const formatTime = (epoch) => {
@@ -686,7 +767,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
         {/* 🏛️ TWO COLUMN WORKSPACE GRID */}
         {activeTab === 'overview' ? (
-          <section className="dash-content-grid">
+          <>
+            <section className="dash-content-grid">
             
             {/* COLUMN 1: Broadcast Dispatch Center */}
             <div className="dashboard-card">
@@ -807,9 +889,155 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           </div>
 
         </section>
-        ) : (
-          /* WEBHOOK LIVE SETUP CARD FOR DEV INTEGRATIONS */
-          <div className="dashboard-card" style={{ maxWidth: '800px' }}>
+
+        {/* Campaign History & Delivery Telemetry Table */}
+        <div className="dashboard-card" style={{ marginTop: '20px' }}>
+          <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-purple)" strokeWidth="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Campaign History & Delivery Telemetry
+            </span>
+            <button 
+              type="button" 
+              className="btn-sim" 
+              onClick={fetchMessages}
+              disabled={loadingMessages}
+              style={{ backgroundColor: 'var(--dash-purple-soft)', color: 'var(--dash-purple)', borderColor: 'rgba(139, 92, 246, 0.2)' }}
+            >
+              {loadingMessages ? (
+                <>
+                  <span className="dash-spin" style={{ width: '12px', height: '12px', border: '2px solid rgba(139,92,246,0.2)', borderTop: '2px solid var(--dash-purple)', borderRadius: '50%', display: 'inline-block' }}></span>
+                  Reloading...
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  </svg>
+                  Sync Database
+                </>
+              )}
+            </button>
+          </div>
+
+          <style>{`
+            .campaign-table-container {
+              overflow-x: auto;
+            }
+            .campaign-table {
+              width: 100%;
+              border-collapse: collapse;
+              text-align: left;
+              font-size: 13.5px;
+            }
+            .campaign-table th {
+              padding: 14px 16px;
+              font-weight: 700;
+              color: var(--dash-text-sub);
+              border-bottom: 2px solid var(--dash-border);
+              text-transform: uppercase;
+              font-size: 11px;
+              letter-spacing: 0.05em;
+            }
+            .campaign-table td {
+              padding: 14px 16px;
+              border-bottom: 1px solid var(--dash-border);
+              color: var(--dash-text-main);
+            }
+            .campaign-table tr:hover {
+              background-color: #f8fafc;
+            }
+            .status-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              padding: 4px 10px;
+              border-radius: 100px;
+              font-size: 12px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .status-badge.sent {
+              background-color: #fef3c7;
+              color: #b45309;
+            }
+            .status-badge.delivered {
+              background-color: #dbeafe;
+              color: #1d4ed8;
+            }
+            .status-badge.read {
+              background-color: #d1fae5;
+              color: #065f46;
+            }
+            .status-badge-dot {
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+            }
+            .status-badge.sent .status-badge-dot { background-color: #d97706; }
+            .status-badge.delivered .status-badge-dot { background-color: #2563eb; }
+            .status-badge.read .status-badge-dot { background-color: #059669; }
+          `}</style>
+
+          <div className="campaign-table-container">
+            {messages.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--dash-text-sub)' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--dash-text-muted)' }}>
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div style={{ fontWeight: 700, marginBottom: '4px' }}>No campaigns dispatched yet</div>
+                <p style={{ fontSize: '12px', margin: 0 }}>Use the Broadcast Dispatch Center to trigger a test message</p>
+              </div>
+            ) : (
+              <table className="campaign-table">
+                <thead>
+                  <tr>
+                    <th>Message ID</th>
+                    <th>Recipient</th>
+                    <th>Template</th>
+                    <th>Status</th>
+                    <th>Time Dispatched</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messages.map((msg, index) => (
+                    <tr key={msg.message_id || index}>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--dash-text-sub)', fontSize: '12px' }}>
+                        {msg.message_id}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{msg.phone}</td>
+                      <td>
+                        <code style={{ backgroundColor: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', fontSize: '12px', color: 'var(--dash-purple)' }}>
+                          {msg.template}
+                        </code>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${msg.status || 'sent'}`}>
+                          <span className="status-badge-dot"></span>
+                          {msg.status || 'sent'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '13px', color: 'var(--dash-text-sub)' }}>
+                        {formatTime(msg.timestamp)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </>
+    ) : (
+      /* WEBHOOK LIVE SETUP CARD FOR DEV INTEGRATIONS */
+      <div className="dashboard-card" style={{ maxWidth: '800px' }}>
             <div className="dashboard-card-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-blue)" strokeWidth="2.5">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
