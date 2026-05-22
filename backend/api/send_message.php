@@ -62,13 +62,24 @@ $logs[] = "Querying Meta WABA profile matching user ID: '{$user_id}'";
 $logs[] = "WABA token validated and active";
 $logs[] = "Generated template payload for: '{$templateName}' to '{$phone}'";
 
-// Check if token is mock
-if (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0) {
-    // Cloud API endpoint payload dispatch
+// Detect sandbox mode (only allowed on localhost/development)
+$is_local = (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false));
+$is_mock_token = (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0);
+
+if ($is_mock_token) {
+    if (!$is_local) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'Sandbox mock token detected in production environment. Please complete live Meta OAuth before sending messages.'
+        ]);
+        exit;
+    }
+
+    // LOCAL DEVELOPMENT ONLY: Cloud API endpoint payload dispatch simulation
     $logs[] = "Meta Cloud API connection: Connected";
     $logs[] = "Template dispatch queued successfully";
     $logs[] = "Status response from graph.facebook.com: 200 OK";
-    
+
     $wamid = 'wamid.HBgM' . bin2hex(random_bytes(24));
     $msgData = [
         'user_id' => $user_id,
@@ -78,7 +89,7 @@ if (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0) {
         'timestamp' => time()
     ];
     firestore_set_message($wamid, $msgData);
-    
+
     echo json_encode([
         'status' => 'sent',
         'message_id' => $wamid,

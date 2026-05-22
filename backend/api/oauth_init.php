@@ -1,5 +1,14 @@
 <?php
-// We redirect to Meta's OAuth screen.
+/**
+ * Meta OAuth Initiator
+ *
+ * IMPORTANT — Review Mode vs Production Mode:
+ * - META_REVIEW_MODE=true  : Standard Embedded Signup (no featureType). Use this for App Review.
+ * - META_REVIEW_MODE=false : Coexistence onboarding (featureType=whatsapp_business_app_onboarding).
+ *                            Restore this after Advanced Access is approved so users can keep
+ *                            their mobile WhatsApp Business app running alongside the SaaS.
+ */
+
 $user_id = $_GET['user_id'] ?? 'growbychat_user';
 $client_id = getenv('FACEBOOK_CLIENT_ID') ?: '3371677636326324';
 $client_id = trim(str_replace(['"', "'"], '', $client_id));
@@ -9,7 +18,7 @@ $config_id = trim(str_replace(['"', "'"], '', $config_id));
 
 // Dynamically construct redirect URI based on the request host
 $protocol = 'http';
-if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
     (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
     (!empty($_SERVER['HTTP_FRONTEND_HTTPS']) && $_SERVER['HTTP_FRONTEND_HTTPS'] === 'on') ||
     (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'growbychat.app') !== false)) {
@@ -26,13 +35,27 @@ $state = base64_encode(json_encode([
     'frontend_host' => $frontend_host
 ]));
 
-// Standard Meta Embedded Signup configurations
-$extras = [
-    'version' => 'v3',
-    'sessionInfoVersion' => '3',
-    'featureType' => 'whatsapp_business_app_onboarding',
-    'setup' => new stdClass()
-];
+$review_mode = (getenv('META_REVIEW_MODE') === 'true');
+
+if ($review_mode) {
+    // STANDARD EMBEDDED SIGNUP — Used during Meta App Review.
+    // Omits featureType so testers can complete OAuth in Development Mode.
+    $extras = [
+        'version' => 'v3',
+        'sessionInfoVersion' => '3',
+        'setup' => new stdClass()
+    ];
+} else {
+    // COEXISTENCE ONBOARDING — Restore after Advanced Access approval.
+    // Enables "Connect a WhatsApp Business app" in the Embedded Signup dialog.
+    $extras = [
+        'version' => 'v3',
+        'sessionInfoVersion' => '3',
+        'featureType' => 'whatsapp_business_app_onboarding',
+        'setup' => new stdClass()
+    ];
+}
+
 $extras_json = json_encode($extras);
 
 // BUILD EMBEDDED SIGNUP URL (v23.0)
