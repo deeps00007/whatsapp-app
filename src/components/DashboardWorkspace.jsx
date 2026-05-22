@@ -68,7 +68,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
   // Determine actual backend Webhook URL for developer dashboard
   const webhookUrl = `${backendUrl}/api/webhook.php`;
-  const verifyToken = "YOUR_CUSTOM_VERIFY_TOKEN";
+  const verifyToken = "growbychat_waba_webhook_verify_token_5124efbb";
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);

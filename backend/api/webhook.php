@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 define('APP_SECRET', 'YOUR_META_APP_SECRET');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $verify_token = "YOUR_CUSTOM_VERIFY_TOKEN";
+    $verify_token = "growbychat_waba_webhook_verify_token_5124efbb";
     if (isset($_GET['hub_mode']) && $_GET['hub_verify_token'] === $verify_token) {
         echo $_GET['hub_challenge'];
         exit;
