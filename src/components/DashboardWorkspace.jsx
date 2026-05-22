@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function DashboardWorkspace({ profileData, onDisconnect, backendUrl }) {
   const [phone, setPhone] = useState('+15550192834');
-  const [template, setTemplate] = useState('welcome_message');
+  const [template, setTemplate] = useState('customer_welcome_alert');
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [sessionDispatches, setSessionDispatches] = useState(0);
@@ -999,6 +999,169 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         {/* 🏛️ TWO COLUMN WORKSPACE GRID */}
         {activeTab === 'overview' ? (
           <>
+            {/* Meta App Review Verification Guide */}
+            <div className="meta-review-guide glass-card" style={{
+              marginBottom: '24px',
+              padding: '24px',
+              border: '1px solid rgba(0, 242, 126, 0.25)',
+              background: 'linear-gradient(135deg, rgba(5, 8, 22, 0.9) 0%, rgba(10, 18, 42, 0.9) 100%)',
+              boxShadow: '0 8px 32px rgba(0, 242, 126, 0.08)',
+              borderRadius: '16px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30%',
+                right: '-10%',
+                width: '300px',
+                height: '300px',
+                background: 'radial-gradient(circle, rgba(0, 242, 126, 0.05) 0%, transparent 70%)',
+                pointerEvents: 'none',
+                zIndex: 0
+              }}></div>
+
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      backgroundColor: 'rgba(0, 242, 126, 0.1)',
+                      color: 'var(--dash-green)',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0, 242, 126, 0.2)'
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#FFF', letterSpacing: '-0.02em' }}>Meta App Review Verification Guide</h3>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--dash-text-sub)' }}>
+                        Follow this verified step-by-step pipeline to demonstrate <strong>whatsapp_business_messaging</strong> and <strong>whatsapp_business_management</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className="accent-badge" style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(0, 229, 255, 0.1)', border: '1px solid rgba(0, 229, 255, 0.2)', color: '#00E5FF', whiteSpace: 'nowrap' }}>
+                      📹 Slow Mouse (20% Speed)
+                    </span>
+                    <span className="accent-badge" style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(0, 242, 126, 0.1)', border: '1px solid rgba(0, 242, 126, 0.2)', color: 'var(--dash-green)', whiteSpace: 'nowrap' }}>
+                      End-to-End Live Proof
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Pipeline */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px',
+                  marginTop: '20px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  paddingTop: '20px'
+                }}>
+                  {/* Step 1: Secure OAuth Onboarding */}
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: profileData ? '1px solid rgba(0, 242, 126, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--dash-text-sub)', fontWeight: '600' }}>STEP 1</span>
+                      {profileData ? (
+                        <span style={{ color: 'var(--dash-green)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700' }}>
+                          ✓ Connected
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--dash-yellow)', fontSize: '11px' }}>● Pending</span>
+                      )}
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#FFF' }}>Secure Onboarding</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--dash-text-sub)', lineHeight: '1.4' }}>
+                      Meta Business configuration successfully retrieved and authenticated via OAuth handshake.
+                    </p>
+                  </div>
+
+                  {/* Step 2: Manage Cloud Templates */}
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: templates.length > 0 ? '1px solid rgba(0, 242, 126, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--dash-text-sub)', fontWeight: '600' }}>STEP 2</span>
+                      {templates.length > 0 ? (
+                        <span style={{ color: 'var(--dash-green)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700' }}>
+                          ✓ Synced
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--dash-yellow)', fontSize: '11px' }}>● Pending Sync</span>
+                      )}
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#FFF' }}>Cloud Template Library</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--dash-text-sub)', lineHeight: '1.4' }}>
+                      Synchronized pre-approved business templates or created dynamic templates inside the Cloud Templates tab.
+                    </p>
+                  </div>
+
+                  {/* Step 3: Broadcast Campaign Dispatch */}
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: sessionDispatches > 0 ? '1px solid rgba(0, 242, 126, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--dash-text-sub)', fontWeight: '600' }}>STEP 3</span>
+                      {sessionDispatches > 0 ? (
+                        <span style={{ color: 'var(--dash-green)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700' }}>
+                          ✓ Dispatched ({sessionDispatches})
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--dash-yellow)', fontSize: '11px' }}>● Ready to Send</span>
+                      )}
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#FFF' }}>Launch Broadcast Campaign</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--dash-text-sub)', lineHeight: '1.4' }}>
+                      Select a template below (e.g. shipping updates, order notifications), enter target recipient, and launch test campaign.
+                    </p>
+                  </div>
+
+                  {/* Step 4: Live Webhook Status upgrade */}
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: messages.some(m => m.status === 'read' || m.status === 'delivered') ? '1px solid rgba(0, 242, 126, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--dash-text-sub)', fontWeight: '600' }}>STEP 4</span>
+                      {messages.some(m => m.status === 'read' || m.status === 'delivered') ? (
+                        <span style={{ color: 'var(--dash-green)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700' }}>
+                          ✓ Webhook Active
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--dash-yellow)', fontSize: '11px' }}>● Awaiting Callback</span>
+                      )}
+                    </div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#FFF' }}>Live Webhook Confirmation</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--dash-text-sub)', lineHeight: '1.4' }}>
+                      Confirm real-time status changes in Campaign History (Amber <code>sent</code> ➔ Blue <code>delivered</code> ➔ Green <code>read</code>) via official callbacks.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <section className="dash-content-grid">
             
             {/* COLUMN 1: Broadcast Dispatch Center */}
@@ -1029,7 +1192,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                         </button>
                       ))
                     ) : (
-                      ['welcome_message', 'marketing_offer', 'otp_code_auth'].map(t => (
+                      ['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
                         <button
                           key={t}
                           type="button"

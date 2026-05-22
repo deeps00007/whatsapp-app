@@ -60,33 +60,33 @@ if ($user_profile && !empty($user_profile['fb_access_token']) && !empty($user_pr
 // Pre-configured high-fidelity templates for premium experience & easy App Review tests
 $mock_templates = [
     [
-        'template_id' => 'welcome_message',
+        'template_id' => 'customer_welcome_alert',
         'user_id' => $user_id,
-        'name' => 'welcome_message',
+        'name' => 'customer_welcome_alert',
         'category' => 'UTILITY',
         'language' => 'en_US',
         'status' => 'approved',
-        'body_text' => 'Hello {{1}}, welcome to our store! We are thrilled to have you here. Reply back with any questions you have.',
+        'body_text' => 'Hello {{1}}, welcome to Growbychat! We are excited to support your business automation needs. Reply back with any questions you have.',
         'timestamp' => time() - 3600 * 24
     ],
     [
-        'template_id' => 'marketing_offer',
+        'template_id' => 'order_shipping_notification',
         'user_id' => $user_id,
-        'name' => 'marketing_offer',
-        'category' => 'MARKETING',
+        'name' => 'order_shipping_notification',
+        'category' => 'UTILITY',
         'language' => 'en_US',
         'status' => 'approved',
-        'body_text' => 'Exclusive Summer Sale! 🌟 Get 20% off all catalog items this weekend only. Use code SUMMER20 at checkout: {{1}}',
+        'body_text' => 'Good news! Your order {{1}} has been shipped and is on the way. You can track your parcel in real-time here: {{2}}. Thank you for shopping with us!',
         'timestamp' => time() - 3600 * 12
     ],
     [
-        'template_id' => 'otp_code_auth',
+        'template_id' => 'appointment_reminder_alert',
         'user_id' => $user_id,
-        'name' => 'otp_code_auth',
-        'category' => 'AUTHENTICATION',
+        'name' => 'appointment_reminder_alert',
+        'category' => 'UTILITY',
         'language' => 'en_US',
         'status' => 'approved',
-        'body_text' => 'Your secure login verification code for Growbychat is: {{1}}. Do not share this code with anyone. It expires in 5 minutes.',
+        'body_text' => 'This is a reminder for your upcoming support appointment on {{1}} at {{2}}. If you need to reschedule, please reply to this message directly.',
         'timestamp' => time() - 3600
     ]
 ];
