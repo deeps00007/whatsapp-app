@@ -28,6 +28,14 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
 
+  const terminalRef = React.useRef(null);
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [logs]);
+
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
@@ -1097,7 +1105,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               </button>
             </div>
 
-            <div className="dash-terminal">
+            <div className="dash-terminal" ref={terminalRef}>
               {logs.map((log, idx) => {
                 let color = '#8892b0';
                 if (log.includes('🔴')) color = '#f87171';
