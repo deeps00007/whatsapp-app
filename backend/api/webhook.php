@@ -1,4 +1,12 @@
 <?php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, X-Webhook-Simulator, X-Hub-Signature-256');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
 require_once 'firestore_helper.php';
 
 define('APP_SECRET', getenv('FACEBOOK_APP_SECRET') ?: 'YOUR_META_APP_SECRET');
