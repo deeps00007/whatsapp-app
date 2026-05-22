@@ -36,6 +36,13 @@ $business_name = "";
 
 $is_local = (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false));
 
+if (empty($client_secret) && !$is_local) {
+    http_response_code(400);
+    die(json_encode([
+        'error' => 'Server configuration error: FACEBOOK_CLIENT_SECRET is empty. Ensure this environment variable is set in Railway and matches the current App Secret from Meta App Dashboard → Settings → Basic.'
+    ]));
+}
+
 if (!empty($client_secret)) {
     // Live Meta Graph API Integration
     $protocol = 'http';
@@ -65,8 +72,14 @@ if (!empty($client_secret)) {
         http_response_code(400);
         $error_detail = json_decode($response, true) ?: ['message' => 'Unknown error from Meta token exchange'];
         die(json_encode([
-            'error' => 'Meta OAuth token exchange failed. Please ensure you authorized all permissions and that your App is not in a restricted state.',
-            'details' => $error_detail
+            'error' => 'Meta OAuth token exchange failed.',
+            'diagnostics' => [
+                'redirect_uri_used' => $redirect_uri,
+                'client_id_used' => $client_id,
+                'client_secret_length' => strlen($client_secret),
+                'tip' => 'Most common causes: (1) FACEBOOK_CLIENT_SECRET does not match Meta App Dashboard → Settings → Basic → App Secret. (2) Redirect URI mismatch between authorize request and token exchange. (3) App is in Development Mode and the user is not a Test User/Admin.'
+            ],
+            'meta_response' => $error_detail
         ]));
     }
 
