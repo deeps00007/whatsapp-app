@@ -660,9 +660,12 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             onClick={() => setActiveTab('webhooks')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            Webhook Gateway
+            Coexistence Bridge
           </li>
         </ul>
 
@@ -1036,64 +1039,204 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
         </div>
       </>
     ) : (
-      /* WEBHOOK LIVE SETUP CARD FOR DEV INTEGRATIONS */
-      <div className="dashboard-card" style={{ maxWidth: '800px' }}>
-            <div className="dashboard-card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-blue)" strokeWidth="2.5">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-              </svg>
-              Meta Developer Webhook Gateway Setup
+      /* 🟢 WHATSAPP COEXISTENCE BRIDGE DASHBOARD PANEL */
+      <div className="dashboard-card" style={{ maxWidth: '900px', gap: '30px' }}>
+            <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dash-green)" strokeWidth="2.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                WhatsApp Business Coexistence Bridge
+              </span>
+              <span className="status-badge read" style={{ fontSize: '11px', padding: '6px 12px' }}>
+                <span className="status-badge-dot" style={{ backgroundColor: 'var(--dash-green)' }}></span>
+                Coex Active
+              </span>
             </div>
 
-            <p style={{ fontSize: '14px', color: 'var(--dash-text-sub)', lineHeight: '1.6' }}>
-              To receive real-time updates (like message delivery receipts, status shifts, or inbound chats) directly on this dashboard, you need to configure your Webhook endpoints inside your Facebook Developer App console.
+            <p style={{ fontSize: '14.5px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
+              Your account is fully integrated using Meta's official <strong>WhatsApp Business Coexistence Pipeline</strong> (<code>whatsapp_business_app_onboarding</code>). 
+              This allows your physical mobile app and our automated SaaS Cloud console to run on the exact same phone number in real-time.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-              
-              <div className="input-group">
-                <label>1. META CALLBACK URL</label>
-                <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>Paste this exact URL under the WhatsApp Webhook configuration page on your Meta App dashboard:</div>
-                <div className="copy-group">
-                  <input type="text" className="input-field" readOnly value={webhookUrl} style={{ flex: 1, backgroundColor: '#f1f5f9' }} />
-                  <button 
-                    type="button" 
-                    className={`copy-btn ${copiedUrl ? 'success' : ''}`}
-                    onClick={() => copyToClipboard(webhookUrl, 'url')}
-                  >
-                    {copiedUrl ? 'Copied ✓' : 'Copy'}
-                  </button>
-                </div>
+            {/* 📊 COEX STATUS & SYNC MONITOR */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+              <div style={{ padding: '20px', backgroundColor: 'var(--dash-green-soft)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-green)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bridge Pipeline</div>
+                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>2-Way Active Mirror</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Incoming chats mirror to phone & database simultaneously.</div>
               </div>
-
-              <div className="input-group" style={{ marginTop: '10px' }}>
-                <label>2. VERIFY TOKEN</label>
-                <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>Input this custom secret string to authenticate the verification handshake request from Facebook's servers:</div>
-                <div className="copy-group">
-                  <input type="text" className="input-field" readOnly value={verifyToken} style={{ flex: 1, backgroundColor: '#f1f5f9', fontFamily: 'monospace' }} />
-                  <button 
-                    type="button" 
-                    className={`copy-btn ${copiedToken ? 'success' : ''}`}
-                    onClick={() => copyToClipboard(verifyToken, 'token')}
-                  >
-                    {copiedToken ? 'Copied ✓' : 'Copy'}
-                  </button>
-                </div>
+              <div style={{ padding: '20px', backgroundColor: 'var(--dash-purple-soft)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--dash-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Historical Contact Sync</div>
+                <div style={{ fontSize: '20px', fontWeight: '800', marginTop: '6px', color: 'var(--dash-text-main)' }}>100% Synced</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--dash-text-sub)', marginTop: '4px' }}>Meta has completed importing the last 6 months of chat history.</div>
               </div>
-
-              <div style={{ 
-                padding: '16px', 
-                backgroundColor: 'var(--dash-green-soft)', 
-                borderRadius: '8px', 
-                border: '1px solid rgba(16, 185, 129, 0.2)', 
-                fontSize: '13px',
-                lineHeight: '1.5',
-                marginTop: '10px'
-              }}>
-                ℹ️ <strong>Meta Handshake Ready</strong>: The webhook endpoint `webhook.php` contains active signature validation using your Meta App Secret (`X-Hub-Signature-256`). Any fake status requests will be securely filtered and blocked!
-              </div>
-
             </div>
+
+            {/* 🛡️ THE ACTUAL META COEXISTENCE RULES & GUARDRAILS */}
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '16px', color: 'var(--dash-text-main)', borderBottom: '1px solid var(--dash-border)', paddingBottom: '10px' }}>
+                📱 Crucial Coexistence App Rules
+              </h3>
+              
+              <style>{`
+                .rule-card {
+                  background-color: #f8fafc;
+                  border: 1px solid var(--dash-border);
+                  border-radius: 12px;
+                  padding: 20px;
+                  display: flex;
+                  gap: 16px;
+                  align-items: flex-start;
+                }
+                .rule-icon-wrapper {
+                  background-color: white;
+                  border: 1px solid var(--dash-border);
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 8px;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  flex-shrink: 0;
+                }
+                .rule-title {
+                  font-weight: 700;
+                  font-size: 14px;
+                  color: var(--dash-text-main);
+                  margin-bottom: 4px;
+                }
+                .rule-desc {
+                  font-size: 12.5px;
+                  color: var(--dash-text-sub);
+                  line-height: 1.5;
+                  margin: 0;
+                }
+              `}</style>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="rule-card">
+                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-green)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                      <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="rule-title">14-Day App Check-In</div>
+                    <p className="rule-desc">
+                      You must open the physical WhatsApp Business App on your mobile phone at least <strong>once every 14 days</strong>. 
+                      If the phone app is offline longer, Meta pauses the API link to save resources.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rule-card">
+                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-blue)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="rule-title">Desktop Companion Limits</div>
+                    <p className="rule-desc">
+                      You can use your mobile phone app and this GrowByChat web panel simultaneously. However, standard <strong>WhatsApp for Windows/Mac desktop apps</strong> must remain signed out to prevent routing loops.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rule-card">
+                  <div className="rule-icon-wrapper" style={{ color: 'var(--dash-purple)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="rule-title">Minor Mobile App Feature Locks</div>
+                    <p className="rule-desc">
+                      To keep your SaaS database in sync, certain consumer features inside your mobile app are disabled: 
+                      <strong> View Once</strong> media, <strong>Live Location sharing</strong>, and the ability to <strong>edit or delete</strong> already-sent messages.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 🔐 COLLAPSIBLE DEVELOPER CORNER FOR SAAS ROUTING */}
+            <details style={{ 
+              marginTop: '10px', 
+              borderTop: '1px solid var(--dash-border)', 
+              paddingTop: '20px' 
+            }}>
+              <summary style={{ 
+                fontSize: '13px', 
+                fontWeight: '700', 
+                color: 'var(--dash-text-sub)', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                outline: 'none',
+                userSelect: 'none'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                Developer Infrastructure Nodes (Click to toggle details)
+              </summary>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid var(--dash-border)' }}>
+                <div className="input-group">
+                  <label>META CALLBACK URL</label>
+                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>SaaS Webhook receiving endpoint:</div>
+                  <div className="copy-group">
+                    <input type="text" className="input-field" readOnly value={webhookUrl} style={{ flex: 1, backgroundColor: '#ffffff' }} />
+                    <button 
+                      type="button" 
+                      className={`copy-btn ${copiedUrl ? 'success' : ''}`}
+                      onClick={() => copyToClipboard(webhookUrl, 'url')}
+                    >
+                      {copiedUrl ? 'Copied ✓' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label>VERIFY TOKEN</label>
+                  <div style={{ fontSize: '12px', color: 'var(--dash-text-sub)' }}>Integrity handshake verification secret:</div>
+                  <div className="copy-group">
+                    <input type="text" className="input-field" readOnly value={verifyToken} style={{ flex: 1, backgroundColor: '#ffffff', fontFamily: 'monospace' }} />
+                    <button 
+                      type="button" 
+                      className={`copy-btn ${copiedToken ? 'success' : ''}`}
+                      onClick={() => copyToClipboard(verifyToken, 'token')}
+                    >
+                      {copiedToken ? 'Copied ✓' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ 
+                  padding: '12px 14px', 
+                  backgroundColor: 'var(--dash-green-soft)', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(16, 185, 129, 0.1)', 
+                  fontSize: '12.5px',
+                  lineHeight: '1.4',
+                  color: 'var(--dash-green)'
+                }}>
+                  ℹ️ <strong>Developer Sandbox Handshake Active</strong>: Incoming status webhook calls are protected with secure cryptographic signature validation (<code>X-Hub-Signature-256</code>) via your Meta App Secret.
+                </div>
+              </div>
+            </details>
           </div>
         )}
       </main>

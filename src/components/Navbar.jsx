@@ -69,11 +69,11 @@ export default function Navbar({ scrollToSection, connectedUser }) {
 
         <div className="nav-cta">
           {connectedUser ? (
-            <span style={{ 
-              fontSize: '12px', 
-              color: 'var(--accent-green)', 
-              background: 'rgba(0, 242, 126, 0.1)', 
-              padding: '6px 12px', 
+            <span style={{
+              fontSize: '12px',
+              color: 'var(--accent-green)',
+              background: 'rgba(0, 242, 126, 0.1)',
+              padding: '6px 12px',
               borderRadius: '6px',
               fontWeight: '700',
               border: '1px solid rgba(0, 242, 126, 0.2)'
