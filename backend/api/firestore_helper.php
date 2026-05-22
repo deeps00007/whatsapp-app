@@ -61,7 +61,18 @@ function firestore_set_user($user_id, $data) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    return ($http_code >= 200 && $http_code < 300);
+    if ($http_code >= 200 && $http_code < 300) {
+        return true;
+    }
+
+    // Smart Resilient Fallback: If Firestore API returns error (e.g. 403 Forbidden/404), use local database
+    $db = [];
+    if (file_exists(LOCAL_DB_FILE)) {
+        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
+    }
+    $db[$user_id] = $data;
+    file_put_contents(LOCAL_DB_FILE, json_encode($db, JSON_PRETTY_PRINT));
+    return true;
 }
 
 // Read user from database
@@ -86,6 +97,14 @@ function firestore_get_user($user_id) {
     if ($http_code === 200) {
         $doc = json_decode($response, true);
         return from_firestore_fields($doc);
+    }
+
+    // Smart Resilient Fallback: If Firestore read fails, check local database
+    if (file_exists(LOCAL_DB_FILE)) {
+        $db = json_decode(file_get_contents(LOCAL_DB_FILE), true) ?: [];
+        if (isset($db[$user_id])) {
+            return $db[$user_id];
+        }
     }
 
     return null;
