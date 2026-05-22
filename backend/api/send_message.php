@@ -36,9 +36,18 @@ $encrypted_token = $profile['fb_access_token'] ?? '';
 $phone_number_id = $profile['phone_number_id'] ?? '';
 $waba_id = $profile['waba_id'] ?? '';
 
-if (empty($encrypted_token) || empty($phone_number_id)) {
+if (empty($encrypted_token)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Connected profile contains corrupt or missing authorization details.']);
+    echo json_encode(['error' => 'Connected profile missing encrypted access token. Please reconnect via Facebook OAuth.']);
+    exit;
+}
+
+if (empty($phone_number_id)) {
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'No WhatsApp Business phone number is registered to this account.',
+        'hint' => 'Go to Meta Business Manager → WhatsApp → Phone Numbers and add a verified number. During Embedded Signup, select "Add a new number" instead of "Use a display name only".'
+    ]);
     exit;
 }
 

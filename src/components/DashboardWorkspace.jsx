@@ -993,6 +993,36 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           </div>
         </section>
 
+        {/* ⚠️ Missing Phone Number Warning */}
+        {!profileData.phone_number_id && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '20px'
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '14px', color: '#b91c1c' }}>
+                WhatsApp Phone Number Missing
+              </div>
+              <div style={{ fontSize: '13px', color: '#ef4444', marginTop: '2px' }}>
+                Your WhatsApp Business Account is connected but has no registered phone number.
+                Please go to Meta Business Manager → WhatsApp → Phone Numbers and add a number, then refresh this page.
+                Or, during Embedded Signup, select <strong>"Add a new number"</strong> instead of "Use a display name only".
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 🏛️ TWO COLUMN WORKSPACE GRID */}
         {activeTab === 'overview' ? (
           <>
