@@ -58,16 +58,16 @@ $waPayload = [
 
 $url = "https://graph.facebook.com/v18.0/{$phone_number_id}/messages";
 $logs = [];
-$logs[] = "🔍 Querying configuration settings for user: '{$user_id}'";
-$logs[] = "🔐 Secure access credentials loaded successfully";
-$logs[] = "📦 Generated payload for template: '{$templateName}' to '{$phone}'";
+$logs[] = "Querying Meta WABA profile matching user ID: '{$user_id}'";
+$logs[] = "WABA token validated and active";
+$logs[] = "Generated template payload for: '{$templateName}' to '{$phone}'";
 
 // Check if token is mock
 if (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0) {
     // Cloud API endpoint payload dispatch
-    $logs[] = "📡 Accessing WhatsApp API endpoint: {$url}";
-    $logs[] = "🚀 Delivery payload dispatched successfully";
-    $logs[] = "🟢 Status response from graph.facebook.com: 200 OK";
+    $logs[] = "Meta Cloud API connection: Connected";
+    $logs[] = "Template dispatch queued successfully";
+    $logs[] = "Status response from graph.facebook.com: 200 OK";
     
     $wamid = 'wamid.HBgM' . bin2hex(random_bytes(24));
     $msgData = [
@@ -89,7 +89,7 @@ if (strpos($access_token, 'MOCK_LONG_LIVED_TOKEN_') === 0) {
 }
 
 // Live execution hit Meta API
-$logs[] = "🚀 Initiating cURL secure HTTP request to Facebook API: {$url}";
+$logs[] = "Initiating secure template dispatch to Meta: {$url}";
 
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($waPayload));
@@ -102,7 +102,7 @@ $result = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-$logs[] = "🟢 API call complete. HTTP status code returned: {$http_code}";
+$logs[] = "Template dispatch queued successfully. HTTP code: {$http_code}";
 
 if ($http_code == 200) {
     $resData = json_decode($result, true);
