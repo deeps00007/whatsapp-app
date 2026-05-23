@@ -66,8 +66,9 @@ $oauth_url = "https://www.facebook.com/v23.0/dialog/oauth?"
            . "&config_id=" . urlencode($config_id)
            . "&response_type=code"
            . "&override_default_response_type=true"
-           . "&scope=whatsapp_business_management,whatsapp_business_messaging"
-           . "&extras=" . urlencode($extras_json);
+            . "&scope=whatsapp_business_management,whatsapp_business_messaging"
+            . "&auth_type=rerequest"
+            . "&extras=" . urlencode($extras_json);
 
 header("Location: $oauth_url");
 exit;
