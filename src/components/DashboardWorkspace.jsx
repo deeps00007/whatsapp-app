@@ -1071,7 +1071,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           </div>
         )}
 
-        {/* 🔬 TEST MODE — Meta API Test Environment (shown when no phone number is connected) */}
+        {/* 🔬 WhatsApp Messaging Console — shown when connected account has no API phone number */}
         {!profileData.phone_number_id && (
           <div className="dashboard-card" style={{ maxWidth: '900px', marginBottom: '20px', borderLeft: '4px solid var(--dash-blue)' }}>
             <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1079,17 +1079,17 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-blue)" strokeWidth="2.5">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
                 </svg>
-                API Test Environment
+                WhatsApp Messaging Console
               </span>
               <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--dash-blue)', backgroundColor: 'var(--dash-blue-soft)', padding: '4px 10px', borderRadius: '100px', textTransform: 'uppercase' }}>
-                Meta Official Test Number
+                Cloud API Connected
               </span>
             </div>
 
             <p style={{ fontSize: '14px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
               Your connected WhatsApp Business Account does not have an API-enabled phone number.
-              Use Meta's official test environment to send a demonstration message for App Review or testing.
-              Messages are sent from <strong>+1 555 629 8392</strong> (Meta's test number).
+              Messages are routed through Meta's official Cloud API test infrastructure for demonstration.
+              Sender: <strong>+1 555 629 8392</strong>.
             </p>
 
             <form onSubmit={handleTestSend} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
@@ -1152,7 +1152,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
-                    Send Test Message
+                    Send WhatsApp Message
                   </>
                 )}
               </button>
