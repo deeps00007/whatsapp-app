@@ -23,36 +23,62 @@ if (!isset($input['user_id']) || !isset($input['phone']) || !isset($input['templ
 $user_id = $input['user_id'];
 $phone = $input['phone'];
 $templateName = $input['template'];
+$test_mode = !empty($input['test_mode']);
 
 // 1. Fetch user access token & configuration from Firestore
 $profile = firestore_get_user($user_id);
-if (!$profile) {
-    http_response_code(404);
-    echo json_encode(['error' => 'No active WhatsApp business account linked to this user. Please connect via Facebook first.']);
-    exit;
-}
 
 $encrypted_token = $profile['fb_access_token'] ?? '';
 $phone_number_id = $profile['phone_number_id'] ?? '';
 $waba_id = $profile['waba_id'] ?? '';
 
-if (empty($encrypted_token)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Connected profile missing encrypted access token. Please reconnect via Facebook OAuth.']);
-    exit;
-}
+// -----------------------------------------------------------
+// TEST MODE: Use Meta's official test environment credentials
+// when the connected account has no API phone number.
+// This is critical for App Review when reviewers do not have
+// a WABA with an API-enabled phone number.
+// -----------------------------------------------------------
+$test_waba_id = '26533673862921106';
+$test_phone_number_id = '1146682351850264';
+$test_access_token = getenv('META_TEST_ACCESS_TOKEN') ?: '';
 
-if (empty($phone_number_id)) {
-    http_response_code(400);
-    echo json_encode([
-        'error' => 'No WhatsApp Business phone number is registered to this account.',
-        'hint' => 'Go to Meta Business Manager → WhatsApp → Phone Numbers and add a verified number. During Embedded Signup, select "Add a new number" instead of "Use a display name only".'
-    ]);
-    exit;
-}
+if ($test_mode) {
+    if (empty($test_access_token)) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'Test Mode is not configured.',
+            'hint' => 'The developer must set META_TEST_ACCESS_TOKEN in the backend environment. Get it from Meta App Dashboard → WhatsApp → API Setup → Test access token.'
+        ]);
+        exit;
+    }
+    $phone_number_id = $test_phone_number_id;
+    $waba_id = $test_waba_id;
+    $access_token = $test_access_token;
+} else {
+    if (!$profile) {
+        http_response_code(404);
+        echo json_encode(['error' => 'No active WhatsApp business account linked to this user. Please connect via Facebook first.']);
+        exit;
+    }
 
-// 2. Securely decrypt token using AES-256
-$access_token = decrypt_token($encrypted_token);
+    if (empty($encrypted_token)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Connected profile missing encrypted access token. Please reconnect via Facebook OAuth.']);
+        exit;
+    }
+
+    if (empty($phone_number_id)) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'No WhatsApp Business phone number is registered to this account.',
+            'hint' => 'Go to Meta Business Manager → WhatsApp → Phone Numbers and add a verified number. During Embedded Signup, select "Add a new number" instead of "Use a display name only".'
+        ]);
+        exit;
+    }
+
+    // 2. Securely decrypt token using AES-256
+    $access_token = decrypt_token($encrypted_token);
+}
 
 // 3. Prepare WhatsApp Cloud API Payload
 $waPayload = [

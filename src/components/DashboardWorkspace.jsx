@@ -19,6 +19,11 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
   const [submittingTemplate, setSubmittingTemplate] = useState(false);
   const [previewingTemplate, setPreviewingTemplate] = useState(null);
 
+  // Test Mode states (for App Review when reviewer has no API phone number)
+  const [testPhone, setTestPhone] = useState('+15550192834');
+  const [testTemplate, setTestTemplate] = useState('customer_welcome_alert');
+  const [testSending, setTestSending] = useState(false);
+
   const [logs, setLogs] = useState([
     `[${new Date().toLocaleTimeString()}] 🟢 WhatsApp Business session active.`,
     `[${new Date().toLocaleTimeString()}] 🔐 Cloud API connection secure.`,
@@ -157,6 +162,42 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
       addLog(`🔴 Network Error: ${err.message}`);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleTestSend = async (e) => {
+    e.preventDefault();
+    if (testSending) return;
+    setTestSending(true);
+    addLog(`🔬 Test Mode: Initiating dispatch via Meta test number (+1 555 629 8392)...`);
+
+    try {
+      const res = await fetch(`${backendUrl}/api/send_message.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: profileData.user_id,
+          phone: testPhone,
+          template: testTemplate,
+          test_mode: true
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        addLog(`🟢 Test Mode Dispatch Success! Message ID: ${data.message_id}`);
+        setSessionDispatches(prev => prev + 1);
+        if (data.logs && Array.isArray(data.logs)) {
+          data.logs.forEach(l => addLog(`📡 ${l}`));
+        }
+      } else {
+        addLog(`🔴 Test Mode Error: ${data.error || 'Failed to dispatch'}`);
+        if (data.hint) addLog(`💡 ${data.hint}`);
+      }
+    } catch (err) {
+      addLog(`🔴 Test Mode Network Error: ${err.message}`);
+    } finally {
+      setTestSending(false);
     }
   };
 
@@ -1020,6 +1061,106 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 Or, during Embedded Signup, select <strong>"Add a new number"</strong> instead of "Use a display name only".
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 🔬 TEST MODE — Meta API Test Environment (shown when no phone number is connected) */}
+        {!profileData.phone_number_id && (
+          <div className="dashboard-card" style={{ maxWidth: '900px', marginBottom: '20px', borderLeft: '4px solid var(--dash-blue)' }}>
+            <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-blue)" strokeWidth="2.5">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                API Test Environment
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--dash-blue)', backgroundColor: 'var(--dash-blue-soft)', padding: '4px 10px', borderRadius: '100px', textTransform: 'uppercase' }}>
+                Meta Official Test Number
+              </span>
+            </div>
+
+            <p style={{ fontSize: '14px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
+              Your connected WhatsApp Business Account does not have an API-enabled phone number.
+              Use Meta's official test environment to send a demonstration message for App Review or testing.
+              Messages are sent from <strong>+1 555 629 8392</strong> (Meta's test number).
+            </p>
+
+            <form onSubmit={handleTestSend} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
+              <div className="input-group">
+                <label>Destination Phone Number (E.164 Format)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="+15551234567"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Select Test Template</label>
+                <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
+                  {templates.length > 0 ? (
+                    templates.slice(0, 5).map(t => (
+                      <button
+                        key={t.name}
+                        type="button"
+                        className={`template-tab-btn ${testTemplate === t.name ? 'active' : ''}`}
+                        onClick={() => setTestTemplate(t.name)}
+                        style={{ minWidth: '85px', padding: '8px 12px', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                        title={t.name}
+                      >
+                        {t.name}
+                      </button>
+                    ))
+                  ) : (
+                    ['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`template-tab-btn ${testTemplate === t ? 'active' : ''}`}
+                        onClick={() => setTestTemplate(t)}
+                      >
+                        {t.replace(/_/g, ' ')}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Sender (Read-only)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value="+1 555 629 8392 (Meta Test Number)"
+                  readOnly
+                  style={{ backgroundColor: '#f8fafc', color: 'var(--dash-text-muted)', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={testSending}
+                className="btn-dispatch"
+                style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.2)' }}
+              >
+                {testSending ? (
+                  <>
+                    <span className="dash-spin" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid #FFF', borderRadius: '50%', display: 'inline-block' }}></span>
+                    Sending via Test Environment...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Send Test Message
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         )}
 
