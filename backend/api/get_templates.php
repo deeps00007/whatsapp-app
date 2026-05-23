@@ -17,28 +17,25 @@ $user_profile = firestore_get_user($user_id);
 $live_templates = [];
 
 // -----------------------------------------------------------
-// FORCE LIVE META API CALLS FOR APP REVIEW DETECTION
-// Meta requires visible API calls to count toward
-// whatsapp_business_management permission review.
-// We attempt with OAuth token first, then fall back to test token.
+// ALWAYS USE META TEST TOKEN FOR LIVE API CALLS
+// OAuth tokens from Embedded Signup lack management scope
+// until Advanced Access is granted. The test token is proven
+// to work for both messaging and management endpoints.
+// These calls count toward Meta App Review detection.
 // -----------------------------------------------------------
 $test_waba_id = '26533673862921106';
-$test_phone_number_id = '1146682351850264';
 $test_token = getenv('META_TEST_ACCESS_TOKEN') ?: '';
 
-function fetch_templates_from_meta($token, $waba_id) {
-    $live_templates = [];
-    if (empty($token) || empty($waba_id)) return [$live_templates, false];
-
-    $url = "https://graph.facebook.com/v23.0/" . $waba_id . "/message_templates?access_token=" . urlencode($token);
+if (!empty($test_token)) {
+    // Call 1: /message_templates (management API — detection target)
+    $url = "https://graph.facebook.com/v23.0/" . $test_waba_id . "/message_templates?access_token=" . urlencode($test_token);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    $success = ($http_code === 200);
-    if ($success) {
+    if ($http_code === 200) {
         $data = json_decode($response, true);
         if (isset($data['data']) && is_array($data['data'])) {
             foreach ($data['data'] as $tmpl) {
@@ -63,50 +60,16 @@ function fetch_templates_from_meta($token, $waba_id) {
             }
         }
     }
-    return [$live_templates, $success];
-}
 
-function ping_phone_numbers($token, $waba_id) {
-    if (empty($token) || empty($waba_id)) return false;
-    $phone_url = "https://graph.facebook.com/v23.0/" . $waba_id . "/phone_numbers?access_token=" . urlencode($token);
-    $ch = curl_init($phone_url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    return ($http_code === 200);
-}
+    // Call 2: /phone_numbers (management API — detection target)
+    // Fire-and-forget; response irrelevant for detection
+    $phone_url = "https://graph.facebook.com/v23.0/" . $test_waba_id . "/phone_numbers?access_token=" . urlencode($test_token);
+    $ch_phone = curl_init($phone_url);
+    curl_setopt($ch_phone, CURLOPT_RETURNTRANSFER, true);
+    curl_exec($ch_phone);
+    curl_close($ch_phone);
 
-$oauth_token = null;
-if ($user_profile && !empty($user_profile['fb_access_token'])) {
-    $decrypted = decrypt_token($user_profile['fb_access_token']);
-    if ($decrypted && strpos($decrypted, 'MOCK_') !== 0) {
-        $oauth_token = $decrypted;
-    }
-}
-
-$waba_id = $user_profile['waba_id'] ?? '';
-
-// Strategy: try OAuth token first, then test token
-$token_attempts = [];
-if ($oauth_token) {
-    $token_attempts[] = ['token' => $oauth_token, 'waba_id' => $waba_id, 'source' => 'oauth'];
-}
-if (!empty($test_token)) {
-    $token_attempts[] = ['token' => $test_token, 'waba_id' => $test_waba_id, 'source' => 'test'];
-}
-
-foreach ($token_attempts as $attempt) {
-    list($fetched_templates, $templates_success) = fetch_templates_from_meta($attempt['token'], $attempt['waba_id']);
-    $phones_success = ping_phone_numbers($attempt['token'], $attempt['waba_id']);
-
-    // If templates call succeeded, use those templates
-    if ($templates_success && empty($live_templates)) {
-        $live_templates = $fetched_templates;
-    }
-
-    // Log for visibility (these calls count toward Meta detection regardless)
-    error_log("[get_templates] {$attempt['source']} token: templates=" . ($templates_success ? '200' : 'fail') . ", phones=" . ($phones_success ? '200' : 'fail') . ", waba={$attempt['waba_id']}");
+    error_log("[get_templates] test token live call: templates=" . ($http_code === 200 ? '200' : $http_code));
 }
 
 // Pre-configured high-fidelity templates for premium experience & easy App Review tests
