@@ -84,13 +84,34 @@ if (!empty($client_secret)) {
     }
 
     $res_data = json_decode($response, true);
-    $long_lived_token = $res_data['access_token'] ?? '';
+    $short_lived_token = $res_data['access_token'] ?? '';
 
-    if (empty($long_lived_token)) {
+    if (empty($short_lived_token)) {
         http_response_code(400);
         die(json_encode([
             'error' => 'Meta returned an empty access token. Ensure the user authorized the requested scopes (whatsapp_business_management, whatsapp_business_messaging).'
         ]));
+    }
+
+    // EXCHANGE SHORT-LIVED TOKEN FOR LONG-LIVED TOKEN (60 days)
+    $exchange_url = "https://graph.facebook.com/v23.0/oauth/access_token"
+                  . "?grant_type=fb_exchange_token"
+                  . "&client_id=" . urlencode($client_id)
+                  . "&client_secret=" . urlencode($client_secret)
+                  . "&fb_exchange_token=" . urlencode($short_lived_token);
+
+    $ch_exchange = curl_init($exchange_url);
+    curl_setopt($ch_exchange, CURLOPT_RETURNTRANSFER, true);
+    $exchange_response = curl_exec($ch_exchange);
+    $exchange_http_code = curl_getinfo($ch_exchange, CURLINFO_HTTP_CODE);
+    curl_close($ch_exchange);
+
+    $long_lived_token = $short_lived_token;
+    if ($exchange_http_code === 200) {
+        $exchange_data = json_decode($exchange_response, true);
+        if (!empty($exchange_data['access_token'])) {
+            $long_lived_token = $exchange_data['access_token'];
+        }
     }
 
     // STEP 2: FETCH THE WHATSAPP ACCOUNT DIRECTLY (v23.0)
