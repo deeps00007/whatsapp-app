@@ -21,7 +21,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
   // Test Mode states (for App Review when reviewer has no API phone number)
   const [testPhone, setTestPhone] = useState('+15550192834');
-  const [testTemplate, setTestTemplate] = useState('customer_welcome_alert');
+  const [testTemplate, setTestTemplate] = useState('hello_world');
   const [testSending, setTestSending] = useState(false);
 
   const [logs, setLogs] = useState([
@@ -193,6 +193,13 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
       } else {
         addLog(`🔴 Test Mode Error: ${data.error || 'Failed to dispatch'}`);
         if (data.hint) addLog(`💡 ${data.hint}`);
+        if (data.details) {
+          const details = typeof data.details === 'string' ? data.details : JSON.stringify(data.details);
+          addLog(`📄 Meta Response: ${details.substring(0, 300)}${details.length > 300 ? '...' : ''}`);
+        }
+        if (data.diagnostic) {
+          addLog(`🔧 Diagnostic: ${JSON.stringify(data.diagnostic)}`);
+        }
       }
     } catch (err) {
       addLog(`🔴 Test Mode Network Error: ${err.message}`);
@@ -1115,7 +1122,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                       </button>
                     ))
                   ) : (
-                    ['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                    ['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
                       <button
                         key={t}
                         type="button"

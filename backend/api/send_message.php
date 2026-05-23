@@ -170,10 +170,26 @@ if ($http_code == 200) {
         'simulated' => false
     ]);
 } else {
+    $decoded = json_decode($result, true);
+    $error_message = $decoded['error']['message'] ?? ($result ?: 'Unknown error');
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to deliver message through WhatsApp Cloud API Gateway',
-        'details' => json_decode($result, true) ?: $result,
+        'error' => 'Failed to deliver message through WhatsApp Cloud API Gateway: ' . $error_message,
+        'details' => $decoded ?: $result,
+        'diagnostic' => [
+            'http_code' => $http_code,
+            'url' => $url,
+            'phone_number_id' => $phone_number_id,
+            'waba_id' => $waba_id,
+            'template' => $templateName,
+            'test_mode' => $test_mode,
+            'token_prefix' => substr($access_token, 0, 10) . '...',
+            'common_fixes' => [
+                'Expired token' => 'Get fresh token from Meta App Dashboard → WhatsApp → API Setup',
+                'Template not found' => 'Use "hello_world" template or create it in Meta WhatsApp Manager',
+                'Invalid phone' => 'Ensure E.164 format with country code (e.g. +919876543210)'
+            ]
+        ],
         'logs' => $logs
     ]);
 }
