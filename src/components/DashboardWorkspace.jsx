@@ -1108,31 +1108,16 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               <div className="input-group">
                 <label>Select Test Template</label>
                 <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
-                  {templates.length > 0 ? (
-                    templates.slice(0, 5).map(t => (
-                      <button
-                        key={t.name}
-                        type="button"
-                        className={`template-tab-btn ${testTemplate === t.name ? 'active' : ''}`}
-                        onClick={() => setTestTemplate(t.name)}
-                        style={{ minWidth: '85px', padding: '8px 12px', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
-                        title={t.name}
-                      >
-                        {t.name}
-                      </button>
-                    ))
-                  ) : (
-                    ['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
-                      <button
-                        key={t}
-                        type="button"
-                        className={`template-tab-btn ${testTemplate === t ? 'active' : ''}`}
-                        onClick={() => setTestTemplate(t)}
-                      >
-                        {t.replace(/_/g, ' ')}
-                      </button>
-                    ))
-                  )}
+                  {['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`template-tab-btn ${testTemplate === t ? 'active' : ''}`}
+                      onClick={() => setTestTemplate(t)}
+                    >
+                      {t.replace(/_/g, ' ')}
+                    </button>
+                  ))}
                 </div>
               </div>
 

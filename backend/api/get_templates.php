@@ -60,6 +60,16 @@ if ($user_profile && !empty($user_profile['fb_access_token']) && !empty($user_pr
 // Pre-configured high-fidelity templates for premium experience & easy App Review tests
 $default_templates = [
     [
+        'template_id' => 'hello_world',
+        'user_id' => $user_id,
+        'name' => 'hello_world',
+        'category' => 'UTILITY',
+        'language' => 'en_US',
+        'status' => 'approved',
+        'body_text' => 'Hello! This is a test message from Growbychat using Meta\'s official WhatsApp Cloud API test environment. Welcome aboard!',
+        'timestamp' => time() - 3600 * 48
+    ],
+    [
         'template_id' => 'customer_welcome_alert',
         'user_id' => $user_id,
         'name' => 'customer_welcome_alert',
