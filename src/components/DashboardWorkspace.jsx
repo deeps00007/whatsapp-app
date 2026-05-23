@@ -1130,6 +1130,10 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                   readOnly
                   style={{ backgroundColor: '#f8fafc', color: 'var(--dash-text-muted)', cursor: 'not-allowed' }}
                 />
+                <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)', lineHeight: '1.4' }}>
+                  Messages are sent through Meta's official Cloud API test environment.
+                  Your connected WhatsApp Business Account ({profileData.phone_number || 'no API number'}) does not have an API-enabled number, so we route through Meta's test infrastructure for demonstration.
+                </span>
               </div>
 
               <button
