@@ -1254,7 +1254,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
           {/* COLUMN 2: Real-time Event Console */}
           <div className="dashboard-card" style={{ gap: '20px' }}>
-            <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="dash-pulse-dot" style={{ backgroundColor: 'var(--dash-blue)' }}></span>
                 Real-time Events
@@ -1264,6 +1264,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
                 type="button"
                 className="btn-sim"
                 onClick={simulateWebhookStatusUpdate}
+                style={{ whiteSpace: 'nowrap' }}
               >
                 ⚡ Sync Delivery Status
               </button>
@@ -1302,7 +1303,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
 
         {/* Campaign History & Delivery Telemetry Table */}
         <div className="dashboard-card" style={{ marginTop: '20px' }}>
-          <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-purple)" strokeWidth="2.5">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -1312,12 +1313,12 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
               </svg>
               Campaign History & Delivery Telemetry
             </span>
-            <button 
-              type="button" 
-              className="btn-sim" 
+            <button
+              type="button"
+              className="btn-sim"
               onClick={fetchMessages}
               disabled={loadingMessages}
-              style={{ backgroundColor: 'var(--dash-purple-soft)', color: 'var(--dash-purple)', borderColor: 'rgba(139, 92, 246, 0.2)' }}
+              style={{ backgroundColor: 'var(--dash-purple-soft)', color: 'var(--dash-purple)', borderColor: 'rgba(139, 92, 246, 0.2)', whiteSpace: 'nowrap' }}
             >
               {loadingMessages ? (
                 <>
