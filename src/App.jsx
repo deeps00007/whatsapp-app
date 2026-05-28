@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -105,6 +107,8 @@ export default function App() {
 
   return (
     <>
+      <SpeedInsights />
+      <Analytics />
       {profileData ? (
         <DashboardWorkspace 
           profileData={profileData} 
