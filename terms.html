@@ -292,27 +292,159 @@
       }
       .back-link:hover { background: #1d4ed8; }
 
+      /* ── Anchor links ── */
+      .content-card h2 { position: relative; }
+      .content-card h2 a.anchor {
+        position: absolute;
+        left: -28px;
+        top: 2px;
+        opacity: 0;
+        color: var(--color-accent);
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 400;
+        transition: opacity 0.15s;
+      }
+      .content-card h2:hover a.anchor { opacity: 1; }
+
+      /* ── Floating back-to-top ── */
+      .back-to-top {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        width: 44px;
+        height: 44px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: all 0.25s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        z-index: 50;
+      }
+      .back-to-top.visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+      .back-to-top:hover {
+        color: var(--color-accent);
+        border-color: var(--color-accent-border);
+      }
+
       /* ── Footer ── */
       .legal-footer {
         border-top: 1px solid var(--color-border);
         background: var(--color-surface);
+        padding: 56px 32px 32px;
       }
-      .legal-footer-inner {
+      .legal-footer-grid {
         max-width: var(--max-wide);
         margin: 0 auto;
-        padding: 32px;
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 48px;
+      }
+      .footer-brand-block {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .footer-brand-block .logo-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--color-text);
+        text-decoration: none;
+      }
+      .footer-brand-block .logo-link .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent);
+      }
+      .footer-brand-block p {
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--color-text-secondary);
+        max-width: 280px;
+      }
+      .footer-brand-block .footer-contact {
+        font-size: 13px;
+        color: var(--color-text-muted);
+      }
+      .footer-brand-block .footer-contact a {
+        color: var(--color-text-secondary);
+        text-decoration: none;
+      }
+      .footer-brand-block .footer-contact a:hover { color: var(--color-accent); text-decoration: underline; }
+      .footer-col h4 {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--color-text-muted);
+        margin-bottom: 16px;
+      }
+      .footer-col ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .footer-col a {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .footer-col a:hover { color: var(--color-accent); text-decoration: underline; }
+      .legal-footer-bottom {
+        max-width: var(--max-wide);
+        margin: 0 auto;
+        padding-top: 24px;
+        border-top: 1px solid var(--color-border);
         display: flex;
         justify-content: space-between;
         align-items: center;
         font-size: 13px;
         color: var(--color-text-muted);
       }
-      .legal-footer-inner a {
+      .legal-footer-bottom a {
         color: var(--color-text-secondary);
         text-decoration: none;
         margin-left: 24px;
       }
-      .legal-footer-inner a:hover { color: var(--color-accent); text-decoration: underline; }
+      .legal-footer-bottom a:hover { color: var(--color-accent); text-decoration: underline; }
+
+      /* ── Print styles ── */
+      @media print {
+        .top-nav, .sidebar, .back-to-top { display: none !important; }
+        body { background: #fff; color: #000; font-size: 12pt; }
+        .page-header { padding-top: 24px; }
+        .page-header h1 { font-size: 24pt; }
+        .content-card { border: none; box-shadow: none; padding: 0; }
+        .content-card h2 { border-bottom: 1px solid #ddd; }
+        .info-grid { border: 1px solid #ddd; background: #f9f9f9; }
+        a { text-decoration: underline; color: #000; }
+        .legal-footer { border-top: 1px solid #ddd; background: #fff; }
+      }
+
+      /* ── Focus states ── */
+      a:focus-visible, button:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
 
       /* ── Mobile ── */
       @media (max-width: 900px) {
@@ -322,8 +454,12 @@
         .page-header h1 { font-size: 28px; }
         .info-grid { grid-template-columns: 1fr; }
         .top-nav-links a:not(.top-nav-cta) { display: none; }
-        .legal-footer-inner { flex-direction: column; gap: 12px; text-align: center; }
-        .legal-footer-inner a { margin-left: 0; }
+        .legal-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+        .legal-footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+        .legal-footer-bottom a { margin-left: 0; }
+      }
+      @media (max-width: 600px) {
+        .legal-footer-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -388,7 +524,7 @@
       <main class="content-card">
 
         <section id="agreement">
-          <h2>1. Agreement to Terms</h2>
+          <h2><a href="#agreement" class="anchor">#</a> 1. Agreement to Terms</h2>
           <p>These Terms and Conditions (&quot;Terms&quot;) apply to <strong>Growbychat</strong>, a WhatsApp Business messaging and automation platform operated by <strong>Aashdeep Industrial Engineering</strong>.</p>
           <p>These Terms cover the Growbychat platform, the <strong>appbyaashdeep-saas</strong> Meta application, related websites, APIs, dashboards, and services operated by Aashdeep Industrial Engineering.</p>
           <p>By creating an account, syncing your WhatsApp details, or using the API endpoints provided by the Service, you agree to enter a legally binding contract governed by these Terms.</p>
@@ -404,7 +540,7 @@
         </section>
 
         <section id="permitted-use">
-          <h2>2. Permitted Use &amp; Account Obligations</h2>
+          <h2><a href="#permitted-use" class="anchor">#</a> 2. Permitted Use &amp; Account Obligations</h2>
           <p>To maintain system integrity, you agree to the following:</p>
           <ul>
             <li>You must be at least 18 years of age or possess legal corporate standing to establish a SaaS subscription.</li>
@@ -415,7 +551,7 @@
         </section>
 
         <section id="anti-spam">
-          <h2>3. Anti-Spam Policy</h2>
+          <h2><a href="#anti-spam" class="anchor">#</a> 3. Anti-Spam Policy</h2>
           <p>We maintain a strict zero-tolerance policy against spam, harassment, and unsolicited broadcasts.</p>
           <ul>
             <li>You must not import contacts or send messages to recipients who have not explicitly opted in to receive communications from your business.</li>
@@ -425,7 +561,7 @@
         </section>
 
         <section id="subscriptions">
-          <h2>4. Subscriptions, Payments &amp; Refunds</h2>
+          <h2><a href="#subscriptions" class="anchor">#</a> 4. Subscriptions, Payments &amp; Refunds</h2>
           <ul>
             <li><strong>Billing Recurrence:</strong> Plans automatically renew on your selected billing cycle (monthly or annually) unless you submit a cancellation request prior to the renewal date.</li>
             <li><strong>Payment Processing:</strong> All transactions are processed through certified, secure payment gateways. Charges are settled in US Dollars (USD).</li>
@@ -434,7 +570,7 @@
         </section>
 
         <section id="liability">
-          <h2>5. Service Adjustments &amp; Liability</h2>
+          <h2><a href="#liability" class="anchor">#</a> 5. Service Adjustments &amp; Liability</h2>
           <p>Growbychat operates as an intermediary layer connecting your business to the Meta WhatsApp Business Platform.</p>
           <ul>
             <li>We are not liable for account restrictions, delivery delays, or channel disruptions initiated by Meta, WhatsApp, or telecommunications carriers.</li>
@@ -445,12 +581,12 @@
         </section>
 
         <section id="revisions">
-          <h2>6. Revisions to These Terms</h2>
+          <h2><a href="#revisions" class="anchor">#</a> 6. Revisions to These Terms</h2>
           <p>We may update these Terms periodically to reflect changes in our practices, Meta guidelines, or applicable regulations. Revised versions will be published on this page with an updated effective date. Continued use of the Service after revisions constitutes acceptance of the updated Terms.</p>
         </section>
 
         <section id="contact">
-          <h2>7. Contact Information</h2>
+          <h2><a href="#contact" class="anchor">#</a> 7. Contact Information</h2>
           <p>If you have questions about these Terms or wish to raise a concern, please contact us:</p>
           <div class="info-grid">
             <div class="info-item"><strong>Business Name</strong><span>Aashdeep Industrial Engineering</span></div>
@@ -466,9 +602,54 @@
       </main>
     </div>
 
+    <!-- Floating back-to-top -->
+    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+      ↑
+    </button>
+
     <!-- Footer -->
     <footer class="legal-footer">
-      <div class="legal-footer-inner">
+      <div class="legal-footer-grid">
+        <div class="footer-brand-block">
+          <a href="/" class="logo-link">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            Growbychat
+            <span class="dot"></span>
+          </a>
+          <p>WhatsApp Business automation platform operated by Aashdeep Industrial Engineering. Simple, fast, and secure customer communication.</p>
+          <div class="footer-contact">
+            <a href="mailto:extrathings036@gmail.com">extrathings036@gmail.com</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#workflow">How It Works</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+            <li><a href="/terms.html">Terms of Service</a></li>
+            <li><a href="/privacy.html#contact">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="mailto:extrathings036@gmail.com">General Email</a></li>
+            <li><a href="mailto:deepanshusingh036@gmail.com">Support Email</a></li>
+            <li><a href="https://growbychat.app">Website</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="legal-footer-bottom">
         <span>&copy; 2026 Growbychat. Operated by Aashdeep Industrial Engineering. All rights reserved.</span>
         <div>
           <a href="/privacy.html">Privacy Policy</a>
@@ -476,6 +657,34 @@
         </div>
       </div>
     </footer>
+
+    <script>
+      // Scroll-based TOC highlighting
+      const sections = document.querySelectorAll('section[id]');
+      const tocLinks = document.querySelectorAll('.sidebar nav a');
+      const backToTop = document.getElementById('backToTop');
+
+      function onScroll() {
+        const scrollY = window.scrollY + 120;
+
+        // Update active TOC link
+        let activeId = '';
+        sections.forEach(section => {
+          if (scrollY >= section.offsetTop) {
+            activeId = section.id;
+          }
+        });
+        tocLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + activeId);
+        });
+
+        // Toggle back-to-top visibility
+        backToTop.classList.toggle('visible', window.scrollY > 600);
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    </script>
 
   </body>
 </html>
