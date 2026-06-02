@@ -2,334 +2,480 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300F27E'%3E%3Cpath d='M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.005 5.219 5.224 0 11.645 0c3.112.001 6.04 1.212 8.243 3.417 2.203 2.204 3.412 5.131 3.411 8.244-.005 6.425-5.224 11.644-11.644 11.644-2.007-.001-3.973-.518-5.716-1.503L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.342 0 9.69-4.348 9.693-9.691.002-2.589-1.003-5.023-2.831-6.852C16.488 2.233 14.05 1.229 11.464 1.229c-5.346 0-9.695 4.35-9.698 9.693-.001 1.748.469 3.453 1.36 4.986l-.998 3.647 3.738-.981zM16.9 13.916c-.297-.15-1.758-.868-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.174.2-.298.3-.497.099-.198.05-.372-.025-.521-.075-.15-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.011c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Terms & Conditions | Growbychat by Aashdeep Industrial Engineering</title>
+    <title>Terms of Service — Growbychat</title>
     <meta name="description" content="Terms and Conditions for Growbychat, operated by Aashdeep Industrial Engineering." />
     <meta name="robots" content="index, follow" />
-    <link rel="stylesheet" href="/src/index.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      /* Professional Legal Page Overrides */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --color-bg: #fafafa;
+        --color-surface: #ffffff;
+        --color-border: #e5e7eb;
+        --color-text: #111827;
+        --color-text-secondary: #6b7280;
+        --color-text-muted: #9ca3af;
+        --color-accent: #2563eb;
+        --color-accent-light: #eff6ff;
+        --color-accent-border: #bfdbfe;
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --max-content: 720px;
+        --max-wide: 1120px;
+      }
+
+      html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
       body {
-        background: #ffffff;
-        color: #1f2937;
-        font-family: 'Inter', -apple-system, sans-serif;
-      }
-      .navbar {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        backdrop-filter: none;
-      }
-      .logo {
-        color: #111827;
-      }
-      .logo-dot {
-        background: #2563eb;
-        box-shadow: none;
-      }
-      .nav-link {
-        color: #4b5563;
-      }
-      .nav-link:hover {
-        color: #2563eb;
-      }
-      .legal-page {
-        padding-top: calc(80px + 60px);
-        padding-bottom: 80px;
-      }
-      .legal-header {
-        text-align: left;
-        max-width: 800px;
-        margin: 0 auto 40px;
-      }
-      .legal-header h1 {
-        font-size: 36px;
-        color: #111827;
-        margin-bottom: 8px;
-        font-weight: 700;
-      }
-      .legal-header p {
-        color: #6b7280;
-        font-size: 15px;
-      }
-      .accent-badge {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        color: #2563eb;
-        box-shadow: none;
-        font-weight: 600;
-        margin-bottom: 16px;
-      }
-      .legal-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 48px;
-      }
-      .legal-card:hover {
-        border-color: #e5e7eb;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      }
-      .legal-content h2 {
-        font-size: 20px;
-        color: #111827;
-        border-left: 3px solid #2563eb;
-        padding-left: 14px;
-        margin-bottom: 14px;
-        margin-top: 32px;
-        font-weight: 600;
-      }
-      .legal-content p {
-        color: #374151;
+        font-family: var(--font-sans);
+        background: var(--color-bg);
+        color: var(--color-text);
         line-height: 1.7;
-        margin-bottom: 14px;
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
       }
-      .legal-content ul {
-        list-style-type: disc;
-        padding-left: 24px;
+
+      /* ── Top Navigation ── */
+      .top-nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--color-border);
+      }
+      .top-nav-inner {
+        max-width: var(--max-wide);
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .top-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--color-text);
+        text-decoration: none;
+      }
+      .top-nav-logo svg { flex-shrink: 0; }
+      .top-nav-logo .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--color-accent);
+      }
+      .top-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+      .top-nav-links a {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .top-nav-links a:hover { color: var(--color-text); }
+      .top-nav-links a.active { color: var(--color-accent); }
+      .top-nav-cta {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 16px;
+        background: var(--color-accent);
+        color: #fff !important;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 13px;
+        text-decoration: none;
+        transition: background 0.2s;
+      }
+      .top-nav-cta:hover { background: #1d4ed8; }
+
+      /* ── Page Header ── */
+      .page-header {
+        max-width: var(--max-wide);
+        margin: 0 auto;
+        padding: 64px 32px 0;
+      }
+      .page-header-inner {
+        max-width: var(--max-content);
+      }
+      .page-header .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--color-text-muted);
+        margin-bottom: 20px;
+      }
+      .page-header .breadcrumb a {
+        color: var(--color-text-secondary);
+        text-decoration: none;
+      }
+      .page-header .breadcrumb a:hover { color: var(--color-accent); text-decoration: underline; }
+      .page-header .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: var(--color-accent-light);
+        border: 1px solid var(--color-accent-border);
+        color: var(--color-accent);
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 100px;
         margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
-      .legal-content li {
-        color: #374151;
+      .page-header h1 {
+        font-size: 38px;
+        font-weight: 700;
+        color: var(--color-text);
+        line-height: 1.2;
+        margin-bottom: 12px;
+        letter-spacing: -0.5px;
+      }
+      .page-header .subtitle {
+        font-size: 16px;
+        color: var(--color-text-secondary);
+        margin-bottom: 24px;
+      }
+      .page-header .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        font-size: 13px;
+        color: var(--color-text-muted);
+        padding-top: 20px;
+        border-top: 1px solid var(--color-border);
+      }
+      .page-header .meta span { display: flex; align-items: center; gap: 5px; }
+      .page-header .meta strong { color: var(--color-text-secondary); font-weight: 500; }
+
+      /* ── Layout: Sidebar + Content ── */
+      .page-layout {
+        max-width: var(--max-wide);
+        margin: 0 auto;
+        padding: 48px 32px 80px;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 56px;
+        align-items: start;
+      }
+
+      /* ── Sidebar TOC ── */
+      .sidebar {
+        position: sticky;
+        top: 92px;
+      }
+      .sidebar h3 {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--color-text-muted);
+        margin-bottom: 12px;
+        padding-left: 12px;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .sidebar a {
+        display: block;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        border-radius: 0 6px 6px 0;
+        transition: all 0.15s;
+      }
+      .sidebar a:hover {
+        color: var(--color-text);
+        background: var(--color-accent-light);
+        border-left-color: var(--color-accent-border);
+      }
+      .sidebar a.active {
+        color: var(--color-accent);
+        background: var(--color-accent-light);
+        border-left-color: var(--color-accent);
+        font-weight: 600;
+      }
+
+      /* ── Content Card ── */
+      .content-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 48px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      }
+      .content-card section { margin-bottom: 36px; }
+      .content-card section:last-child { margin-bottom: 0; }
+      .content-card h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .content-card p {
+        color: var(--color-text-secondary);
+        margin-bottom: 12px;
+      }
+      .content-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+      }
+      .content-card li {
+        position: relative;
+        padding-left: 20px;
+        color: var(--color-text-secondary);
         margin-bottom: 8px;
-        padding-left: 0;
+        font-size: 14px;
       }
-      .legal-content li::before {
-        content: none;
+      .content-card li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 10px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--color-accent);
       }
-      .btn-primary {
-        background: #2563eb;
-        color: #ffffff;
-        box-shadow: none;
-        border: none;
+      .content-card strong { color: var(--color-text); font-weight: 600; }
+      .content-card a { color: var(--color-accent); text-decoration: underline; }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 24px;
+        margin: 16px 0;
+        padding: 16px;
+        background: var(--color-bg);
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
       }
-      .btn-primary:hover {
-        background: #1d4ed8;
-        box-shadow: none;
-        transform: none;
+      .info-grid .info-item { font-size: 13px; }
+      .info-grid .info-item strong { display: block; color: var(--color-text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+      .info-grid .info-item span { color: var(--color-text-secondary); }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 32px;
+        padding: 8px 18px;
+        background: var(--color-accent);
+        color: #fff;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s;
       }
-      .footer {
-        background: #f9fafb;
-        border-top: 1px solid #e5e7eb;
+      .back-link:hover { background: #1d4ed8; }
+
+      /* ── Footer ── */
+      .legal-footer {
+        border-top: 1px solid var(--color-border);
+        background: var(--color-surface);
       }
-      .footer-brand p {
-        color: #6b7280;
+      .legal-footer-inner {
+        max-width: var(--max-wide);
+        margin: 0 auto;
+        padding: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: var(--color-text-muted);
       }
-      .footer-links-col h4 {
-        color: #111827;
+      .legal-footer-inner a {
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        margin-left: 24px;
       }
-      .footer-links-col a {
-        color: #6b7280;
-      }
-      .footer-links-col a:hover {
-        color: #2563eb;
-      }
-      .footer-bottom {
-        border-top-color: #e5e7eb;
-      }
-      .footer-legal-links a:hover {
-        color: #2563eb;
-      }
-      @media (max-width: 768px) {
-        .legal-card {
-          padding: 24px;
-        }
-        .legal-header h1 {
-          font-size: 28px;
-        }
+      .legal-footer-inner a:hover { color: var(--color-accent); text-decoration: underline; }
+
+      /* ── Mobile ── */
+      @media (max-width: 900px) {
+        .page-layout { grid-template-columns: 1fr; gap: 32px; }
+        .sidebar { position: static; }
+        .content-card { padding: 28px; }
+        .page-header h1 { font-size: 28px; }
+        .info-grid { grid-template-columns: 1fr; }
+        .top-nav-links a:not(.top-nav-cta) { display: none; }
+        .legal-footer-inner { flex-direction: column; gap: 12px; text-align: center; }
+        .legal-footer-inner a { margin-left: 0; }
       }
     </style>
   </head>
   <body>
-    <nav class="navbar scrolled">
-      <div class="nav-container">
-        <a href="/" class="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="top-nav-inner">
+        <a href="/" class="top-nav-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
           </svg>
-          <span>Growbychat</span>
-          <div class="logo-dot"></div>
+          Growbychat
+          <span class="dot"></span>
         </a>
-        <ul class="nav-menu">
-          <li><a href="/#features" class="nav-link">Features</a></li>
-          <li><a href="/#workflow" class="nav-link">How It Works</a></li>
-          <li><a href="/#pricing" class="nav-link">Pricing</a></li>
-          <li><a href="/#faq" class="nav-link">FAQ</a></li>
-        </ul>
-        <div class="nav-cta">
-          <a href="/#pricing" class="btn btn-secondary" style="padding: 8px 16px; border-radius: 8px;">Login</a>
-          <a href="/#pricing" class="btn btn-primary" style="padding: 8px 16px; border-radius: 8px; font-size: 13px;">Get Started</a>
+        <div class="top-nav-links">
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="/terms.html" class="active">Terms of Service</a>
+          <a href="/" class="top-nav-cta">Back to Home</a>
         </div>
       </div>
-    </nav>
+    </header>
 
-    <div class="legal-page container fade-in">
-      <div class="legal-header">
-        <div class="accent-badge">Terms of Service</div>
-        <h1>Terms & Conditions</h1>
-        <p><strong>Growbychat</strong> — Operated by <strong>Aashdeep Industrial Engineering</strong> — Effective Date: May 21, 2026</p>
-      </div>
-
-      <div class="legal-card glass-card">
-        <div class="legal-content">
-          <section>
-            <h2>1. Agreement to Terms</h2>
-            <p>
-              These Terms and Conditions (&quot;Terms&quot;) apply to <strong>Growbychat</strong>, a WhatsApp Business messaging and automation platform operated by <strong>Aashdeep Industrial Engineering</strong>.
-            </p>
-            <p>
-              This Terms of Service applies to the Growbychat platform, the <strong>appbyaashdeep-saas</strong> Meta application, related websites, APIs, dashboards, and services operated by <strong>Aashdeep Industrial Engineering</strong>.
-            </p>
-            <p>
-              By creating an account, syncing your WhatsApp details, or using the API endpoints provided by the Service, you agree to enter a legally binding contract governed by these Terms.
-            </p>
-            <p>
-              <strong>Website:</strong> https://growbychat.app<br/>
-              <strong>Business Name:</strong> Aashdeep Industrial Engineering<br/>
-              <strong>Meta Application Name:</strong> appbyaashdeep-saas<br/>
-              <strong>Email:</strong> extrathings036@gmail.com<br/>
-              <strong>Support Email:</strong> deepanshusingh036@gmail.com
-            </p>
-            <p>
-              If you disagree with any segment of these clauses, you must immediately terminate use of our environments and revoke dashboard tokens.
-            </p>
-          </section>
-
-          <section>
-            <h2>2. Permitted Use & Account Obligations</h2>
-            <p>
-              To maintain system equilibrium, you agree to comply with the following user covenants:
-            </p>
-            <ul>
-              <li>You must be at least 18 years of age or possess legal corporate standing to establish a SaaS subscription.</li>
-              <li>You are entirely responsible for all interactions, messages, media files, and payloads dispatched from your linked WhatsApp numbers.</li>
-              <li>You agree to safeguard your developer API secret keys and prevent credentials leakage to unverified channels.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>3. Explicit Anti-Spam Policy</h2>
-            <p>
-              We operate a strict, zero-tolerance policy against spam, harassment, and unsolicited advertising broadcasts.
-            </p>
-            <ul>
-              <li>You are forbidden from importing contacts or blasting numbers that have not explicitly opted-in to receive updates from your brand.</li>
-              <li>Outbound content must not promote scam programs, adult themes, illicit narcotics, hate speech, or financial frauds.</li>
-              <li>If our systems detect excessive user block rates or message spam reports, we reserve the right to suspend or permanently block your workspace without a refund.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>4. Subscriptions, Payments & Refunds</h2>
-            <p>
-              Terms governing subscription periods and transactions are detailed below:
-            </p>
-            <ul>
-              <li><strong>Billing Recurrence:</strong> Plans automatically renew on your selected billing duration (monthly or annually) unless you submit a cancellation ticket prior to the renewal timestamp.</li>
-              <li><strong>Payment Settlement:</strong> We process credit transactions using fully certified, secure merchant gateways. All charges are settled in US Dollars (USD).</li>
-              <li><strong>Refund Clause:</strong> Subscriptions feature a risk-free 7-day money-back guarantee. Refund requests submitted after 7 days from the initial payment stamp are processed at our sole discretion.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>5. Service Adjustments & Liability Boundaries</h2>
-            <p>
-              Growbychat acts as a bridging layer to the Meta WhatsApp network.
-            </p>
-            <ul>
-              <li>We are not responsible for account bans, delivery delays, or channel blockages initiated directly by Meta, WhatsApp, or carrier entities.</li>
-              <li>We make no warranties, explicit or implied, that the Service will remain completely error-free or operate with 100% uninterrupted uptime, though we strive for maximum service availability.</li>
-              <li>In no event shall Aashdeep Industrial Engineering or Growbychat be liable for lost profits, data erasure, or incidental damages arising from service usage or third-party modifications.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>6. Revisions to These Terms</h2>
-            <p>
-              We may update these Terms periodically and publish revisions on this page.
-            </p>
-          </section>
-
-          <section>
-            <h2>7. Contact Information</h2>
-            <p>
-              <strong>Business Name:</strong> Aashdeep Industrial Engineering<br/>
-              <strong>Platform Name:</strong> Growbychat<br/>
-              <strong>Meta Application Name:</strong> appbyaashdeep-saas<br/>
-              <strong>Website:</strong> https://growbychat.app<br/>
-              <strong>General Contact:</strong> extrathings036@gmail.com<br/>
-              <strong>Support Contact:</strong> deepanshusingh036@gmail.com
-            </p>
-          </section>
-
-          <div style="text-align: center; margin-top: 40px;">
-            <a class="btn btn-primary" href="/">
-              Back to Home Page
-            </a>
-          </div>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-inner">
+        <div class="breadcrumb">
+          <a href="/">Home</a>
+          <span>/</span>
+          <span>Terms of Service</span>
+        </div>
+        <div class="badge">Legal Document</div>
+        <h1>Terms &amp; Conditions</h1>
+        <p class="subtitle">The terms governing your use of the Growbychat WhatsApp Business automation platform and related services.</p>
+        <div class="meta">
+          <span><strong>Business:</strong>&nbsp;Aashdeep Industrial Engineering</span>
+          <span><strong>Meta App:</strong>&nbsp;appbyaashdeep-saas</span>
+          <span><strong>Effective:</strong>&nbsp;May 21, 2026</span>
+          <span><strong>Website:</strong>&nbsp;growbychat.app</span>
         </div>
       </div>
     </div>
 
-    <footer class="footer">
-      <div class="container">
-        <div class="footer-grid">
-          <div class="footer-brand">
-            <a href="/" class="logo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-              </svg>
-              <span>Growbychat</span>
-              <div class="logo-dot"></div>
-            </a>
-            <p style="color: var(--text-secondary);">
-              Supercharging customer communication with modern WhatsApp broadcasts, APIs, and no-code automation workflows. Simple, fast, and secure.
-            </p>
+    <!-- Main Layout: Sidebar + Content -->
+    <div class="page-layout">
+
+      <!-- Sidebar TOC -->
+      <aside class="sidebar">
+        <h3>Contents</h3>
+        <nav>
+          <a href="#agreement">Agreement to Terms</a>
+          <a href="#permitted-use">Permitted Use</a>
+          <a href="#anti-spam">Anti-Spam Policy</a>
+          <a href="#subscriptions">Subscriptions &amp; Refunds</a>
+          <a href="#liability">Service Liability</a>
+          <a href="#revisions">Revisions</a>
+          <a href="#contact">Contact Information</a>
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <main class="content-card">
+
+        <section id="agreement">
+          <h2>1. Agreement to Terms</h2>
+          <p>These Terms and Conditions (&quot;Terms&quot;) apply to <strong>Growbychat</strong>, a WhatsApp Business messaging and automation platform operated by <strong>Aashdeep Industrial Engineering</strong>.</p>
+          <p>These Terms cover the Growbychat platform, the <strong>appbyaashdeep-saas</strong> Meta application, related websites, APIs, dashboards, and services operated by Aashdeep Industrial Engineering.</p>
+          <p>By creating an account, syncing your WhatsApp details, or using the API endpoints provided by the Service, you agree to enter a legally binding contract governed by these Terms.</p>
+          <div class="info-grid">
+            <div class="info-item"><strong>Business Name</strong><span>Aashdeep Industrial Engineering</span></div>
+            <div class="info-item"><strong>Platform</strong><span>Growbychat</span></div>
+            <div class="info-item"><strong>Meta Application</strong><span>appbyaashdeep-saas</span></div>
+            <div class="info-item"><strong>Website</strong><span>https://growbychat.app</span></div>
+            <div class="info-item"><strong>General Contact</strong><span>extrathings036@gmail.com</span></div>
+            <div class="info-item"><strong>Support</strong><span>deepanshusingh036@gmail.com</span></div>
           </div>
-          <div class="footer-links-col">
-            <h4>Product</h4>
-            <ul>
-              <li><a href="/#features">Features</a></li>
-              <li><a href="/#workflow">How It Works</a></li>
-              <li><a href="/#playground">Live Playground</a></li>
-              <li><a href="/#pricing">Pricing Plans</a></li>
-            </ul>
+          <p>If you disagree with any portion of these Terms, you must immediately discontinue use of the Service and revoke any connected dashboard tokens.</p>
+        </section>
+
+        <section id="permitted-use">
+          <h2>2. Permitted Use &amp; Account Obligations</h2>
+          <p>To maintain system integrity, you agree to the following:</p>
+          <ul>
+            <li>You must be at least 18 years of age or possess legal corporate standing to establish a SaaS subscription.</li>
+            <li>You are entirely responsible for all interactions, messages, media files, and payloads sent from your linked WhatsApp numbers.</li>
+            <li>You must safeguard your developer API secret keys and prevent credential exposure to unauthorized parties.</li>
+            <li>You may not use the Service to transmit content that violates applicable laws, regulations, or Meta's Business Policies.</li>
+          </ul>
+        </section>
+
+        <section id="anti-spam">
+          <h2>3. Anti-Spam Policy</h2>
+          <p>We maintain a strict zero-tolerance policy against spam, harassment, and unsolicited broadcasts.</p>
+          <ul>
+            <li>You must not import contacts or send messages to recipients who have not explicitly opted in to receive communications from your business.</li>
+            <li>Outbound content must not promote scam programs, adult themes, illicit substances, hate speech, or financial fraud.</li>
+            <li>If our systems detect excessive block rates or spam reports, we reserve the right to suspend or terminate your workspace without refund.</li>
+          </ul>
+        </section>
+
+        <section id="subscriptions">
+          <h2>4. Subscriptions, Payments &amp; Refunds</h2>
+          <ul>
+            <li><strong>Billing Recurrence:</strong> Plans automatically renew on your selected billing cycle (monthly or annually) unless you submit a cancellation request prior to the renewal date.</li>
+            <li><strong>Payment Processing:</strong> All transactions are processed through certified, secure payment gateways. Charges are settled in US Dollars (USD).</li>
+            <li><strong>Refund Policy:</strong> Subscriptions include a 7-day money-back guarantee from the date of initial payment. Refund requests submitted after 7 days are evaluated at our sole discretion.</li>
+          </ul>
+        </section>
+
+        <section id="liability">
+          <h2>5. Service Adjustments &amp; Liability</h2>
+          <p>Growbychat operates as an intermediary layer connecting your business to the Meta WhatsApp Business Platform.</p>
+          <ul>
+            <li>We are not liable for account restrictions, delivery delays, or channel disruptions initiated by Meta, WhatsApp, or telecommunications carriers.</li>
+            <li>We do not guarantee uninterrupted uptime or error-free operation, though we maintain commercially reasonable service availability standards.</li>
+            <li>In no event shall Aashdeep Industrial Engineering or Growbychat be liable for lost profits, data loss, or incidental damages arising from service usage or third-party actions.</li>
+            <li>We reserve the right to modify, suspend, or discontinue any feature of the Service with reasonable notice.</li>
+          </ul>
+        </section>
+
+        <section id="revisions">
+          <h2>6. Revisions to These Terms</h2>
+          <p>We may update these Terms periodically to reflect changes in our practices, Meta guidelines, or applicable regulations. Revised versions will be published on this page with an updated effective date. Continued use of the Service after revisions constitutes acceptance of the updated Terms.</p>
+        </section>
+
+        <section id="contact">
+          <h2>7. Contact Information</h2>
+          <p>If you have questions about these Terms or wish to raise a concern, please contact us:</p>
+          <div class="info-grid">
+            <div class="info-item"><strong>Business Name</strong><span>Aashdeep Industrial Engineering</span></div>
+            <div class="info-item"><strong>Platform</strong><span>Growbychat</span></div>
+            <div class="info-item"><strong>Meta Application</strong><span>appbyaashdeep-saas</span></div>
+            <div class="info-item"><strong>Website</strong><span>https://growbychat.app</span></div>
+            <div class="info-item"><strong>General Contact</strong><span>extrathings036@gmail.com</span></div>
+            <div class="info-item"><strong>Support Contact</strong><span>deepanshusingh036@gmail.com</span></div>
           </div>
-          <div class="footer-links-col">
-            <h4>Integrations</h4>
-            <ul>
-              <li><a href="/#playground">REST API Devs</a></li>
-              <li><a href="/">Facebook Sign-In</a></li>
-              <li><a href="/">WhatsApp QR Web</a></li>
-              <li><a href="/#faq">Active Webhooks</a></li>
-            </ul>
-          </div>
-          <div class="footer-links-col">
-            <h4>Company</h4>
-            <ul>
-              <li><a href="/#faq">FAQ Help Desk</a></li>
-              <li><a href="/privacy.html">Privacy Policy</a></li>
-              <li><a href="/terms.html">Terms of Service</a></li>
-              <li><a href="/">Corporate Contact</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="footer-bottom">
-          <div style="color: var(--text-secondary);">
-            &copy; 2026 Growbychat. Operated by Aashdeep Industrial Engineering. All rights reserved.
-          </div>
-          <div class="footer-legal-links">
-            <a href="/privacy.html">Privacy Policy</a>
-            <a href="/terms.html">Terms of Service</a>
-          </div>
+        </section>
+
+        <a href="/" class="back-link">← Back to Home</a>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="legal-footer">
+      <div class="legal-footer-inner">
+        <span>&copy; 2026 Growbychat. Operated by Aashdeep Industrial Engineering. All rights reserved.</span>
+        <div>
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="/terms.html">Terms of Service</a>
         </div>
       </div>
     </footer>
+
   </body>
 </html>
