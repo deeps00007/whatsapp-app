@@ -21,7 +21,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
 
   // Test Mode states (for App Review when reviewer has no API phone number)
   const [testPhone, setTestPhone] = useState('+15550192834');
-  const [testTemplate, setTestTemplate] = useState('hello_world');
+  const [testTemplate, setTestTemplate] = useState('customer_welcome_alert');
   const [testSending, setTestSending] = useState(false);
 
   const [logs, setLogs] = useState([
@@ -1118,7 +1118,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
                 <div className="input-group">
                   <label>Template</label>
                   <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
-                    {['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                    {['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
                       <button
                         key={t}
                         type="button"

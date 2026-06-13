@@ -186,7 +186,7 @@ if ($http_code == 200) {
             'token_prefix' => substr($access_token, 0, 10) . '...',
             'common_fixes' => [
                 'Expired token' => 'Get fresh token from Meta App Dashboard → WhatsApp → API Setup',
-                'Template not found' => 'Use "hello_world" template or create it in Meta WhatsApp Manager',
+                'Template not found' => 'Create this template in Meta WhatsApp Manager first',
                 'Invalid phone' => 'Ensure E.164 format with country code (e.g. +919876543210)'
             ]
         ],

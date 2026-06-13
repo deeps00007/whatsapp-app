@@ -122,9 +122,9 @@ error_log("[get_templates] management_api_hit=" . ($management_api_hit ? 'yes' :
 // Pre-configured high-fidelity templates for premium experience & easy App Review tests
 $default_templates = [
     [
-        'template_id' => 'hello_world',
+        'template_id' => 'customer_welcome_alert',
         'user_id' => $user_id,
-        'name' => 'hello_world',
+        'name' => 'customer_welcome_alert',
         'category' => 'UTILITY',
         'language' => 'en_US',
         'status' => 'approved',
