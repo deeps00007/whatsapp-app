@@ -53,16 +53,15 @@ export default function App() {
     }
   };
 
-  const fetchProfile = async (userId, { on404 = 'disconnect' } = {}) => {
+  const fetchProfile = async (userId) => {
     try {
       const res = await fetch(`${backendUrl}/api/get_profile.php?user_id=${encodeURIComponent(userId)}`);
       if (res.ok) {
         const data = await res.json();
         setProfileData(data);
         localStorage.setItem('growbychat_profile', JSON.stringify(data));
-      } else if (res.status === 404 && on404 === 'disconnect') {
-        await handleDisconnect(userId);
       }
+      // Never disconnect on errors — only explicit "Disconnect Account" button does that
     } catch (_err) {
       // Network/firewall blip — keep existing session alive
     }
@@ -78,8 +77,8 @@ export default function App() {
       if (savedProfile) {
         try { setProfileData(JSON.parse(savedProfile)); } catch (_) {}
       }
-      // Then silently verify with backend
-      fetchProfile(savedUserId, { on404: 'disconnect' });
+      // Then silently verify with backend (never disconnects on errors)
+      fetchProfile(savedUserId);
     }
   }, []);
 

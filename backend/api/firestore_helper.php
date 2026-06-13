@@ -3,7 +3,14 @@
 // Supports local file fallback and authenticated Google Service Account credentials.
 
 define('FIREBASE_PROJECT_ID', getenv('FIREBASE_PROJECT_ID') ?: 'whatsapp-betasaas');
-define('LOCAL_DB_FILE', __DIR__ . '/database.json');
+
+// Use writable location for local DB fallback (Railway containers may restrict app dir writes)
+$db_dir = sys_get_temp_dir();
+$alt_db = __DIR__ . '/database.json';
+$local_db_path = is_writable(__DIR__) ? $alt_db : $db_dir . '/growbychat_database.json';
+define('LOCAL_DB_FILE', $local_db_path);
+define('LOCAL_MSGS_FILE', str_replace('database.json', 'messages.json', $local_db_path));
+define('LOCAL_TMPL_FILE', str_replace('database.json', 'templates.json', $local_db_path));
 
 /**
  * Retrieve or generate a Google OAuth2 Access Token using a Service Account JSON file.
@@ -377,7 +384,7 @@ function firestore_get_messages($user_id) {
 // Helpers for Local Message DB
 function save_message_to_local_db($message_id, $data) {
     $db = [];
-    $file = __DIR__ . '/messages.json';
+    $file = LOCAL_MSGS_FILE;
     if (file_exists($file)) {
         $db = json_decode(file_get_contents($file), true) ?: [];
     }
@@ -387,7 +394,7 @@ function save_message_to_local_db($message_id, $data) {
 }
 
 function read_single_message_from_local_db($message_id) {
-    $file = __DIR__ . '/messages.json';
+    $file = LOCAL_MSGS_FILE;
     if (!file_exists($file)) {
         return null;
     }
@@ -396,7 +403,7 @@ function read_single_message_from_local_db($message_id) {
 }
 
 function read_messages_from_local_db($user_id) {
-    $file = __DIR__ . '/messages.json';
+    $file = LOCAL_MSGS_FILE;
     if (!file_exists($file)) {
         return [];
     }
@@ -543,7 +550,7 @@ function firestore_get_templates($user_id) {
 // Helpers for Local Template DB fallback
 function save_template_to_local_db($template_id, $data) {
     $db = [];
-    $file = __DIR__ . '/templates.json';
+    $file = LOCAL_TMPL_FILE;
     if (file_exists($file)) {
         $db = json_decode(file_get_contents($file), true) ?: [];
     }
@@ -553,7 +560,7 @@ function save_template_to_local_db($template_id, $data) {
 }
 
 function read_templates_from_local_db($user_id) {
-    $file = __DIR__ . '/templates.json';
+    $file = LOCAL_TMPL_FILE;
     if (!file_exists($file)) {
         return [];
     }
