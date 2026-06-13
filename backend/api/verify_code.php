@@ -51,40 +51,57 @@ if (!$access_token) {
     exit;
 }
 
-$url = "https://graph.facebook.com/v23.0/" . urlencode($phone_number_id) . "/verify_code";
+$api_versions = ['v21.0', 'v20.0', 'v19.0', 'v18.0'];
+$success = false;
+$response = '';
+$http_code = 0;
+$working_ver = '';
 
-$payload = [
-    'code' => $code
-];
+foreach ($api_versions as $ver) {
+    $url = "https://graph.facebook.com/{$ver}/" . urlencode($phone_number_id) . "/verify_code";
 
-$ch = curl_init($url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $access_token,
-    'Content-Type: application/json'
-]);
-$response = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+    $payload = [
+        'code' => $code
+    ];
 
-error_log("[verify_code] user=$user_id phone_id=$phone_number_id code=$code HTTP=$http_code body=" . substr($response, 0, 300));
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $access_token,
+        'Content-Type: application/json'
+    ]);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-if ($http_code === 200) {
-    $profile['phone_verified'] = 'true';
-    firestore_set_user($user_id, $profile);
+    error_log("[verify_code] ver=$ver user=$user_id code=$code HTTP=$http_code body=" . substr($response, 0, 300));
 
-    echo json_encode(['success' => true, 'message' => 'Phone number verified successfully! You can now send messages.']);
-} else {
+    if ($http_code === 200) {
+        $profile['phone_verified'] = 'true';
+        firestore_set_user($user_id, $profile);
+        echo json_encode(['success' => true, 'message' => 'Phone number verified successfully! You can now send messages.', 'api_version' => $ver]);
+        $success = true;
+        break;
+    }
+
+    $err_data = json_decode($response, true);
+    $err_msg = $err_data['error']['message'] ?? '';
+    if (strpos($err_msg, 'Unknown path') === false && strpos($err_msg, 'does not exist') === false) {
+        break;
+    }
+}
+
+if (!$success) {
     $err = json_decode($response, true);
     $msg = $err['error']['message'] ?? 'Unknown error';
     $meta_code = $err['error']['code'] ?? 0;
-    http_response_code($http_code);
+    http_response_code($http_code ?: 400);
     echo json_encode([
         'error' => "Verification failed: $msg",
         'meta_code' => $meta_code,
-        'hints' => [
+        'hint' => [
             130421 => 'Incorrect code. Please check and try again.',
             130422 => 'Code has expired. Request a new verification code.',
             130423 => 'Too many failed attempts. Wait a few minutes before trying again.',
