@@ -138,11 +138,24 @@ if (!empty($client_secret)) {
 
             if ($phone_code === 200) {
                 $phone_data = json_decode($phone_response, true);
-                if (isset($phone_data['data'][0]['id'])) {
+                $phone_list = $phone_data['data'] ?? [];
+                // Find first phone number that has an ID (skip onboarding-only entries)
+                foreach ($phone_list as $phone_entry) {
+                    if (!empty($phone_entry['id']) && !empty($phone_entry['display_phone_number'])) {
+                        $phone_number_id = $phone_entry['id'];
+                        $phone_number = $phone_entry['display_phone_number'];
+                        break;
+                    }
+                }
+                // Fallback: use first entry even if display_phone_number is missing
+                if (empty($phone_number_id) && isset($phone_data['data'][0]['id'])) {
                     $phone_number_id = $phone_data['data'][0]['id'];
-                    $phone_number = $phone_data['data'][0]['display_phone_number'] ?? '';
+                    $phone_number = $phone_data['data'][0]['display_phone_number']
+                        ?? $phone_data['data'][0]['verified_name']
+                        ?? '';
                 }
             }
+            error_log("[oauth_callback] Phone discovery — waba_id=$waba_id, phone_code=$phone_code, found=$phone_number_id, number=$phone_number");
         }
     }
 } elseif ($is_local) {

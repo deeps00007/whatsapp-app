@@ -112,6 +112,7 @@ export default function App() {
         <DashboardWorkspace 
           profileData={profileData} 
           onDisconnect={handleDisconnect} 
+          onRefreshProfile={fetchProfile}
           backendUrl={backendUrl}
         />
       ) : (
