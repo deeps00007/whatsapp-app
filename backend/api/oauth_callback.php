@@ -68,6 +68,8 @@ if (!empty($client_secret)) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    error_log("[oauth_callback] Token exchange — HTTP=$http_code, redirect_uri=$redirect_uri, body=" . substr($response, 0, 300));
+
     if ($http_code !== 200) {
         http_response_code(400);
         $error_detail = json_decode($response, true) ?: ['message' => 'Unknown error from Meta token exchange'];
@@ -113,50 +115,125 @@ if (!empty($client_secret)) {
             $long_lived_token = $exchange_data['access_token'];
         }
     }
+    error_log("[oauth_callback] Long-lived exchange — HTTP=$exchange_http_code, expires=" . ($exchange_data['expires_in'] ?? 'N/A'));
 
-    // STEP 2: FETCH THE WHATSAPP ACCOUNT DIRECTLY (v23.0)
+    error_log("[oauth_callback] Token acquired, prefix=" . substr($long_lived_token, 0, 20) . "... starting WABA discovery.");
+
+    // STEP 2a: Debug token to find WABA from granular scopes (works for coexistence onboarding)
+    $app_token = $client_id . '|' . $client_secret;
+    $debug_url = "https://graph.facebook.com/v23.0/debug_token"
+               . "?input_token=" . urlencode($long_lived_token)
+               . "&access_token=" . urlencode($app_token);
+    $ch_dbg = curl_init($debug_url);
+    curl_setopt($ch_dbg, CURLOPT_RETURNTRANSFER, true);
+    $debug_response = curl_exec($ch_dbg);
+    $debug_code = curl_getinfo($ch_dbg, CURLINFO_HTTP_CODE);
+    curl_close($ch_dbg);
+    error_log("[oauth_callback] /debug_token — HTTP=$debug_code, body=" . substr($debug_response, 0, 800));
+
+    // Extract WABA IDs from granular scopes
+    if ($debug_code === 200) {
+        $debug_data = json_decode($debug_response, true);
+        $granules = $debug_data['data']['granular_scopes'] ?? [];
+        foreach ($granules as $g) {
+            if (($g['scope'] ?? '') === 'whatsapp_business_management') {
+                $targets = $g['target_ids'] ?? [];
+                if (!empty($targets[0])) {
+                    $waba_id = $targets[0];
+                    error_log("[oauth_callback] Found WABA via /debug_token granular_scopes: $waba_id");
+                    break;
+                }
+            }
+        }
+    }
+
+    // STEP 2b: Fallback — direct WABA query
     $waba_url = "https://graph.facebook.com/v23.0/me/whatsapp_business_accounts?access_token=" . urlencode($long_lived_token);
     $ch_waba = curl_init($waba_url);
     curl_setopt($ch_waba, CURLOPT_RETURNTRANSFER, true);
     $waba_response = curl_exec($ch_waba);
     $waba_code = curl_getinfo($ch_waba, CURLINFO_HTTP_CODE);
     curl_close($ch_waba);
+    error_log("[oauth_callback] /me/whatsapp_business_accounts — HTTP=$waba_code, body=" . substr($waba_response, 0, 500));
 
-    if ($waba_code === 200) {
+    if (empty($waba_id) && $waba_code === 200) {
         $waba_data = json_decode($waba_response, true);
         if (isset($waba_data['data'][0]['id'])) {
             $waba_id = $waba_data['data'][0]['id'];
             $business_name = $waba_data['data'][0]['name'] ?? 'WhatsApp Business';
+            error_log("[oauth_callback] Found WABA via /me/whatsapp_business_accounts: $waba_id name=$business_name");
+        }
+    }
 
-            // STEP 3: FETCH TARGET PHONE ID METADATA (v23.0)
-            $phone_url = "https://graph.facebook.com/v23.0/" . $waba_id . "/phone_numbers?access_token=" . urlencode($long_lived_token);
-            $ch_phone = curl_init($phone_url);
-            curl_setopt($ch_phone, CURLOPT_RETURNTRANSFER, true);
-            $phone_response = curl_exec($ch_phone);
-            $phone_code = curl_getinfo($ch_phone, CURLINFO_HTTP_CODE);
-            curl_close($ch_phone);
+    // STEP 3: FETCH PHONE NUMBERS
+    if (!empty($waba_id)) {
+        $phone_url = "https://graph.facebook.com/v23.0/" . $waba_id . "/phone_numbers?access_token=" . urlencode($long_lived_token);
+        $ch_phone = curl_init($phone_url);
+        curl_setopt($ch_phone, CURLOPT_RETURNTRANSFER, true);
+        $phone_response = curl_exec($ch_phone);
+        $phone_code = curl_getinfo($ch_phone, CURLINFO_HTTP_CODE);
+        curl_close($ch_phone);
 
-            if ($phone_code === 200) {
-                $phone_data = json_decode($phone_response, true);
-                $phone_list = $phone_data['data'] ?? [];
-                // Find first phone number that has an ID (skip onboarding-only entries)
-                foreach ($phone_list as $phone_entry) {
-                    if (!empty($phone_entry['id']) && !empty($phone_entry['display_phone_number'])) {
-                        $phone_number_id = $phone_entry['id'];
-                        $phone_number = $phone_entry['display_phone_number'];
+        if ($phone_code === 200) {
+            $phone_data = json_decode($phone_response, true);
+            $phone_list = $phone_data['data'] ?? [];
+
+            $best_phone = null;
+            $best_score = -1;
+            foreach ($phone_list as $entry) {
+                $score = 0;
+                $num = $entry['display_phone_number'] ?? '';
+                $status = $entry['code_verification_status'] ?? '';
+                $quality = $entry['quality_rating'] ?? '';
+                $cert = $entry['certificate'] ?? '';
+                $cert_status = $entry['cert_status'] ?? '';
+
+                // Skip obvious test numbers
+                if (strpos($num, '555') !== false) {
+                    error_log("[oauth_callback] Skipping test number: $num");
+                    continue;
+                }
+                // Prefer VERIFIED
+                if ($status === 'VERIFIED') $score += 3;
+                // Prefer numbers with quality rating
+                if (!empty($quality)) $score += 2;
+                // Prefer certified numbers
+                if ($cert_status === 'verified' || !empty($cert)) $score += 1;
+                // Must have ID and number
+                if (!empty($entry['id']) && !empty($num)) $score += 1;
+
+                if ($score > $best_score && !empty($entry['id']) && !empty($num)) {
+                    $best_score = $score;
+                    $best_phone = $entry;
+                }
+            }
+
+            // If all numbers were test numbers (all got score 0), grab the first
+            if (!$best_phone) {
+                foreach ($phone_list as $entry) {
+                    if (!empty($entry['id'])) {
+                        $best_phone = $entry;
                         break;
                     }
                 }
-                // Fallback: use first entry even if display_phone_number is missing
-                if (empty($phone_number_id) && isset($phone_data['data'][0]['id'])) {
-                    $phone_number_id = $phone_data['data'][0]['id'];
-                    $phone_number = $phone_data['data'][0]['display_phone_number']
-                        ?? $phone_data['data'][0]['verified_name']
-                        ?? '';
+            }
+
+            if ($best_phone) {
+                $phone_number_id = $best_phone['id'];
+                $phone_number = $best_phone['display_phone_number']
+                    ?? $best_phone['verified_name']
+                    ?? '';
+                // Use the best phone's certificate if available
+                if (!empty($best_phone['certificate'])) {
+                    error_log("[oauth_callback] Phone has certificate: $phone_number cert=" . $best_phone['certificate']);
                 }
             }
-            error_log("[oauth_callback] Phone discovery — waba_id=$waba_id, phone_code=$phone_code, found=$phone_number_id, number=$phone_number");
+            error_log("[oauth_callback] Phone discovery — waba=$waba_id candidates=" . count($phone_list) . " picked=$phone_number_id ($phone_number) score=$best_score");
+        } else {
+            error_log("[oauth_callback] Phone lookup failed — HTTP=$phone_code body=" . substr($phone_response, 0, 300));
         }
+    } else {
+        error_log("[oauth_callback] WARNING: waba_id still empty after both discovery methods. OAuth may have failed to create WABA.");
     }
 } elseif ($is_local) {
     // LOCAL DEVELOPMENT ONLY: high-fidelity mock token when no secrets are configured
@@ -186,11 +263,14 @@ $user_data = [
     'connected_at' => time()
 ];
 
+error_log("[oauth_callback] Saving to Firestore — waba=$waba_id phone=$phone_number_id number=$phone_number business=$business_name");
 $save_success = firestore_set_user($user_id, $user_data);
 if (!$save_success) {
+    error_log("[oauth_callback] Firestore write FAILED");
     http_response_code(500);
     die("Database write failed. Verify Firestore configuration.");
 }
+error_log("[oauth_callback] Success — redirecting to $frontend_host");
 
 // 5. Redirect back to React Web App
 header("Location: " . $frontend_host . "/#oauth=success&user_id=" . urlencode($user_id));

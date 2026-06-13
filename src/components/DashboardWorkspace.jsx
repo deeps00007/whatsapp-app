@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 export default function DashboardWorkspace({ profileData, onDisconnect, onRefreshProfile, backendUrl }) {
-  const [phone, setPhone] = useState('+15550192834');
+  const [phone, setPhone] = useState(profileData.phone_number || '');
   const [template, setTemplate] = useState('customer_welcome_alert');
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -231,7 +231,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
               value: {
                 messaging_product: "whatsapp",
                 metadata: {
-                  display_phone_number: profileData.phone_number || "+1 (555) 019-2834",
+                  display_phone_number: profileData.phone_number || "unknown",
                   phone_number_id: profileData.phone_number_id || "phone_acc_123"
                 },
                 statuses: [
@@ -1222,7 +1222,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
                   </div>
                   <div>
                     <span style={{ color: 'var(--dash-text-sub)', display: 'block', marginBottom: '2px' }}>WhatsApp Number</span>
-                    <strong style={{ color: 'var(--dash-green)' }}>{profileData.phone_number || '+1 (555) 019-2834'}</strong>
+                    <strong style={{ color: profileData.phone_number ? 'var(--dash-green)' : '#ef4444' }}>{profileData.phone_number || 'Not configured'}</strong>
                   </div>
                 </div>
 
