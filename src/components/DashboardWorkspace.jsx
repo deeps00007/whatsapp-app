@@ -13,12 +13,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
 
   // Phone verification states
   const [phoneVerified, setPhoneVerified] = useState(null);
-  const [verifCode, setVerifCode] = useState('');
   const [verifSending, setVerifSending] = useState(false);
-  const [verifVerifying, setVerifVerifying] = useState(false);
-  const [verifMessage, setVerifMessage] = useState('');
-  const [verifError, setVerifError] = useState('');
-  const [verifCodeSent, setVerifCodeSent] = useState(false);
   
   // Template management states
   const [templates, setTemplates] = useState([]);
@@ -73,64 +68,6 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
 
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
-  };
-
-  const handleRequestVerification = async (method) => {
-    setVerifSending(true);
-    setVerifError('');
-    setVerifMessage('');
-    try {
-      const res = await fetch(`${backendUrl}/api/request_verification.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: profileData.user_id, method })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setVerifCodeSent(true);
-        setVerifMessage(`Verification code sent via ${method}! Check your phone.`);
-        addLog(`📱 Verification code sent via ${method} to ${profileData.phone_number}`);
-      } else {
-        setVerifError(data.error || 'Failed to send code.');
-        if (data.hints) setVerifError(prev => prev + ' ' + data.hints);
-        addLog(`🔴 Verification code failed: ${data.error}`);
-      }
-    } catch (err) {
-      setVerifError('Network error. Try again.');
-    } finally {
-      setVerifSending(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    if (!verifCode || verifCode.length !== 6) {
-      setVerifError('Enter the 6-digit code.');
-      return;
-    }
-    setVerifVerifying(true);
-    setVerifError('');
-    try {
-      const res = await fetch(`${backendUrl}/api/verify_code.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: profileData.user_id, code: verifCode })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setPhoneVerified(true);
-        setVerifMessage('Phone number verified! You can now send messages.');
-        addLog(`✅ Phone ${profileData.phone_number} verified successfully!`);
-        if (onRefreshProfile) onRefreshProfile(profileData.user_id);
-      } else {
-        setVerifError(data.error || 'Verification failed.');
-        if (data.hints) setVerifError(prev => prev + ' ' + data.hints);
-        addLog(`🔴 Verification failed: ${data.error}`);
-      }
-    } catch (err) {
-      setVerifError('Network error. Try again.');
-    } finally {
-      setVerifVerifying(false);
-    }
   };
 
   const fetchMessages = async () => {
@@ -1176,78 +1113,71 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
                   Verify Your Phone Number
                 </div>
                 <div style={{ fontSize: '13px', color: '#b45309', marginTop: '2px' }}>
-                  {profileData.phone_number} needs SMS verification before you can send messages.
+                  {profileData.phone_number} must be verified via SMS or voice call before you can deliver messages.
                 </div>
               </div>
             </div>
 
-            {!verifCodeSent ? (
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => handleRequestVerification('SMS')}
-                  disabled={verifSending}
-                  style={{
-                    padding: '10px 20px', borderRadius: '10px', border: 'none',
-                    backgroundColor: '#f59e0b', color: '#fff', fontWeight: '700',
-                    fontSize: '13px', cursor: verifSending ? 'wait' : 'pointer',
-                    opacity: verifSending ? 0.7 : 1
-                  }}
-                >
-                  {verifSending ? 'Sending...' : 'Send via SMS'}
-                </button>
-                <button
-                  onClick={() => handleRequestVerification('VOICE')}
-                  disabled={verifSending}
-                  style={{
-                    padding: '10px 20px', borderRadius: '10px', border: '1px solid #f59e0b',
-                    backgroundColor: 'transparent', color: '#b45309', fontWeight: '700',
-                    fontSize: '13px', cursor: verifSending ? 'wait' : 'pointer',
-                    opacity: verifSending ? 0.7 : 1
-                  }}
-                >
-                  {verifSending ? 'Calling...' : 'Send via Voice Call'}
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={verifCode}
-                  onChange={(e) => setVerifCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-digit code"
-                  maxLength="6"
-                  style={{
-                    padding: '10px 14px', borderRadius: '10px', border: '2px solid #f59e0b',
-                    fontSize: '16px', fontWeight: '700', letterSpacing: '4px',
-                    width: '160px', textAlign: 'center', outline: 'none'
-                  }}
-                />
-                <button
-                  onClick={handleVerifyCode}
-                  disabled={verifVerifying || verifCode.length !== 6}
-                  style={{
-                    padding: '10px 20px', borderRadius: '10px', border: 'none',
-                    backgroundColor: '#16a34a', color: '#fff', fontWeight: '700',
-                    fontSize: '13px', cursor: verifVerifying ? 'wait' : 'pointer',
-                    opacity: verifVerifying || verifCode.length !== 6 ? 0.5 : 1
-                  }}
-                >
-                  {verifVerifying ? 'Verifying...' : 'Verify'}
-                </button>
-                <button
-                  onClick={() => { setVerifCodeSent(false); setVerifCode(''); setVerifMessage(''); setVerifError(''); }}
-                  style={{
-                    padding: '10px 14px', borderRadius: '10px', border: '1px solid #d97706',
-                    backgroundColor: 'transparent', color: '#b45309', fontWeight: '600',
-                    fontSize: '12px', cursor: 'pointer'
-                  }}
-                >
-                  Resend Code
-                </button>
-              </div>
-            )}
+            <div style={{ fontSize: '13px', color: '#78350f', lineHeight: '1.6', marginBottom: '16px', background: '#fffbeb', padding: '12px 16px', borderRadius: '10px' }}>
+              <strong>Steps:</strong><br />
+              1. Click "Open Meta Business Manager" below<br />
+              2. Go to <strong>WhatsApp &rarr; Phone Numbers</strong><br />
+              3. Click <strong>Verify</strong> next to your number<br />
+              4. Choose SMS or Voice Call, enter the 6-digit code<br />
+              5. Come back here and click "Check Verification Status"
+            </div>
 
-            {verifMessage && <div style={{ marginTop: '10px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{verifMessage}</div>}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <a
+                href={`https://business.facebook.com/wa/manage/phone-numbers/?waba_id=${profileData.waba_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '10px 20px', borderRadius: '10px', border: 'none',
+                  backgroundColor: '#f59e0b', color: '#fff', fontWeight: '700',
+                  fontSize: '13px', cursor: 'pointer', textDecoration: 'none',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                Open Meta Business Manager
+              </a>
+              <button
+                onClick={async () => {
+                  setVerifSending(true);
+                  setVerifError('');
+                  try {
+                    const res = await fetch(`${backendUrl}/api/request_verification.php`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ user_id: profileData.user_id })
+                    });
+                    const data = await res.json();
+                    if (data.verified) {
+                      setPhoneVerified(true);
+                      addLog(`✅ Phone ${profileData.phone_number} verified!`);
+                      if (onRefreshProfile) onRefreshProfile(profileData.user_id);
+                    } else {
+                      addLog(`ℹ️ Phone still not verified. Complete verification in Meta Business Manager first.`);
+                    }
+                  } catch (_err) {
+                    addLog(`🔴 Status check failed. Try again.`);
+                  } finally {
+                    setVerifSending(false);
+                  }
+                }}
+                disabled={verifSending}
+                style={{
+                  padding: '10px 20px', borderRadius: '10px', border: '1px solid #f59e0b',
+                  backgroundColor: 'transparent', color: '#b45309', fontWeight: '700',
+                  fontSize: '13px', cursor: verifSending ? 'wait' : 'pointer',
+                  opacity: verifSending ? 0.7 : 1
+                }}
+              >
+                {verifSending ? 'Checking...' : 'Check Verification Status'}
+              </button>
+            </div>
+
             {verifError && <div style={{ marginTop: '10px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{verifError}</div>}
           </div>
         )}
