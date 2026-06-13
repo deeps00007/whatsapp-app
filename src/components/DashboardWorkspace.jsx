@@ -220,66 +220,44 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
     }
   };
 
-  const simulateWebhookStatusUpdate = async () => {
+  const syncDeliveryStatus = async () => {
     if (messages.length === 0) {
-      addLog(`⚠️ Status Sync Error: No campaign entries found in database. Please launch a campaign first!`);
+      addLog(`⚠️ No messages to check. Send a message first.`);
       return;
     }
 
-    // Find the first message that is not fully 'read'
     const targetMsg = messages.find(m => m.status !== 'read') || messages[0];
-    const currentStatus = targetMsg.status;
-    const nextStatus = currentStatus === 'sent' ? 'delivered' : 'read';
+    const mid = targetMsg.message_id || '';
+    if (!mid.startsWith('wamid.')) {
+      addLog(`⚠️ Message ${mid} is not a real Meta message ID (simulated).`);
+      return;
+    }
 
-    addLog(`🔔 Fetching real-time status callback for message ID: ${targetMsg.message_id}...`);
-
-    const webhookPayload = {
-      object: "whatsapp_business_account",
-      entry: [
-        {
-          id: profileData.waba_id || "waba_acc_123",
-          changes: [
-            {
-              value: {
-                messaging_product: "whatsapp",
-                metadata: {
-                  display_phone_number: profileData.phone_number || "unknown",
-                  phone_number_id: profileData.phone_number_id || "phone_acc_123"
-                },
-                statuses: [
-                  {
-                    id: targetMsg.message_id,
-                    status: nextStatus,
-                    timestamp: Math.floor(Date.now() / 1000).toString(),
-                    recipient_id: targetMsg.phone
-                  }
-                ]
-              },
-              field: "messages"
-            }
-          ]
-        }
-      ]
-    };
+    addLog(`🔔 Querying Meta for real delivery status of ${mid}...`);
 
     try {
-      const res = await fetch(`${backendUrl}/api/webhook.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Workspace-Sync-Token': 'growbychat_sync_secret_5124efbb'
-        },
-        body: JSON.stringify(webhookPayload)
-      });
+      const res = await fetch(`${backendUrl}/api/message_status.php?user_id=${encodeURIComponent(profileData.user_id)}&message_id=${encodeURIComponent(mid)}`);
+      const data = await res.json();
 
       if (res.ok) {
-        addLog(`🟢 Webhook callback received from Meta.`);
-        addLog(`🟢 Message status updated to ${nextStatus}.`);
-        addLog(`💾 Workspace campaign status synchronized.`);
-        fetchMessages(); // Refresh the table
+        const metaStatus = data.status || 'unknown';
+        addLog(`📡 Meta reports status: ${metaStatus} for ${mid}`);
+
+        const status_weights = { sent: 1, delivered: 2, read: 3, failed: 0, undelivered: 0 };
+        const current = targetMsg.status || 'sent';
+        if ((status_weights[metaStatus] || 0) > (status_weights[current] || 0)) {
+          targetMsg.status = metaStatus;
+          if (metaStatus === 'delivered') addLog(`🟢 Message delivered to recipient's device.`);
+          else if (metaStatus === 'read') addLog(`🟢 Message read by recipient.`);
+          else if (metaStatus === 'failed') addLog(`🔴 Message delivery failed. Check phone verification status.`);
+          else if (metaStatus === 'undelivered') addLog(`🟡 Message not yet delivered. Phone may not be verified.`);
+          else addLog(`ℹ️ Status: ${metaStatus}`);
+          fetchMessages();
+        } else {
+          addLog(`ℹ️ Status unchanged: ${current} (Meta: ${metaStatus})`);
+        }
       } else {
-        const errText = await res.text();
-        addLog(`🔴 Webhook sync failed: ${errText}`);
+        addLog(`🔴 Meta status query failed: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       addLog(`🔴 Connection error: ${err.message}`);
@@ -1309,10 +1287,10 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
               <button
                 type="button"
                 className="btn-sim"
-                onClick={simulateWebhookStatusUpdate}
+                onClick={syncDeliveryStatus}
                 style={{ whiteSpace: 'nowrap' }}
               >
-                ⚡ Sync Delivery Status
+                ⚡ Check Real Status
               </button>
             </div>
 
