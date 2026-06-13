@@ -165,6 +165,15 @@ if (!empty($client_secret)) {
         }
     }
 
+    // If we got waba_id from debug_token, still fetch the account name
+    if (!empty($waba_id) && empty($business_name) && $waba_code === 200) {
+        $waba_data2 = json_decode($waba_response, true);
+        if (isset($waba_data2['data'][0]['name'])) {
+            $business_name = $waba_data2['data'][0]['name'];
+            error_log("[oauth_callback] Business name from WABA lookup: $business_name");
+        }
+    }
+
     // STEP 3: FETCH PHONE NUMBERS
     if (!empty($waba_id)) {
         $phone_url = "https://graph.facebook.com/v23.0/" . $waba_id . "/phone_numbers?access_token=" . urlencode($long_lived_token);

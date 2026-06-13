@@ -14,15 +14,19 @@ require_once 'firestore_helper.php';
 $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE);
 
-if (!isset($input['user_id']) || !isset($input['phone']) || !isset($input['template'])) {
+$hasTemplate = isset($input['template']) && !empty($input['template']);
+$hasText     = isset($input['message_text']) && !empty($input['message_text']);
+
+if (!isset($input['user_id']) || !isset($input['phone']) || (!$hasTemplate && !$hasText)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing parameters. Need user_id, phone, and template.']);
+    echo json_encode(['error' => 'Missing parameters. Need user_id, phone, and either template or message_text.']);
     exit;
 }
 
 $user_id = $input['user_id'];
 $phone = $input['phone'];
-$templateName = $input['template'];
+$templateName = $input['template'] ?? '';
+$messageText = $input['message_text'] ?? '';
 $test_mode = !empty($input['test_mode']);
 
 // 1. Fetch user access token & configuration from Firestore
@@ -81,21 +85,34 @@ if ($test_mode) {
 }
 
 // 3. Prepare WhatsApp Cloud API Payload
-$waPayload = [
-    'messaging_product' => 'whatsapp',
-    'to' => $phone,
-    'type' => 'template',
-    'template' => [
-        'name' => $templateName,
-        'language' => ['code' => 'en_US']
-    ]
-];
+if ($hasText) {
+    $waPayload = [
+        'messaging_product' => 'whatsapp',
+        'to' => $phone,
+        'type' => 'text',
+        'text' => ['body' => $messageText]
+    ];
+} else {
+    $waPayload = [
+        'messaging_product' => 'whatsapp',
+        'to' => $phone,
+        'type' => 'template',
+        'template' => [
+            'name' => $templateName,
+            'language' => ['code' => 'en_US']
+        ]
+    ];
+}
 
 $url = "https://graph.facebook.com/v18.0/{$phone_number_id}/messages";
 $logs = [];
 $logs[] = "Querying Meta WABA profile matching user ID: '{$user_id}'";
 $logs[] = "WABA token validated and active";
-$logs[] = "Generated template payload for: '{$templateName}' to '{$phone}'";
+if ($hasText) {
+    $logs[] = "Generated text payload: '{$messageText}' to '{$phone}'";
+} else {
+    $logs[] = "Generated template payload for: '{$templateName}' to '{$phone}'";
+}
 
 // Detect sandbox mode (only allowed on localhost/development)
 $is_local = (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false));
@@ -120,6 +137,8 @@ if ($is_mock_token) {
         'user_id' => $user_id,
         'phone' => $phone,
         'template' => $templateName,
+        'message_text' => $messageText,
+        'type' => $hasText ? 'text' : 'template',
         'status' => 'sent',
         'timestamp' => time()
     ];
@@ -158,6 +177,8 @@ if ($http_code == 200) {
         'user_id' => $user_id,
         'phone' => $phone,
         'template' => $templateName,
+        'message_text' => $messageText,
+        'type' => $hasText ? 'text' : 'template',
         'status' => 'sent',
         'timestamp' => time()
     ];

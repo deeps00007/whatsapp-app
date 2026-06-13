@@ -4,6 +4,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
   const [phone, setPhone] = useState(profileData.phone_number || '');
   const [template, setTemplate] = useState('customer_welcome_alert');
   const [sending, setSending] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [messageMode, setMessageMode] = useState('template');
   const [activeTab, setActiveTab] = useState('overview');
   const [sessionDispatches, setSessionDispatches] = useState(0);
   const [messages, setMessages] = useState([]);
@@ -135,17 +137,27 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
     e.preventDefault();
     if (sending) return;
     setSending(true);
-    addLog(`📤 Initiating REST dispatch request to send template: '${template}'...`);
+    if (messageMode === 'text') {
+      addLog(`📤 Sending text message to '${phone}'...`);
+    } else {
+      addLog(`📤 Initiating REST dispatch request to send template: '${template}'...`);
+    }
 
     try {
+      const payload = {
+        user_id: profileData.user_id,
+        phone: phone
+      };
+      if (messageMode === 'text') {
+        payload.message_text = messageText;
+      } else {
+        payload.template = template;
+      }
+
       const res = await fetch(`${backendUrl}/api/send_message.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: profileData.user_id,
-          phone: phone,
-          template: template
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -1172,36 +1184,74 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
               </div>
 
               <form onSubmit={handleSendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="input-group">
-                  <label>Select Cloud Template</label>
-                  <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
-                    {templates.length > 0 ? (
-                      templates.slice(0, 5).map(t => (
-                        <button
-                          key={t.name}
-                          type="button"
-                          className={`template-tab-btn ${template === t.name ? 'active' : ''}`}
-                          onClick={() => setTemplate(t.name)}
-                          style={{ minWidth: '85px', padding: '8px 12px', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
-                          title={t.name}
-                        >
-                          {t.name}
-                        </button>
-                      ))
-                    ) : (
-                      ['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          className={`template-tab-btn ${template === t ? 'active' : ''}`}
-                          onClick={() => setTemplate(t)}
-                        >
-                          {t.replace(/_/g, ' ')}
-                        </button>
-                      ))
-                    )}
-                  </div>
+                {/* Mode Toggle: Template vs Free-form Text */}
+                <div style={{ display: 'flex', gap: '0', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  <button type="button" onClick={() => setMessageMode('template')} style={{
+                    flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                    background: messageMode === 'template' ? 'var(--dash-green)' : '#f8fafc',
+                    color: messageMode === 'template' ? '#fff' : '#64748b',
+                    transition: 'all 0.15s'
+                  }}>Template Message</button>
+                  <button type="button" onClick={() => setMessageMode('text')} style={{
+                    flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                    background: messageMode === 'text' ? 'var(--dash-green)' : '#f8fafc',
+                    color: messageMode === 'text' ? '#fff' : '#64748b',
+                    transition: 'all 0.15s'
+                  }}>Free-form Text</button>
                 </div>
+
+                {/* Template selector — only in template mode */}
+                {messageMode === 'template' && (
+                  <div className="input-group">
+                    <label>Select Cloud Template</label>
+                    <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
+                      {templates.length > 0 ? (
+                        templates.slice(0, 5).map(t => (
+                          <button
+                            key={t.name}
+                            type="button"
+                            className={`template-tab-btn ${template === t.name ? 'active' : ''}`}
+                            onClick={() => setTemplate(t.name)}
+                            style={{ minWidth: '85px', padding: '8px 12px', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                            title={t.name}
+                          >
+                            {t.name}
+                          </button>
+                        ))
+                      ) : (
+                        ['customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            className={`template-tab-btn ${template === t ? 'active' : ''}`}
+                            onClick={() => setTemplate(t)}
+                          >
+                            {t.replace(/_/g, ' ')}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Text message input — only in text mode */}
+                {messageMode === 'text' && (
+                  <div className="input-group">
+                    <label>Message Body</label>
+                    <textarea
+                      className="input-field"
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="Type your message here..."
+                      rows="3"
+                      required
+                      style={{ resize: 'vertical', minHeight: '80px' }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                      Free-form text only works within 24 hours of receiving a customer message.
+                    </span>
+                  </div>
+                )}
 
                 <div className="input-group">
                   <label>Destination Phone Number (E.164 Format)</label>
