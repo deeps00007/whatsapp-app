@@ -17,19 +17,25 @@ define('LOCAL_TMPL_FILE', str_replace('database.json', 'templates.json', $local_
  * Returns null if no service account credentials are provided, enabling unauthenticated REST calls.
  */
 function get_firestore_access_token() {
-    $service_account_path = getenv('FIREBASE_SERVICE_ACCOUNT_JSON');
-    if (!$service_account_path) {
-        $possible_path = __DIR__ . '/firebase-service-account.json';
-        if (file_exists($possible_path)) {
-            $service_account_path = $possible_path;
+    $raw = getenv('FIREBASE_SERVICE_ACCOUNT_JSON');
+
+    // Try env var as inline JSON first
+    $sa_data = null;
+    if ($raw) {
+        $decoded = json_decode($raw, true);
+        if ($decoded && isset($decoded['private_key']) && isset($decoded['client_email'])) {
+            $sa_data = $decoded;
         }
     }
 
-    if (!$service_account_path || !file_exists($service_account_path)) {
-        return null; // Fall back to unauthenticated REST calls
+    // Fall back to file path
+    if (!$sa_data) {
+        $path = $raw && file_exists($raw) ? $raw : __DIR__ . '/firebase-service-account.json';
+        if (file_exists($path)) {
+            $sa_data = json_decode(file_get_contents($path), true);
+        }
     }
 
-    $sa_data = json_decode(file_get_contents($service_account_path), true);
     if (!$sa_data || !isset($sa_data['private_key']) || !isset($sa_data['client_email'])) {
         return null;
     }

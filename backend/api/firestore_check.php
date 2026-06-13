@@ -6,23 +6,32 @@ $result = [
     'firestore' => 'unknown',
     'env' => [
         'project_id' => getenv('FIREBASE_PROJECT_ID') ?: 'MISSING',
-        'service_account_path' => 'MISSING',
-        'service_account_exists' => false
+        'service_account_set' => false,
+        'service_account_mode' => 'unknown'
     ],
     'local_db' => [
-        'path' => __DIR__ . '/database.json',
-        'exists' => file_exists(__DIR__ . '/database.json')
+        'path' => LOCAL_DB_FILE,
+        'exists' => file_exists(LOCAL_DB_FILE)
     ],
     'token_test' => 'not_attempted'
 ];
 
-$sa_path = getenv('FIREBASE_SERVICE_ACCOUNT_JSON');
-if (!$sa_path) {
-    $sa_path = __DIR__ . '/firebase-service-account.json';
+$raw = getenv('FIREBASE_SERVICE_ACCOUNT_JSON');
+$result['env']['service_account_set'] = !empty($raw);
+if ($raw) {
+    $decoded = json_decode($raw, true);
+    if ($decoded && isset($decoded['client_email'])) {
+        $result['env']['service_account_mode'] = 'inline JSON — email: ' . $decoded['client_email'];
+    } elseif (file_exists($raw)) {
+        $result['env']['service_account_mode'] = 'file path — ' . (file_exists($raw) ? 'exists' : 'NOT FOUND');
+    } else {
+        $result['env']['service_account_mode'] = 'set but invalid (not valid JSON or valid file path)';
+    }
+} else {
+    $result['env']['service_account_mode'] = 'NOT SET — check Railway env vars';
+    $default_path = __DIR__ . '/firebase-service-account.json';
+    $result['env']['default_file'] = $default_path . ' — ' . (file_exists($default_path) ? 'exists' : 'NOT FOUND');
 }
-
-$result['env']['service_account_path'] = $sa_path;
-$result['env']['service_account_exists'] = file_exists($sa_path);
 
 // Try to get an access token
 $token = get_firestore_access_token();
