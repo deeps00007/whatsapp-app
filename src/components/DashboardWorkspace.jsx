@@ -1178,7 +1178,7 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
               </button>
             </div>
 
-            {verifError && <div style={{ marginTop: '10px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{verifError}</div>}
+            {verifSending && <div style={{ marginTop: '10px', fontSize: '13px', color: '#b45309', fontWeight: '600' }}>Checking verification status...</div>}
           </div>
         )}
 
