@@ -56,6 +56,7 @@ function get_firestore_access_token() {
     
     // Sign JWT using standard OpenSSL RSA-SHA256
     if (!openssl_sign($signature_input, $signature, $sa_data['private_key'], OPENSSL_ALGO_SHA256)) {
+        error_log("[firestore] JWT signing failed. openssl_error=" . openssl_error_string());
         return null;
     }
 
@@ -91,6 +92,31 @@ function get_firestore_access_token() {
         }
     }
 
+    // Retry once on failure (Google OAuth endpoint can be flaky)
+    usleep(300000); // 300ms delay
+    $ch = curl_init($token_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code === 200) {
+        $res = json_decode($response, true);
+        if (isset($res['access_token'])) {
+            $expires_in = $res['expires_in'] ?? 3600;
+            $cache_data = [
+                'access_token' => $res['access_token'],
+                'expires_at' => time() + $expires_in
+            ];
+            @file_put_contents($cache_file, json_encode($cache_data));
+            return $res['access_token'];
+        }
+    }
+
+    error_log("[firestore] OAuth2 token exchange failed after retry. HTTP=$http_code Response=" . substr($response, 0, 300));
     return null;
 }
 

@@ -53,26 +53,33 @@ export default function App() {
     }
   };
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = async (userId, { on404 = 'disconnect' } = {}) => {
     try {
       const res = await fetch(`${backendUrl}/api/get_profile.php?user_id=${encodeURIComponent(userId)}`);
       if (res.ok) {
         const data = await res.json();
         setProfileData(data);
         localStorage.setItem('growbychat_profile', JSON.stringify(data));
-      } else if (res.status === 404) {
+      } else if (res.status === 404 && on404 === 'disconnect') {
         await handleDisconnect(userId);
       }
     } catch (_err) {
-      // Silent fallback
+      // Network/firewall blip — keep existing session alive
     }
   };
 
-  // Verify WABA session health on mount
+  // Verify WABA session health on mount (stale-while-revalidate)
   useEffect(() => {
     const savedUserId = localStorage.getItem('growbychat_user_id');
+    const savedProfile = localStorage.getItem('growbychat_profile');
     if (savedUserId) {
-      fetchProfile(savedUserId);
+      // Show cached dashboard instantly — no blank screen
+      setConnectedUser(savedUserId);
+      if (savedProfile) {
+        try { setProfileData(JSON.parse(savedProfile)); } catch (_) {}
+      }
+      // Then silently verify with backend
+      fetchProfile(savedUserId, { on404: 'disconnect' });
     }
   }, []);
 
