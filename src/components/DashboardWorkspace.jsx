@@ -10,6 +10,15 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
   const [sessionDispatches, setSessionDispatches] = useState(0);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+
+  // Phone verification states
+  const [phoneVerified, setPhoneVerified] = useState(null);
+  const [verifCode, setVerifCode] = useState('');
+  const [verifSending, setVerifSending] = useState(false);
+  const [verifVerifying, setVerifVerifying] = useState(false);
+  const [verifMessage, setVerifMessage] = useState('');
+  const [verifError, setVerifError] = useState('');
+  const [verifCodeSent, setVerifCodeSent] = useState(false);
   
   // Template management states
   const [templates, setTemplates] = useState([]);
@@ -43,8 +52,85 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
     }
   }, [logs]);
 
+  useEffect(() => {
+    if (!profileData.phone_number_id) {
+      setPhoneVerified(false);
+      return;
+    }
+    fetch(`${backendUrl}/api/phone_check.php?user_id=${encodeURIComponent(profileData.user_id)}`)
+      .then(r => r.json())
+      .then(data => {
+        const status = data.phone_verification?.code_verification_status;
+        setPhoneVerified(status === 'VERIFIED');
+        if (status === 'NOT_VERIFIED') {
+          addLog(`⚠️ Phone number ${profileData.phone_number} is NOT verified. Verify it to send messages.`);
+        } else if (status === 'VERIFIED') {
+          addLog(`✅ Phone number ${profileData.phone_number} is verified and ready.`);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
+
+  const handleRequestVerification = async (method) => {
+    setVerifSending(true);
+    setVerifError('');
+    setVerifMessage('');
+    try {
+      const res = await fetch(`${backendUrl}/api/request_verification.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: profileData.user_id, method })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setVerifCodeSent(true);
+        setVerifMessage(`Verification code sent via ${method}! Check your phone.`);
+        addLog(`📱 Verification code sent via ${method} to ${profileData.phone_number}`);
+      } else {
+        setVerifError(data.error || 'Failed to send code.');
+        if (data.hints) setVerifError(prev => prev + ' ' + data.hints);
+        addLog(`🔴 Verification code failed: ${data.error}`);
+      }
+    } catch (err) {
+      setVerifError('Network error. Try again.');
+    } finally {
+      setVerifSending(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verifCode || verifCode.length !== 6) {
+      setVerifError('Enter the 6-digit code.');
+      return;
+    }
+    setVerifVerifying(true);
+    setVerifError('');
+    try {
+      const res = await fetch(`${backendUrl}/api/verify_code.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: profileData.user_id, code: verifCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPhoneVerified(true);
+        setVerifMessage('Phone number verified! You can now send messages.');
+        addLog(`✅ Phone ${profileData.phone_number} verified successfully!`);
+        if (onRefreshProfile) onRefreshProfile(profileData.user_id);
+      } else {
+        setVerifError(data.error || 'Verification failed.');
+        if (data.hints) setVerifError(prev => prev + ' ' + data.hints);
+        addLog(`🔴 Verification failed: ${data.error}`);
+      }
+    } catch (err) {
+      setVerifError('Network error. Try again.');
+    } finally {
+      setVerifVerifying(false);
+    }
   };
 
   const fetchMessages = async () => {
@@ -1062,6 +1148,129 @@ export default function DashboardWorkspace({ profileData, onDisconnect, onRefres
                 Disconnect and reconnect, then select <strong>"Add a new number"</strong> during the WhatsApp setup step.
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 🔐 Phone Verification Required — shown when phone exists but is NOT_VERIFIED */}
+        {profileData.phone_number_id && phoneVerified === false && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '20px',
+            maxWidth: '900px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '12px',
+                backgroundColor: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: '800', fontSize: '16px', color: '#92400e' }}>
+                  Verify Your Phone Number
+                </div>
+                <div style={{ fontSize: '13px', color: '#b45309', marginTop: '2px' }}>
+                  {profileData.phone_number} needs SMS verification before you can send messages.
+                </div>
+              </div>
+            </div>
+
+            {!verifCodeSent ? (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => handleRequestVerification('SMS')}
+                  disabled={verifSending}
+                  style={{
+                    padding: '10px 20px', borderRadius: '10px', border: 'none',
+                    backgroundColor: '#f59e0b', color: '#fff', fontWeight: '700',
+                    fontSize: '13px', cursor: verifSending ? 'wait' : 'pointer',
+                    opacity: verifSending ? 0.7 : 1
+                  }}
+                >
+                  {verifSending ? 'Sending...' : 'Send via SMS'}
+                </button>
+                <button
+                  onClick={() => handleRequestVerification('VOICE')}
+                  disabled={verifSending}
+                  style={{
+                    padding: '10px 20px', borderRadius: '10px', border: '1px solid #f59e0b',
+                    backgroundColor: 'transparent', color: '#b45309', fontWeight: '700',
+                    fontSize: '13px', cursor: verifSending ? 'wait' : 'pointer',
+                    opacity: verifSending ? 0.7 : 1
+                  }}
+                >
+                  {verifSending ? 'Calling...' : 'Send via Voice Call'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  value={verifCode}
+                  onChange={(e) => setVerifCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                  maxLength="6"
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px', border: '2px solid #f59e0b',
+                    fontSize: '16px', fontWeight: '700', letterSpacing: '4px',
+                    width: '160px', textAlign: 'center', outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={handleVerifyCode}
+                  disabled={verifVerifying || verifCode.length !== 6}
+                  style={{
+                    padding: '10px 20px', borderRadius: '10px', border: 'none',
+                    backgroundColor: '#16a34a', color: '#fff', fontWeight: '700',
+                    fontSize: '13px', cursor: verifVerifying ? 'wait' : 'pointer',
+                    opacity: verifVerifying || verifCode.length !== 6 ? 0.5 : 1
+                  }}
+                >
+                  {verifVerifying ? 'Verifying...' : 'Verify'}
+                </button>
+                <button
+                  onClick={() => { setVerifCodeSent(false); setVerifCode(''); setVerifMessage(''); setVerifError(''); }}
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px', border: '1px solid #d97706',
+                    backgroundColor: 'transparent', color: '#b45309', fontWeight: '600',
+                    fontSize: '12px', cursor: 'pointer'
+                  }}
+                >
+                  Resend Code
+                </button>
+              </div>
+            )}
+
+            {verifMessage && <div style={{ marginTop: '10px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{verifMessage}</div>}
+            {verifError && <div style={{ marginTop: '10px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{verifError}</div>}
+          </div>
+        )}
+
+        {/* ✅ Phone Verified — success indicator */}
+        {profileData.phone_number_id && phoneVerified === true && (
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #86efac',
+            borderRadius: '12px',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '20px'
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '700' }}>
+              {profileData.phone_number} verified — ready to send messages
+            </span>
           </div>
         )}
 

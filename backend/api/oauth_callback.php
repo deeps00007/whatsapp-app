@@ -281,7 +281,26 @@ if (!$save_success) {
 }
 error_log("[oauth_callback] Success — redirecting to $frontend_host");
 
-// 5. Redirect back to React Web App
-header("Location: " . $frontend_host . "/#oauth=success&user_id=" . urlencode($user_id));
+// 5. Check if phone needs verification and redirect with flag
+$needs_verification = '';
+if (!empty($phone_number_id) && !empty($long_lived_token) && strpos($long_lived_token, 'MOCK_') !== 0) {
+    $verify_url = "https://graph.facebook.com/v23.0/" . urlencode($phone_number_id) . "?fields=code_verification_status&access_token=" . urlencode($long_lived_token);
+    $ch_v = curl_init($verify_url);
+    curl_setopt($ch_v, CURLOPT_RETURNTRANSFER, true);
+    $v_response = curl_exec($ch_v);
+    $v_code = curl_getinfo($ch_v, CURLINFO_HTTP_CODE);
+    curl_close($ch_v);
+    if ($v_code === 200) {
+        $v_data = json_decode($v_response, true);
+        if (($v_data['code_verification_status'] ?? '') === 'NOT_VERIFIED') {
+            $needs_verification = '&needs_verification=1';
+            error_log("[oauth_callback] Phone number NOT_VERIFIED — needs verification");
+        } else {
+            error_log("[oauth_callback] Phone verification status: " . ($v_data['code_verification_status'] ?? 'unknown'));
+        }
+    }
+}
+
+header("Location: " . $frontend_host . "/#oauth=success&user_id=" . urlencode($user_id) . $needs_verification);
 exit;
 ?>

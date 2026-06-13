@@ -77,7 +77,7 @@ if (!empty($waba_id)) {
         $result['all_phones'] = ['error' => 'HTTP ' . $all_code, 'body' => substr($all_response, 0, 300)];
     }
 
-    $waba_url = "https://graph.facebook.com/v23.0/" . urlencode($waba_id) . "?fields=name,currency_id,message_template_category,primary_phone_number,account_review_status,business_id&access_token=" . urlencode($access_token);
+    $waba_url = "https://graph.facebook.com/v23.0/" . urlencode($waba_id) . "?fields=name,message_template_category,primary_phone_number,account_review_status,business_id&access_token=" . urlencode($access_token);
     $ch = curl_init($waba_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $waba_response = curl_exec($ch);
