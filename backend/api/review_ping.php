@@ -2,11 +2,18 @@
 // review_ping.php
 // Comprehensive diagnostic for Meta App Review API detection.
 // Tests multiple tokens and endpoints to find what actually works.
+// *** PRODUCTION LOCK: Only accessible from localhost. ***
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Methods: GET');
+
+$is_local = (isset($_SERVER['HTTP_HOST']) && in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']));
+if (!$is_local) {
+    http_response_code(403);
+    die(json_encode(['error' => 'Diagnostic endpoint not available in production.']));
+}
 
 require_once 'firestore_helper.php';
 require_once 'encryption_helper.php';

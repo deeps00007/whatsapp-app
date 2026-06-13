@@ -43,8 +43,8 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: targetUserId })
       });
-    } catch (err) {
-      console.error("Failed to revoke active token on server:", err);
+    } catch (_err) {
+      // Silent fallback — cleanup continues regardless
     } finally {
       setConnectedUser(null);
       setProfileData(null);
@@ -61,11 +61,10 @@ export default function App() {
         setProfileData(data);
         localStorage.setItem('growbychat_profile', JSON.stringify(data));
       } else if (res.status === 404) {
-        console.warn("WABA profile not found on backend. Clearing session.");
         await handleDisconnect(userId);
       }
-    } catch (err) {
-      console.error("Failed to fetch WABA profile from Firestore:", err);
+    } catch (_err) {
+      // Silent fallback
     }
   };
 

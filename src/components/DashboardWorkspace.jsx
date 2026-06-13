@@ -55,8 +55,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           setMessages(data);
         }
       }
-    } catch (err) {
-      console.error("Error fetching campaign history:", err);
+    } catch (_err) {
+      // Silent fallback — UI handles empty state
     } finally {
       setLoadingMessages(false);
     }
@@ -76,8 +76,8 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           }
         }
       }
-    } catch (err) {
-      console.error("Error fetching templates:", err);
+    } catch (_err) {
+      // Silent fallback — UI handles empty state
     } finally {
       setLoadingTemplates(false);
     }
@@ -1041,11 +1041,11 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
           </div>
         </section>
 
-        {/* ⚠️ Missing Phone Number Warning */}
+        {/* ⚠️ Phone Number Setup Required */}
         {!profileData.phone_number_id && (
           <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
             borderRadius: '12px',
             padding: '16px 20px',
             display: 'flex',
@@ -1053,111 +1053,100 @@ export default function DashboardWorkspace({ profileData, onDisconnect, backendU
             gap: '12px',
             marginBottom: '20px'
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
             </svg>
             <div>
-              <div style={{ fontWeight: '700', fontSize: '14px', color: '#b91c1c' }}>
-                WhatsApp Phone Number Missing
+              <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e40af' }}>
+                Add a WhatsApp Phone Number
               </div>
-              <div style={{ fontSize: '13px', color: '#ef4444', marginTop: '2px' }}>
-                Your WhatsApp Business Account is connected but has no registered phone number.
-                Please go to Meta Business Manager → WhatsApp → Phone Numbers and add a number, then refresh this page.
-                Or, during Embedded Signup, select <strong>"Add a new number"</strong> instead of "Use a display name only".
+              <div style={{ fontSize: '13px', color: '#3b82f6', marginTop: '2px' }}>
+                Your business account is connected but needs a phone number to send messages.
+                Disconnect and reconnect, then select <strong>"Add a new number"</strong> during the WhatsApp setup step.
               </div>
             </div>
           </div>
         )}
 
-        {/* 🔬 WhatsApp Messaging Console — shown when connected account has no API phone number */}
+        {/* WhatsApp Fallback Console — shown when connected account has no API phone number */}
         {!profileData.phone_number_id && (
-          <div className="dashboard-card" style={{ maxWidth: '900px', marginBottom: '20px', borderLeft: '4px solid var(--dash-blue)' }}>
-            <div className="dashboard-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dash-blue)" strokeWidth="2.5">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-                </svg>
-                WhatsApp Messaging Console
-              </span>
-              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--dash-blue)', backgroundColor: 'var(--dash-blue-soft)', padding: '4px 10px', borderRadius: '100px', textTransform: 'uppercase' }}>
-                Cloud API Connected
-              </span>
-            </div>
+          <details style={{ maxWidth: '900px', marginBottom: '20px' }}>
+            <summary style={{
+              cursor: 'pointer',
+              padding: '14px 20px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#64748b',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              Legacy Messaging Console
+            </summary>
+            <div style={{ padding: '20px', border: '1px solid #e2e8f0', borderTop: 'none', borderRadius: '0 0 12px 12px' }}>
+              <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', margin: '0 0 16px' }}>
+                Your account doesn't have an API phone number yet. Use this console to test message delivery with the fallback sender.
+              </p>
 
-            <p style={{ fontSize: '14px', color: 'var(--dash-text-sub)', lineHeight: '1.6', margin: 0 }}>
-              Your connected WhatsApp Business Account does not have an API-enabled phone number.
-              Messages are routed through Meta's official Cloud API test infrastructure for demonstration.
-              Sender: <strong>+1 555 629 8392</strong>.
-            </p>
-
-            <form onSubmit={handleTestSend} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
-              <div className="input-group">
-                <label>Destination Phone Number (E.164 Format)</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="+15551234567"
-                  required
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Select Test Template</label>
-                <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
-                  {['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={`template-tab-btn ${testTemplate === t ? 'active' : ''}`}
-                      onClick={() => setTestTemplate(t)}
-                    >
-                      {t.replace(/_/g, ' ')}
-                    </button>
-                  ))}
+              <form onSubmit={handleTestSend} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="input-group">
+                  <label>Destination Phone Number (E.164 Format)</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="+15551234567"
+                    required
+                  />
                 </div>
-              </div>
 
-              <div className="input-group">
-                <label>Sender (Read-only)</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value="+1 555 629 8392 (Meta Test Number)"
-                  readOnly
-                  style={{ backgroundColor: '#f8fafc', color: 'var(--dash-text-muted)', cursor: 'not-allowed' }}
-                />
-                <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)', lineHeight: '1.4' }}>
-                  Messages are sent through Meta's official Cloud API test environment.
-                  Your connected WhatsApp Business Account ({profileData.phone_number || 'no API number'}) does not have an API-enabled number, so we route through Meta's test infrastructure for demonstration.
-                </span>
-              </div>
+                <div className="input-group">
+                  <label>Template</label>
+                  <div className="template-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
+                    {['hello_world', 'customer_welcome_alert', 'order_shipping_notification', 'appointment_reminder_alert'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`template-tab-btn ${testTemplate === t ? 'active' : ''}`}
+                        onClick={() => setTestTemplate(t)}
+                      >
+                        {t.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={testSending}
-                className="btn-dispatch"
-                style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.2)' }}
-              >
-                {testSending ? (
-                  <>
-                    <span className="dash-spin" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid #FFF', borderRadius: '50%', display: 'inline-block' }}></span>
-                    Sending via Test Environment...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    Send WhatsApp Message
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+                <button
+                  type="submit"
+                  disabled={testSending}
+                  className="btn-dispatch"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.2)' }}
+                >
+                  {testSending ? (
+                    <>
+                      <span className="dash-spin" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.2)', borderTop: '2px solid #FFF', borderRadius: '50%', display: 'inline-block' }}></span>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                      </svg>
+                      Send Message
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </details>
         )}
 
         {/* 🏛️ TWO COLUMN WORKSPACE GRID */}
