@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Join Group on VoiceKhaata</title>
+
+  <!-- Open Graph / WhatsApp / Facebook (static generic tags - Vercel can only serve these if truly static) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Join me on VoiceKhaata">
+  <meta property="og:description"
+    content="Tap to join the group and split expenses together. Make sure VoiceKhaata is installed!">
+  <meta property="og:image" content="https://growbychat.app/voicekhaata-og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Join me on VoiceKhaata">
+  <meta name="twitter:description" content="Tap to join the group and split expenses together.">
+  <meta name="twitter:image" content="https://growbychat.app/voicekhaata-og.jpg">
+
+  <!-- iOS Smart App Banner -->
+  <meta name="apple-itunes-app" content="app-id=YOUR_APPLE_APP_ID, app-argument=voicekhaata://join">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#4F46E5">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      color: #1f2937;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 32px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    p {
+      font-size: 15px;
+      color: #6b7280;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px 24px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: transform 0.15s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .stores {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .store-badge {
+      height: 40px;
+      opacity: 0.9;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .muted {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 16px;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div id="redirecting" class="hidden">
+      <div class="spinner"></div>
+      <h1>Opening VoiceKhaata...</h1>
+      <p class="muted">If nothing happens, tap below</p>
+    </div>
+
+    <div id="content">
+      <div class="logo">💸</div>
+      <h1 id="title">Join me on VoiceKhaata</h1>
+      <p id="desc">Tap to join the group and split expenses together. Make sure VoiceKhaata is installed on your phone!
+      </p>
+
+      <a class="btn btn-primary" id="openAppBtn" href="#">Open in VoiceKhaata</a>
+      <a class="btn btn-secondary" id="playStoreBtn"
+        href="https://play.google.com/store/apps/details?id=com.voicekhaata.app" target="_blank">Get VoiceKhaata from
+        Play Store</a>
+
+      <div class="stores">
+        <a href="https://play.google.com/store/apps/details?id=com.voicekhaata.app" target="_blank">
+          <img class="store-badge"
+            src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+            alt="Get it on Google Play">
+        </a>
+      </div>
+    </div>
+
+    <div class="muted" id="groupInfo" style="margin-top: 20px;">
+      Group ID: <code id="groupIdDisplay">loading...</code>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // Parse query params
+      const params = new URLSearchParams(window.location.search);
+      const groupId = params.get('groupId');
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isMobile = isAndroid || isiOS;
+
+      // Update UI
+      const groupIdDisplay = document.getElementById('groupIdDisplay');
+      const openAppBtn = document.getElementById('openAppBtn');
+      const title = document.getElementById('title');
+      const desc = document.getElementById('desc');
+      const redirecting = document.getElementById('redirecting');
+      const content = document.getElementById('content');
+
+      if (groupId) {
+        groupIdDisplay.textContent = groupId;
+
+        // Build platform-specific open links
+        const encodedGroupId = encodeURIComponent(groupId);
+        const customSchemeLink = 'voicekhaata://join?groupId=' + encodedGroupId;
+        const intentLink = 'intent://join?groupId=' + encodedGroupId +
+          '#Intent;scheme=voicekhaata;package=com.voicekhaata.app;S.browser_fallback_url=' +
+          encodeURIComponent('https://play.google.com/store/apps/details?id=com.voicekhaata.app') + ';end';
+
+        // Set button href based on platform
+        if (isAndroid) {
+          openAppBtn.href = intentLink;
+        } else if (isiOS) {
+          openAppBtn.href = customSchemeLink;
+        } else {
+          openAppBtn.href = 'https://play.google.com/store/apps/details?id=com.voicekhaata.app';
+          openAppBtn.textContent = 'Download VoiceKhaata';
+        }
+
+        // On mobile: show spinner briefly then try auto-open
+        if (isMobile) {
+          setTimeout(function () {
+            redirecting.classList.remove('hidden');
+
+            if (isAndroid) {
+              window.location.href = intentLink;
+            } else if (isiOS) {
+              window.location.href = customSchemeLink;
+              // Fallback to App Store if app not installed
+              setTimeout(function () {
+                if (!document.hidden) {
+                  window.location.href = 'https://apps.apple.com/app/voicekhaata'; // Replace with actual App Store URL
+                }
+              }, 2500);
+            }
+
+            // After 3 seconds, show the button again in case auto-open failed
+            setTimeout(function () {
+              redirecting.classList.add('hidden');
+              content.classList.remove('hidden');
+            }, 3000);
+          }, 1200);
+        }
+      } else {
+        groupIdDisplay.textContent = 'none';
+        title.textContent = 'VoiceKhaata - Smart Expense Tracker';
+        desc.textContent = 'Split bills, track group expenses, and settle up with friends. All by voice.';
+        openAppBtn.href = 'https://play.google.com/store/apps/details?id=com.voicekhaata.app';
+        openAppBtn.textContent = 'Download VoiceKhaata';
+      }
+    })();
+  </script>
+
+</body>
+
+</html>
