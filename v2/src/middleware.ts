@@ -23,6 +23,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  await supabase.auth.getSession()
+
   const { data: { user } } = await supabase.auth.getUser()
 
   // Auth pages - redirect to dashboard if already logged in
@@ -37,7 +39,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected pages - redirect to login if not authenticated
-  const publicPaths = ['/', '/privacy', '/terms', '/privacy.html', '/terms.html']
+  const publicPaths = ['/', '/privacy', '/terms', '/privacy.html', '/terms.html', '/auth/callback']
   const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/settings']
   const isPublic = publicPaths.includes(request.nextUrl.pathname)
   if (!user && !isPublic && protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {

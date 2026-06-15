@@ -107,6 +107,20 @@ export async function POST(request: Request) {
       )
     }
 
+    const { data: templateCheck } = await supabase
+      .from('message_templates')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('name', template_name)
+      .maybeSingle()
+
+    if (!templateCheck || templateCheck.status !== 'Approved') {
+      return NextResponse.json(
+        { error: `Template "${template_name}" is not approved. Only approved templates can be used for broadcasts.` },
+        { status: 400 }
+      )
+    }
+
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
       .select('*')

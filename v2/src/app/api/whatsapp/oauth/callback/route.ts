@@ -1,4 +1,4 @@
-import { exchangeCodeForToken, discoverWaba, discoverPhoneNumbers, validateOAuthState } from '@/lib/whatsapp/oauth'
+import { exchangeCodeForToken, discoverWaba, discoverPhoneNumbers, validateOAuthState, subscribeAppToWaba } from '@/lib/whatsapp/oauth'
 import { encrypt } from '@/lib/whatsapp/encryption'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
@@ -19,11 +19,30 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=invalid_state', process.env.NEXT_PUBLIC_SITE_URL || 'https://growbychat.app'))
   }
 
-  const { userId, frontendHost } = state
+  const { userId, nonce, frontendHost } = state
+
+  const cookieNonce = request.headers.get('cookie')
+    ?.split(';')
+    .map(c => c.trim())
+    .find(c => c.startsWith('oauth_nonce='))
+    ?.split('=')[1]
+
+  if (!cookieNonce || cookieNonce !== nonce) {
+    console.error('[oauth/callback] State nonce mismatch')
+    return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=invalid_state', frontendHost))
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user || user.id !== userId) {
+    console.error('[oauth/callback] User mismatch:', user?.id, 'vs', userId)
+    return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=auth_mismatch', frontendHost))
+  }
 
   try {
     const frontendUrl = new URL(frontendHost)
-    const protocol = 'https'
+    const protocol = frontendUrl.protocol.replace(':', '')
     const host = frontendUrl.host
     const redirectUri = `${protocol}://${host}/api/whatsapp/oauth/callback`
 
@@ -42,6 +61,10 @@ export async function GET(request: Request) {
       phoneNumber = phoneResult.phoneNumber
       codeVerificationStatus = phoneResult.codeVerificationStatus
       qualityRating = phoneResult.qualityRating
+
+      await subscribeAppToWaba(wabaId, longLivedToken).catch(err =>
+        console.error('[oauth/callback] Webhook subscription failed:', err.message)
+      )
     }
 
     const encryptedAccessToken = encrypt(longLivedToken)
@@ -53,23 +76,28 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    const upsertData: Record<string, any> = {
+      user_id: userId,
+      waba_id: wabaId,
+      access_token: encryptedAccessToken,
+      verify_token: encryptedVerifyToken,
+      status: 'connected',
+      connected_at: new Date().toISOString(),
+      coexistence_mode: codeVerificationStatus !== 'VERIFIED',
+      coexistence_region: phoneNumber.startsWith('+91') ? 'india' : null,
+      phone_number: phoneNumber,
+      business_name: businessName,
+      code_verification_status: codeVerificationStatus,
+      quality_rating: qualityRating,
+    }
+
+    if (phoneNumberId) {
+      upsertData.phone_number_id = phoneNumberId
+    }
+
     const { error } = await adminClient
       .from('whatsapp_config')
-      .upsert({
-        user_id: userId,
-        phone_number_id: phoneNumberId || 'pending',
-        waba_id: wabaId,
-        access_token: encryptedAccessToken,
-        verify_token: encryptedVerifyToken,
-        status: 'connected',
-        connected_at: new Date().toISOString(),
-        coexistence_mode: codeVerificationStatus !== 'VERIFIED',
-        coexistence_region: phoneNumber.startsWith('+91') ? 'india' : null,
-        phone_number: phoneNumber,
-        business_name: businessName,
-        code_verification_status: codeVerificationStatus,
-        quality_rating: qualityRating,
-      }, { onConflict: 'user_id' })
+      .upsert(upsertData, { onConflict: 'user_id' })
 
     if (error) {
       console.error('[oauth/callback] DB upsert failed:', error.message)
@@ -77,9 +105,11 @@ export async function GET(request: Request) {
     }
 
     const needsVerification = codeVerificationStatus !== 'VERIFIED' ? '&needs_verification=1' : ''
-    return NextResponse.redirect(new URL(`/settings?tab=whatsapp&oauth=success${needsVerification}`, frontendHost))
+    const response = NextResponse.redirect(new URL(`/settings?tab=whatsapp&oauth=success${needsVerification}`, frontendHost))
+    response.cookies.set('oauth_nonce', '', { maxAge: 0, path: '/' })
+    return response
   } catch (err: any) {
     console.error('[oauth/callback] Error:', err.message)
-    return NextResponse.redirect(new URL(`/settings?tab=whatsapp&oauth=error&reason=${encodeURIComponent(err.message)}`, frontendHost))
+    return NextResponse.redirect(new URL(`/settings?tab=whatsapp&oauth=error&reason=server_error`, frontendHost))
   }
 }

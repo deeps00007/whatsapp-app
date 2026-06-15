@@ -2,7 +2,7 @@ import { buildOAuthUrl } from '@/lib/whatsapp/oauth'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -11,18 +11,25 @@ export async function GET() {
   }
 
   const frontendHost = process.env.NEXT_PUBLIC_SITE_URL || 'https://growbychat.app'
-  const host = new URL(frontendHost).host
-
-  const protocol =
-    process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https') ? 'https' : 'http'
-
+  const frontendUrl = new URL(frontendHost)
+  const protocol = frontendUrl.protocol.replace(':', '')
+  const host = frontendUrl.host
   const redirectUri = `${protocol}://${host}/api/whatsapp/oauth/callback`
 
-  const oauthUrl = buildOAuthUrl({
+  const { oauthUrl, nonce } = buildOAuthUrl({
     userId: user.id,
     frontendHost,
     redirectUri,
   })
 
-  return NextResponse.redirect(oauthUrl)
+  const response = NextResponse.redirect(oauthUrl)
+  response.cookies.set('oauth_nonce', nonce, {
+    httpOnly: true,
+    secure: protocol === 'https',
+    sameSite: 'lax',
+    maxAge: 600,
+    path: '/',
+  })
+
+  return response
 }

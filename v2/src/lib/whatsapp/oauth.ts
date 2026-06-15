@@ -15,7 +15,7 @@ export interface BuildOAuthUrlArgs {
   redirectUri: string
 }
 
-export function buildOAuthUrl(args: BuildOAuthUrlArgs): string {
+export function buildOAuthUrl(args: BuildOAuthUrlArgs): { oauthUrl: string; nonce: string } {
   const { userId, frontendHost, redirectUri } = args
   const { clientId, configId } = getOAuthEnv()
 
@@ -39,11 +39,10 @@ export function buildOAuthUrl(args: BuildOAuthUrlArgs): string {
     response_type: 'code',
     override_default_response_type: 'true',
     scope: 'whatsapp_business_management,whatsapp_business_messaging',
-    auth_type: 'rerequest',
     extras,
   })
 
-  return `${DIALOG_BASE}?${params.toString()}`
+  return { oauthUrl: `${DIALOG_BASE}?${params.toString()}`, nonce }
 }
 
 export interface TokenExchangeResult {
@@ -57,14 +56,19 @@ export async function exchangeCodeForToken(
 ): Promise<TokenExchangeResult> {
   const { clientId, clientSecret } = getOAuthEnv()
 
-  const shortUrl =
-    `${META_API_BASE}/oauth/access_token` +
-    `?client_id=${encodeURIComponent(clientId)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&client_secret=${encodeURIComponent(clientSecret)}` +
-    `&code=${encodeURIComponent(code)}`
+  const shortParams = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    client_secret: clientSecret,
+    code,
+  })
 
-  const shortRes = await fetch(shortUrl)
+  const shortRes = await fetch(`${META_API_BASE}/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: shortParams.toString(),
+  })
+
   if (!shortRes.ok) {
     const err = await shortRes.json().catch(() => ({}))
     throw new Error(
@@ -75,24 +79,28 @@ export async function exchangeCodeForToken(
   const shortLivedToken = (shortData as any).access_token as string
   if (!shortLivedToken) throw new Error('Meta returned empty access token')
 
-  const longUrl =
-    `${META_API_BASE}/oauth/access_token` +
-    `?grant_type=fb_exchange_token` +
-    `&client_id=${encodeURIComponent(clientId)}` +
-    `&client_secret=${encodeURIComponent(clientSecret)}` +
-    `&fb_exchange_token=${encodeURIComponent(shortLivedToken)}`
+  const longParams = new URLSearchParams({
+    grant_type: 'fb_exchange_token',
+    client_id: clientId,
+    client_secret: clientSecret,
+    fb_exchange_token: shortLivedToken,
+  })
 
-  const longRes = await fetch(longUrl)
-  let longLivedToken = shortLivedToken
-  let expiresInSeconds = 5184000
+  const longRes = await fetch(`${META_API_BASE}/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: longParams.toString(),
+  })
 
-  if (longRes.ok) {
-    const longData = await longRes.json()
-    if ((longData as any).access_token) {
-      longLivedToken = (longData as any).access_token
-      expiresInSeconds = (longData as any).expires_in ?? 5184000
-    }
+  if (!longRes.ok) {
+    throw new Error('Long-lived token exchange failed — session will expire in ~1 hour. Please reconnect.')
   }
+
+  const longData = await longRes.json()
+  const longLivedToken = (longData as any).access_token as string
+  if (!longLivedToken) throw new Error('Meta returned empty long-lived access token')
+
+  const expiresInSeconds = (longData as any).expires_in ?? 5184000
 
   return { longLivedToken, expiresInSeconds }
 }
@@ -142,12 +150,34 @@ export async function discoverWaba(
     if (!wabaId && entries[0]?.id) {
       wabaId = entries[0].id
     }
-    if (entries[0]?.name) {
-      businessName = entries[0].name
+  }
+
+  if (wabaId) {
+    const detailUrl =
+      `${META_API_BASE}/${wabaId}?fields=name&access_token=${encodeURIComponent(longLivedToken)}`
+    const detailRes = await fetch(detailUrl)
+    if (detailRes.ok) {
+      const detailData = await detailRes.json()
+      businessName = (detailData as any)?.name ?? ''
     }
   }
 
   return { wabaId, businessName }
+}
+
+export async function subscribeAppToWaba(
+  wabaId: string,
+  longLivedToken: string
+): Promise<void> {
+  const url = `${META_API_BASE}/${wabaId}/subscribed_apps`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${longLivedToken}` },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Webhook subscription failed: ${(err as any).error?.message || res.statusText}`)
+  }
 }
 
 export interface PhoneDiscoveryResult {
@@ -179,7 +209,7 @@ export async function discoverPhoneNumbers(
     const status = entry.code_verification_status ?? ''
     const quality = entry.quality_rating ?? ''
 
-    if (num.includes('555')) continue
+    if (/^\+?1?5550\d{2}$/.test(num.replace(/[\s\-()]/g, ''))) continue
 
     let score = 0
     if (status === 'VERIFIED') score += 3
@@ -213,7 +243,7 @@ export function validateOAuthState(
 ): { userId: string; nonce: string; frontendHost: string } | null {
   try {
     const decoded = JSON.parse(Buffer.from(rawState, 'base64url').toString())
-    if (!decoded.user_id) return null
+    if (!decoded.user_id || !decoded.nonce) return null
     return {
       userId: decoded.user_id,
       nonce: decoded.nonce,
