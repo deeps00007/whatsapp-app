@@ -49,3 +49,5 @@ next-env.d.ts
 .env.test.local
 !*.example
 
+
+.vercel

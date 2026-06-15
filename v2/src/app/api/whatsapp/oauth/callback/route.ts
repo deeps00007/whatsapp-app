@@ -2,10 +2,10 @@ import { exchangeCodeForToken, discoverWaba, discoverPhoneNumbers, validateOAuth
 import { encrypt } from '@/lib/whatsapp/encryption'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const rawState = searchParams.get('state')
@@ -21,15 +21,16 @@ export async function GET(request: Request) {
 
   const { userId, nonce, frontendHost } = state
 
-  const cookieNonce = request.headers.get('cookie')
-    ?.split(';')
-    .map(c => c.trim())
-    .find(c => c.startsWith('oauth_nonce='))
-    ?.split('=')[1]
+  const cookieNonce = request.cookies.get('oauth_nonce')?.value
 
-  if (!cookieNonce || cookieNonce !== nonce) {
-    console.error('[oauth/callback] State nonce mismatch')
-    return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=invalid_state', frontendHost))
+  if (!cookieNonce) {
+    console.error('[oauth/callback] No oauth_nonce cookie found. Cookies:', request.cookies.getAll().map(c => c.name).join(', '))
+    return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=nonce_missing', frontendHost))
+  }
+
+  if (cookieNonce !== nonce) {
+    console.error('[oauth/callback] Nonce mismatch. Cookie:', cookieNonce, 'State:', nonce)
+    return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=nonce_mismatch', frontendHost))
   }
 
   const supabase = await createClient()

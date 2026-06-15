@@ -1,8 +1,8 @@
 import { buildOAuthUrl } from '@/lib/whatsapp/oauth'
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,8 +25,8 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(oauthUrl)
   response.cookies.set('oauth_nonce', nonce, {
     httpOnly: true,
-    secure: protocol === 'https',
-    sameSite: 'lax',
+    secure: true,
+    sameSite: 'none',
     maxAge: 600,
     path: '/',
   })
