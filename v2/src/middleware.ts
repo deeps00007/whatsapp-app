@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected pages - redirect to login if not authenticated
-  const publicPaths = ['/', '/privacy', '/terms']
+  const publicPaths = ['/', '/privacy', '/terms', '/privacy.html', '/terms.html']
   const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/settings']
   const isPublic = publicPaths.includes(request.nextUrl.pathname)
   if (!user && !isPublic && protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
@@ -58,6 +58,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)',
   ],
 }

@@ -14,7 +14,7 @@ export async function GET() {
   const host = new URL(frontendHost).host
 
   const protocol =
-    process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https') ? 'https' : 'https'
+    process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https') ? 'https' : 'http'
 
   const redirectUri = `${protocol}://${host}/api/whatsapp/oauth/callback`
 
