@@ -28,3 +28,24 @@ backend/api/firebase-service-account.json
 backend/api/database.json
 backend/api/messages.json
 backend/api/templates.json
+
+# Next.js
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+/coverage
+
+# Environment files
+.env
+.env.development
+.env.production
+.env.test
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+!*.example
+
