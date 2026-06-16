@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -50,44 +50,24 @@ interface TemplateFormData {
   language: string;
   body_text: string;
   header_type: string;
+  header_content: string;
   footer_text: string;
 }
 
-// Meta's language codes are exact — "en" and "en_US" are distinct and a
-// template approved under one will be rejected if you send with the other
-// (Graph API error #132001 "Template name does not exist in the
-// translation"). Default to en_US to match the DB default on
-// message_templates.language and the broadcasts sender's fallback.
 const emptyForm: TemplateFormData = {
   name: '',
   category: 'Marketing',
   language: 'en_US',
   body_text: '',
   header_type: '',
+  header_content: '',
   footer_text: '',
 };
 
-// Common Meta template language codes. The field still accepts any
-// string — this just offers autocomplete for the usual suspects. Full
-// list: https://developers.facebook.com/docs/whatsapp/api/messages/message-templates#supported-languages
 const COMMON_LANGUAGE_CODES = [
-  'en_US',
-  'en_GB',
-  'en',
-  'es',
-  'es_ES',
-  'es_MX',
-  'fr',
-  'fr_FR',
-  'de',
-  'it',
-  'pt_BR',
-  'pt_PT',
-  'nl',
-  'pl',
-  'ru',
-  'tr',
-  'lt',
+  'en_US', 'en_GB', 'en', 'es', 'es_ES', 'es_MX',
+  'fr', 'fr_FR', 'de', 'it', 'pt_BR', 'pt_PT',
+  'nl', 'pl', 'ru', 'tr', 'lt',
 ];
 
 export function TemplateManager() {
@@ -103,24 +83,18 @@ export function TemplateManager() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) { setLoading(false); return; }
     fetchTemplates(user.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user?.id]);
 
   async function fetchTemplates(userId: string) {
     try {
       setLoading(true);
-
       const { data, error } = await supabase
         .from('message_templates')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setTemplates(data || []);
     } catch (err) {
@@ -132,96 +106,67 @@ export function TemplateManager() {
   }
 
   async function handleSave() {
-    if (!form.name.trim()) {
-      toast.error('Template name is required');
-      return;
-    }
-    if (!form.body_text.trim()) {
-      toast.error('Body text is required');
-      return;
-    }
+    if (!form.name.trim()) { toast.error('Template name is required'); return; }
+    if (!form.body_text.trim()) { toast.error('Body text is required'); return; }
+    if (!user) { toast.error('Not authenticated'); return; }
 
     try {
       setSaving(true);
-      if (!user) {
-        toast.error('Not authenticated');
-        return;
-      }
 
-      const payload = {
-        user_id: user.id,
-        name: form.name.trim(),
-        category: form.category,
-        language: form.language.trim() || 'en_US',
-        body_text: form.body_text.trim(),
-        header_type: (form.header_type && form.header_type !== 'none') ? form.header_type : null,
-        footer_text: form.footer_text.trim() || null,
-        status: 'Draft' as const,
-      };
+      const res = await fetch('/api/whatsapp/templates/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          category: form.category,
+          language: form.language.trim() || 'en_US',
+          body_text: form.body_text.trim(),
+          header_type: (form.header_type && form.header_type !== 'none') ? form.header_type : null,
+          header_content: form.header_content?.trim() || null,
+          footer_text: form.footer_text.trim() || null,
+        }),
+      });
 
-      const { error } = await supabase
-        .from('message_templates')
-        .insert(payload);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create template');
 
-      if (error) throw error;
-
-      toast.success('Template created successfully');
+      toast.success(
+        data.status === 'Approved'
+          ? 'Template created and approved!'
+          : `Template submitted to Meta. Status: ${data.status}. It will be reviewed before you can use it.`
+      );
       setDialogOpen(false);
       setForm(emptyForm);
-      if (user) await fetchTemplates(user.id);
+      await fetchTemplates(user.id);
     } catch (err) {
       console.error('Save error:', err);
-      toast.error('Failed to create template');
+      toast.error(err instanceof Error ? err.message : 'Failed to create template');
     } finally {
       setSaving(false);
     }
   }
 
-  /**
-   * Pull approved templates from Meta and upsert them into the local
-   * catalog. After this runs, every local row is guaranteed to match
-   * something Meta will actually accept on send — stops users getting
-   * stuck on error #132001 "Template name does not exist".
-   */
   async function handleSyncFromMeta() {
     if (!user) return;
     setSyncing(true);
     try {
-      const res = await fetch('/api/whatsapp/templates/sync', {
-        method: 'POST',
-      });
+      const res = await fetch('/api/whatsapp/templates/sync', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || `Sync failed (HTTP ${res.status})`);
-      }
+      if (!res.ok) throw new Error(data?.error || `Sync failed (HTTP ${res.status})`);
       toast.success(
         `Synced ${data.total} template${data.total === 1 ? '' : 's'} from Meta` +
-          (data.inserted || data.updated
-            ? ` (${data.inserted} new, ${data.updated} updated)`
-            : ''),
+        (data.inserted || data.updated ? ` (${data.inserted} new, ${data.updated} updated)` : '')
       );
       if (Array.isArray(data.errors) && data.errors.length > 0) {
-        // Surface per-template failures so users don't trust a green
-        // toast that hides silent drift.
         const preview = data.errors.slice(0, 3).map(
-          (e: { name: string; language: string; message: string }) =>
-            `${e.name} (${e.language})`,
+          (e: { name: string; language: string; message: string }) => `${e.name} (${e.language})`
         );
-        const suffix =
-          data.errors.length > 3 ? `, +${data.errors.length - 3} more` : '';
-        toast.error(`Failed to sync: ${preview.join(', ')}${suffix}`);
-      }
-      if (data.truncated) {
-        toast.warning(
-          'Hit Meta pagination cap — more templates may exist. Contact support if this persists.',
-        );
+        toast.error(`Failed to sync: ${preview.join(', ')}${data.errors.length > 3 ? `, +${data.errors.length - 3} more` : ''}`);
       }
       await fetchTemplates(user.id);
     } catch (err) {
       console.error('Template sync error:', err);
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to sync templates',
-      );
+      toast.error(err instanceof Error ? err.message : 'Failed to sync templates');
     } finally {
       setSyncing(false);
     }
@@ -229,11 +174,7 @@ export function TemplateManager() {
 
   async function handleDelete(id: string) {
     try {
-      const { error } = await supabase
-        .from('message_templates')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('message_templates').delete().eq('id', id);
       if (error) throw error;
       toast.success('Template deleted');
       setTemplates((prev) => prev.filter((t) => t.id !== id));
@@ -257,9 +198,8 @@ export function TemplateManager() {
         <div>
           <h2 className="text-lg font-semibold text-white">Message Templates</h2>
           <p className="text-sm text-slate-400">
-            Create and manage your WhatsApp message templates. Meta requires
-            every template to be approved in the WhatsApp Manager before it can
-            be sent — use &quot;Sync from Meta&quot; to pull your approved list.
+            Create templates and submit them to Meta for approval. Only approved templates can be sent.
+            Use &quot;Sync from Meta&quot; to refresh approval statuses.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -268,18 +208,12 @@ export function TemplateManager() {
             onClick={handleSyncFromMeta}
             disabled={syncing}
             className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
-            title="Pull approved templates from your Meta WhatsApp Business Account"
           >
-            <RefreshCw
-              className={`size-4 ${syncing ? 'animate-spin' : ''}`}
-            />
+            <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing…' : 'Sync from Meta'}
           </Button>
           <Button
-            onClick={() => {
-              setForm(emptyForm);
-              setDialogOpen(true);
-            }}
+            onClick={() => { setForm(emptyForm); setDialogOpen(true); }}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="size-4" />
@@ -292,7 +226,7 @@ export function TemplateManager() {
         <Card className="bg-slate-900 border-slate-700 ring-0 ring-transparent">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-slate-400 text-sm">No templates yet.</p>
-            <p className="text-slate-500 text-xs mt-1">Create your first message template to get started.</p>
+            <p className="text-slate-500 text-xs mt-1">Create your first message template to submit it to Meta for approval.</p>
           </CardContent>
         </Card>
       ) : (
@@ -303,14 +237,10 @@ export function TemplateManager() {
                 <div className="space-y-2 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-medium text-white">{template.name}</h3>
-                    <Badge
-                      className={`text-xs border ${categoryColors[template.category] || ''}`}
-                    >
+                    <Badge className={`text-xs border ${categoryColors[template.category] || ''}`}>
                       {template.category}
                     </Badge>
-                    <Badge
-                      className={`text-xs border ${statusColors[template.status || 'Draft'] || ''}`}
-                    >
+                    <Badge className={`text-xs border ${statusColors[template.status || 'Draft'] || ''}`}>
                       {template.status || 'Draft'}
                     </Badge>
                     {template.language && (
@@ -322,27 +252,39 @@ export function TemplateManager() {
                     <p className="text-xs text-slate-500 italic">{template.footer_text}</p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(template.id)}
-                  className="text-slate-400 hover:text-red-400 hover:bg-red-950/30 shrink-0 ml-2"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  {template.status === 'Pending' && (
+                    <a
+                      href="https://business.facebook.com/wa/manage/message-templates/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-blue-400 hover:bg-blue-950/30"
+                    >
+                      <ExternalLink className="size-3" />
+                      Meta Manager
+                    </a>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(template.id)}
+                    className="text-slate-400 hover:text-red-400 hover:bg-red-950/30"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* New Template Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white">New Message Template</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Create a new WhatsApp message template.
+              Create and submit a template to Meta for approval. Only approved templates can be used for messaging.
             </DialogDescription>
           </DialogHeader>
 
@@ -355,6 +297,7 @@ export function TemplateManager() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
               />
+              <p className="text-[11px] text-slate-500">Use lowercase with underscores. No spaces.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -362,9 +305,7 @@ export function TemplateManager() {
                 <Label className="text-slate-300">Category</Label>
                 <Select
                   value={form.category}
-                  onValueChange={(val) =>
-                    setForm({ ...form, category: val as MessageTemplate['category'] })
-                  }
+                  onValueChange={(val) => setForm({ ...form, category: val as MessageTemplate['category'] })}
                 >
                   <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white">
                     <SelectValue />
@@ -393,34 +334,41 @@ export function TemplateManager() {
                     <option key={code} value={code} />
                   ))}
                 </datalist>
-                <p className="text-[11px] text-slate-500">
-                  Must match the exact language code the template is approved
-                  under on Meta — e.g. <code>en_US</code> and <code>en</code>{' '}
-                  are distinct.
-                </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-slate-300">Header Type</Label>
-              <Select
-                value={form.header_type}
-                onValueChange={(val) => setForm({ ...form, header_type: val || '' })}
-              >
-                <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="none" className="text-white focus:bg-slate-700 focus:text-white">
-                    None
-                  </SelectItem>
-                  {HEADER_TYPES.map((type) => (
-                    <SelectItem key={type} value={type} className="text-white focus:bg-slate-700 focus:text-white">
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Header Type</Label>
+                <Select
+                  value={form.header_type}
+                  onValueChange={(val) => setForm({ ...form, header_type: val || '' })}
+                >
+                  <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="none" className="text-white focus:bg-slate-700 focus:text-white">None</SelectItem>
+                    {HEADER_TYPES.map((type) => (
+                      <SelectItem key={type} value={type} className="text-white focus:bg-slate-700 focus:text-white">
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {form.header_type === 'text' && (
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Header Text</Label>
+                  <Input
+                    placeholder="Header content"
+                    value={form.header_content}
+                    onChange={(e) => setForm({ ...form, header_content: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -461,10 +409,10 @@ export function TemplateManager() {
               {saving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Creating...
+                  Submitting...
                 </>
               ) : (
-                'Create Template'
+                'Submit to Meta'
               )}
             </Button>
           </DialogFooter>

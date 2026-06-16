@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus } from "@/types";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, MessageSquarePlus, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +15,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -53,6 +64,11 @@ export function ConversationList({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ConversationStatus | "all">("all");
   const [loading, setLoading] = useState(true);
+  const [newMsgOpen, setNewMsgOpen] = useState(false);
+  const [newMsgPhone, setNewMsgPhone] = useState("");
+  const [newMsgName, setNewMsgName] = useState("");
+  const [newMsgText, setNewMsgText] = useState("");
+  const [newMsgSending, setNewMsgSending] = useState(false);
 
   // Keep the latest callback in a ref so the fetch effect below can
   // have a stable, empty-dep identity. Previously the fetch useCallback
@@ -141,6 +157,36 @@ export function ConversationList({
     [onSelect]
   );
 
+  const handleStartConversation = useCallback(async () => {
+    if (!newMsgPhone.trim()) { toast.error("Phone number is required"); return; }
+    if (!newMsgText.trim()) { toast.error("Message text is required"); return; }
+
+    try {
+      setNewMsgSending(true);
+      const res = await fetch("/api/whatsapp/start-conversation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: newMsgPhone.trim(),
+          name: newMsgName.trim() || undefined,
+          message_text: newMsgText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to start conversation");
+
+      toast.success("Message sent!");
+      setNewMsgOpen(false);
+      setNewMsgPhone("");
+      setNewMsgName("");
+      setNewMsgText("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send message");
+    } finally {
+      setNewMsgSending(false);
+    }
+  }, [newMsgPhone, newMsgName, newMsgText]);
+
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
 
   return (
@@ -150,14 +196,25 @@ export function ConversationList({
     <div className="flex h-full w-full flex-col border-r border-slate-800 bg-slate-900 lg:w-80">
       {/* Search + Filter */}
       <div className="space-y-2 border-b border-slate-800 p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-          <Input
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Search conversations..."
-            className="border-slate-700 bg-slate-800 pl-9 text-sm text-white placeholder-slate-500 focus:border-primary/50"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Input
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Search conversations..."
+              className="border-slate-700 bg-slate-800 pl-9 text-sm text-white placeholder-slate-500 focus:border-primary/50"
+            />
+          </div>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setNewMsgOpen(true)}
+            className="shrink-0 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white"
+            title="New message"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+          </Button>
         </div>
 
         <DropdownMenu>
@@ -210,6 +267,74 @@ export function ConversationList({
           </div>
         )}
       </ScrollArea>
+
+      {/* New Message Dialog */}
+      <Dialog open={newMsgOpen} onOpenChange={setNewMsgOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">New Message</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Send a WhatsApp message to any phone number.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Phone Number</Label>
+              <Input
+                placeholder="+91 98765 43210"
+                value={newMsgPhone}
+                onChange={(e) => setNewMsgPhone(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Contact Name (optional)</Label>
+              <Input
+                placeholder="John Doe"
+                value={newMsgName}
+                onChange={(e) => setNewMsgName(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Message</Label>
+              <Textarea
+                placeholder="Type your message..."
+                value={newMsgText}
+                onChange={(e) => setNewMsgText(e.target.value)}
+                rows={3}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+              />
+              <p className="text-[11px] text-slate-500">
+                Free-form text works within 24hrs of last customer message. For first contact, use a template.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNewMsgOpen(false)}
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartConversation}
+              disabled={newMsgSending || !newMsgPhone.trim() || !newMsgText.trim()}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {newMsgSending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

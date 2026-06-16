@@ -506,6 +506,83 @@ function validateInteractiveHeaderFooter(
 }
 
 // ============================================================
+// Template creation
+// ============================================================
+
+export interface CreateMessageTemplateArgs {
+  wabaId: string
+  accessToken: string
+  name: string
+  category: string
+  language: string
+  bodyText: string
+  headerType?: string | null
+  headerContent?: string | null
+  footerText?: string | null
+}
+
+export interface CreateMessageTemplateResult {
+  id: string
+  status: string
+  category: string
+}
+
+export async function createMessageTemplate(
+  args: CreateMessageTemplateArgs
+): Promise<CreateMessageTemplateResult> {
+  const {
+    wabaId, accessToken, name, category, language,
+    bodyText, headerType, headerContent, footerText,
+  } = args
+
+  const components: Record<string, unknown>[] = []
+
+  if (headerType && headerType !== 'none') {
+    const headerComp: Record<string, unknown> = { type: 'HEADER', format: headerType.toUpperCase() }
+    if (headerType === 'text' && headerContent) {
+      headerComp.text = headerContent
+    }
+    components.push(headerComp)
+  }
+
+  components.push({ type: 'BODY', text: bodyText })
+
+  if (footerText) {
+    components.push({ type: 'FOOTER', text: footerText })
+  }
+
+  const metaCategory = category === 'Marketing' ? 'MARKETING'
+    : category === 'Utility' ? 'UTILITY'
+    : category === 'Authentication' ? 'AUTHENTICATION'
+    : 'MARKETING'
+
+  const response = await fetch(`${META_API_BASE}/${wabaId}/message_templates`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      name,
+      category: metaCategory,
+      language,
+      components,
+    }),
+  })
+
+  if (!response.ok) {
+    await throwMetaError(response, `Template creation failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return {
+    id: data.id,
+    status: data.status || 'PENDING',
+    category: data.category || category,
+  }
+}
+
+// ============================================================
 // Media
 // ============================================================
 
