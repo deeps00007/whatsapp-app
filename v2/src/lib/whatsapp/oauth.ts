@@ -178,6 +178,16 @@ export async function subscribeAppToWaba(
     const err = await res.json().catch(() => ({}))
     throw new Error(`Webhook subscription failed: ${(err as any).error?.message || res.statusText}`)
   }
+
+  const fieldsUrl = `${META_API_BASE}/${wabaId}/subscribed_apps?subscribe_fields=${encodeURIComponent('messages,message_status')}`
+  const fieldsRes = await fetch(fieldsUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${longLivedToken}` },
+  })
+  if (!fieldsRes.ok) {
+    const err = await fieldsRes.json().catch(() => ({}))
+    console.error('[subscribeAppToWaba] Field subscription warning:', (err as any).error?.message || fieldsRes.statusText)
+  }
 }
 
 export interface PhoneDiscoveryResult {
