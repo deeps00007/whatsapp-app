@@ -41,16 +41,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('[phone-verification/request] Error:', err.message)
-    const metaMatch = err.message?.match(/error_subcode.*?(\d+)/)
-    const isRateLimit = err.message?.includes('wait for 1 hour') || metaMatch?.[1] === '2388091'
+
+    const isRateLimit =
+      err.message?.includes('wait for 1 hour') ||
+      err.message?.includes('2388091') ||
+      err.message?.includes('temporarily unavailable')
+
+    const isCoexistence =
+      err.message?.includes('coexistence') ||
+      err.message?.includes('registered on the app') ||
+      err.message?.includes('linked to the app')
+
+    if (isRateLimit) {
+      return NextResponse.json(
+        {
+          error: 'Too many attempts. Please wait 1 hour before requesting another verification code.',
+          is_rate_limited: true,
+          cooldown_seconds: 3600,
+        },
+        { status: 429 }
+      )
+    }
+
+    if (isCoexistence) {
+      return NextResponse.json(
+        {
+          error: 'This number is linked to the WhatsApp Business app (coexistence mode). It must be verified through Meta Business Manager instead.',
+          is_coexistence: true,
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      {
-        error: isRateLimit
-          ? 'Rate limited — please wait 1 hour before requesting another code'
-          : err.message || 'Failed to request verification code',
-        is_rate_limited: isRateLimit,
-      },
-      { status: isRateLimit ? 429 : 502 }
+      { error: err.message || 'Failed to request verification code' },
+      { status: 502 }
     )
   }
 }

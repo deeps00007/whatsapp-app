@@ -33,6 +33,9 @@ export function WhatsAppConfig() {
   const [verificationStep, setVerificationStep] = useState<'idle' | 'sending' | 'enter_code' | 'verifying' | 'done'>('idle');
   const [verificationMethod, setVerificationMethod] = useState<'SMS' | 'VOICE'>('SMS');
   const [verificationCode, setVerificationCode] = useState('');
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [isCoexistenceNumber, setIsCoexistenceNumber] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<{ payment_method_connected: boolean } | null>(null);
   const [config, setConfig] = useState<WhatsAppConfigType | null>(null);
   const [phoneInfo, setPhoneInfo] = useState<{ display_phone_number?: string; verified_name?: string; quality_rating?: string; code_verification_status?: string } | null>(null);
@@ -100,6 +103,19 @@ export function WhatsAppConfig() {
     fetchConfig(user.id);
   }, [user, authLoading, fetchConfig]);
 
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownRemaining(remaining);
+      if (remaining <= 0) {
+        setCooldownUntil(null);
+        clearInterval(interval);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownUntil]);
+
   const handleConnect = () => {
     window.location.href = '/api/whatsapp/oauth/init';
   };
@@ -160,6 +176,20 @@ export function WhatsAppConfig() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.is_rate_limited) {
+          const cooldownSec = data.cooldown_seconds || 3600;
+          setCooldownUntil(Date.now() + cooldownSec * 1000);
+          setCooldownRemaining(cooldownSec);
+          toast.error(`Rate limited — please wait ~${Math.ceil(cooldownSec / 60)} minutes before trying again.`);
+          setVerificationStep('idle');
+          return;
+        }
+        if (data.is_coexistence) {
+          setIsCoexistenceNumber(true);
+          toast.error('This number must be verified through Meta Business Manager (coexistence mode).');
+          setVerificationStep('idle');
+          return;
+        }
         throw new Error(data.error || 'Failed to send code');
       }
       toast.success(`Verification code sent via ${method === 'SMS' ? 'SMS' : 'voice call'}!`);
@@ -310,39 +340,88 @@ export function WhatsAppConfig() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {verificationStep === 'idle' && (
+                {isCoexistenceNumber ? (
+                  <>
+                    <div className="rounded-lg bg-amber-100/50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300 space-y-2">
+                      <p><strong>This number is linked to the WhatsApp Business app (coexistence mode).</strong></p>
+                      <p>Coexistence numbers must be verified through Meta Business Manager. Click below to open it:</p>
+                      <ol className="list-decimal ml-4 space-y-1">
+                        <li>Open Meta Business Manager</li>
+                        <li>Go to <strong>WhatsApp → Phone Numbers</strong></li>
+                        <li>Click <strong>Verify</strong> next to your number</li>
+                        <li>Enter the 6-digit code sent to your phone</li>
+                        <li>Come back and click &quot;Check Verification Status&quot;</li>
+                      </ol>
+                    </div>
+                    <div className="flex gap-3 flex-wrap">
+                      <a
+                        href={`https://business.facebook.com/wa/manage/phone-numbers/?waba_id=${config?.waba_id || ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button className="bg-amber-600 hover:bg-amber-700">
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Open Meta Business Manager
+                        </Button>
+                      </a>
+                      <Button
+                        variant="outline"
+                        onClick={handleCheckVerification}
+                        disabled={checkingStatus}
+                        className="border-amber-300 dark:border-amber-700"
+                      >
+                        {checkingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Check Verification Status
+                      </Button>
+                    </div>
+                  </>
+                ) : verificationStep === 'idle' ? (
                   <>
                     <div className="rounded-lg bg-amber-100/50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
                       <p><strong>Why verify?</strong> Unverified numbers cannot send template messages (broadcasts) to new contacts. Verified numbers build quality rating and unlock full messaging.</p>
                     </div>
-                    <div className="flex gap-3 flex-wrap">
+                    {cooldownUntil && cooldownRemaining > 0 ? (
+                      <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-300">
+                        Please wait <strong>{Math.floor(cooldownRemaining / 60)}:{String(cooldownRemaining % 60).padStart(2, '0')}</strong> before requesting another code.
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 flex-wrap">
+                        <Button
+                          onClick={() => handleRequestCode('SMS')}
+                          className="bg-amber-600 hover:bg-amber-700"
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Send Code via SMS
+                        </Button>
+                        <Button
+                          onClick={() => handleRequestCode('VOICE')}
+                          variant="outline"
+                          className="border-amber-300 dark:border-amber-700"
+                        >
+                          <Phone className="mr-2 h-4 w-4" />
+                          Send Code via Call
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
                       <Button
-                        onClick={() => handleRequestCode('SMS')}
-                        className="bg-amber-600 hover:bg-amber-700"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCheckVerification}
+                        disabled={checkingStatus}
+                        className="text-amber-600 hover:text-amber-700 text-xs"
                       >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Send Code via SMS
-                      </Button>
-                      <Button
-                        onClick={() => handleRequestCode('VOICE')}
-                        variant="outline"
-                        className="border-amber-300 dark:border-amber-700"
-                      >
-                        <Phone className="mr-2 h-4 w-4" />
-                        Send Code via Call
+                        {checkingStatus ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
+                        Already verified in Meta? Check status
                       </Button>
                     </div>
                   </>
-                )}
-
-                {verificationStep === 'sending' && (
+                ) : verificationStep === 'sending' ? (
                   <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Sending verification code via {verificationMethod}…
                   </div>
-                )}
-
-                {(verificationStep === 'enter_code' || verificationStep === 'verifying') && (
+                ) : (verificationStep === 'enter_code' || verificationStep === 'verifying') ? (
                   <div className="space-y-3">
                     <p className="text-sm text-amber-700 dark:text-amber-400">
                       We sent a code to <strong>{config?.phone_number || phoneInfo?.display_phone_number}</strong> via {verificationMethod}. Enter it below.
@@ -391,14 +470,12 @@ export function WhatsAppConfig() {
                       </button>
                     </p>
                   </div>
-                )}
-
-                {verificationStep === 'done' && (
+                ) : verificationStep === 'done' ? (
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle2 className="h-5 w-5" />
                     <span className="font-medium">Phone number verified! You can now send broadcast messages.</span>
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           )}
