@@ -77,14 +77,15 @@ export function decrypt(encryptedText: string): string {
   }
 
   if (parts.length === 2) {
-    // CBC — legacy. Read-only; `encrypt()` never produces this shape.
+    // CBC — legacy. Read-only; encrypt() never produces this shape.
+    // Logs a warning so operators know to re-connect. Still decrypts
+    // so existing flows don't break, but the token should be upgraded
+    // by re-connecting or by the webhook self-heal path.
+    console.warn(
+      '[encryption] Decrypting legacy CBC token — re-connect WhatsApp to upgrade to GCM'
+    )
     const [ivHex, ctHex] = parts
     const iv = Buffer.from(ivHex, 'hex')
-    if (iv.length !== CBC_IV_LENGTH) {
-      throw new Error(
-        `Encrypted token has unexpected CBC IV length ${iv.length}`,
-      )
-    }
     const decipher = crypto.createDecipheriv(
       'aes-256-cbc',
       Buffer.from(ENCRYPTION_KEY, 'hex'),

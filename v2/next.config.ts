@@ -29,7 +29,7 @@ const SECURITY_HEADERS = [
     value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
   {
-    key: "Content-Security-Policy-Report-Only",
+    key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
       // Next.js needs 'unsafe-inline' for its inline hydration script

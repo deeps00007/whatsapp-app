@@ -18,9 +18,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'name, category, and body_text are required' }, { status: 400 })
     }
 
+    const VALID_CATEGORIES = ['Marketing', 'Utility', 'Authentication']
+    const VALID_HEADER_TYPES = ['text', 'image', 'video', 'document', 'none']
+    if (!VALID_CATEGORIES.includes(category)) {
+      return NextResponse.json({ error: `Invalid category. Allowed: ${VALID_CATEGORIES.join(', ')}` }, { status: 400 })
+    }
+    if (header_type && !VALID_HEADER_TYPES.includes(header_type)) {
+      return NextResponse.json({ error: `Invalid header_type. Allowed: ${VALID_HEADER_TYPES.join(', ')}` }, { status: 400 })
+    }
+
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('*')
+      .select('waba_id, access_token')
       .eq('user_id', user.id)
       .single()
 
@@ -73,6 +82,6 @@ export async function POST(request: Request) {
     })
   } catch (err: any) {
     console.error('[templates/create] Error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

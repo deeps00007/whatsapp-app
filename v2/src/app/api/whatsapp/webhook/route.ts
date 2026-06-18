@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/admin-client'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
-
-// Lazy-initialized to avoid build-time crash when env vars are missing
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _adminClient: any = null
-function supabaseAdmin() {
-  if (!_adminClient) {
-    _adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-  }
-  return _adminClient
-}
 
 interface WhatsAppMessage {
   id: string
@@ -222,7 +209,7 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
       // before the constraint, or a race, would still surface here.
       const { data: configRows, error: configError } = await supabaseAdmin()
         .from('whatsapp_config')
-        .select('*')
+        .select('id, user_id, phone_number_id, waba_id, access_token, status, coexistence_mode, code_verification_status')
         .eq('phone_number_id', phoneNumberId)
 
       if (configError) {
@@ -614,19 +601,26 @@ async function processMessage(
     return
   }
 
-  // Update conversation
+  // Update conversation — atomic increment via RPC avoids read-modify-write
+  // race when two inbound messages arrive concurrently for the same chat.
   const { error: convError } = await supabaseAdmin()
+    .rpc('increment_unread', { conv_id: conversation.id })
+
+  if (convError) {
+    console.error('Error incrementing unread_count via RPC:', convError)
+  }
+
+  const { error: convTextError } = await supabaseAdmin()
     .from('conversations')
     .update({
       last_message_text: contentText || `[${message.type}]`,
       last_message_at: new Date().toISOString(),
-      unread_count: (conversation.unread_count || 0) + 1,
       updated_at: new Date().toISOString(),
     })
     .eq('id', conversation.id)
 
-  if (convError) {
-    console.error('Error updating conversation:', convError)
+  if (convTextError) {
+    console.error('Error updating conversation text:', convTextError)
   }
 
   // If this contact was a recent broadcast recipient, flag the reply

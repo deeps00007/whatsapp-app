@@ -1,7 +1,7 @@
 import { exchangeCodeForToken, discoverWaba, discoverPhoneNumbers, validateOAuthState, subscribeAppToWaba } from '@/lib/whatsapp/oauth'
 import { encrypt } from '@/lib/whatsapp/encryption'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/admin-client'
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
@@ -72,10 +72,7 @@ export async function GET(request: NextRequest) {
     const verifyToken = crypto.randomBytes(24).toString('hex')
     const encryptedVerifyToken = encrypt(verifyToken)
 
-    const adminClient = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const adminClient = supabaseAdmin()
 
     const upsertData: Record<string, any> = {
       user_id: userId,

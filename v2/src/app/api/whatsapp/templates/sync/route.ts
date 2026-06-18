@@ -99,7 +99,7 @@ export async function POST() {
     // whatsapp_config holds waba_id + encrypted access_token.
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('*')
+      .select('waba_id, access_token')
       .eq('user_id', user.id)
       .single()
 

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('*')
+      .select('waba_id, access_token')
       .eq('user_id', user.id)
       .single()
 
@@ -50,10 +50,9 @@ export async function POST(request: Request) {
       success: true,
       app_subscribed: true,
       fields_subscribed: fieldsOk,
-      fields_response: fieldsData,
     })
   } catch (err: any) {
     console.error('[webhook/subscribe] Error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

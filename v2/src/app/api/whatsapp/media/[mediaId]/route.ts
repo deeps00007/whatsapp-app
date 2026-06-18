@@ -31,10 +31,9 @@ export async function GET(
       )
     }
 
-    // Fetch and decrypt WhatsApp config
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('*')
+      .select('access_token')
       .eq('user_id', user.id)
       .single()
 
@@ -45,12 +44,24 @@ export async function GET(
       )
     }
 
+    const { data: msg } = await supabase
+      .from('messages')
+      .select('id')
+      .like('media_url', `%/${mediaId}%`)
+      .limit(1)
+      .maybeSingle()
+
+    if (!msg) {
+      return NextResponse.json(
+        { error: 'Not found' },
+        { status: 404 }
+      )
+    }
+
     const accessToken = decrypt(config.access_token)
 
-    // Get the download URL from Meta
     const mediaInfo = await getMediaUrl({ mediaId, accessToken })
 
-    // Download the binary data
     const { buffer, contentType } = await downloadMedia({
       downloadUrl: mediaInfo.url,
       accessToken,

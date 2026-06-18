@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('*')
+      .select('id, phone_number_id, waba_id, access_token, status')
       .eq('user_id', user.id)
       .single()
 
@@ -146,6 +146,6 @@ export async function POST(request: Request) {
     })
   } catch (err: any) {
     console.error('[start-conversation] Error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
