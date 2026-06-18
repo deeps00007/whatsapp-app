@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -18,6 +18,10 @@ import {
   LogOut,
   User,
   X,
+  CreditCard,
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Avatar,
@@ -56,6 +60,68 @@ const navItems: NavItem[] = [
 const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+function PaymentStatus() {
+  const [status, setStatus] = useState<{
+    connected: boolean;
+    payment_method_connected: boolean;
+    whatsapp_status: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/whatsapp/payment-status");
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) setStatus(data);
+        }
+      } catch {
+        // silent
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading || !status?.connected) return null;
+
+  const paid = status.payment_method_connected;
+
+  return (
+    <div className="mx-3 mt-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <CreditCard className="size-4 text-slate-400" />
+        <span className="text-xs font-medium text-slate-300">Payment Method</span>
+      </div>
+      {paid ? (
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="size-3.5 text-emerald-400" />
+          <span className="text-xs text-emerald-400">Connected</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertTriangle className="size-3.5 text-amber-400" />
+            <span className="text-xs text-amber-400">Not connected</span>
+          </div>
+          <a
+            href="https://business.facebook.com/settings/payment-methods/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+          >
+            <ExternalLink className="size-3" />
+            Add Payment Method
+          </a>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface SidebarProps {
   /** Controlled on mobile by the Header's hamburger button. Ignored on lg+. */
@@ -211,8 +277,10 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 </li>
               );
             })}
-          </ul>
-        </nav>
+           </ul>
+
+           <PaymentStatus />
+         </nav>
 
         {/* User section */}
         <div className="shrink-0 border-t border-slate-800 p-3">
