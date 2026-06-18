@@ -82,7 +82,7 @@ function AccountStatus() {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) setUserId(session.user.id);
-      } catch { /* silent */ }
+      } catch (_) { /* silent */ }
     })();
     return () => { mounted = false; };
   }, []);
@@ -94,7 +94,7 @@ function AccountStatus() {
         const data = await res.json();
         setStatus(data);
       }
-    } catch { /* silent */ }
+    } catch (_) { /* silent */ }
     setLoading(false);
   }, []);
 

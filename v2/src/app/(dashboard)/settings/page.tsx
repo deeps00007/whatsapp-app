@@ -10,6 +10,7 @@ import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AppearancePanel } from '@/components/settings/appearance-panel';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 const TAB_VALUES = [
   'profile',
@@ -97,7 +98,9 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="whatsapp">
-          <WhatsAppConfig />
+          <ErrorBoundary name="WhatsApp Config">
+            <WhatsAppConfig />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="templates">

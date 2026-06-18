@@ -154,7 +154,7 @@ export function WhatsAppConfig() {
       } else {
         toast.error('Failed to disconnect');
       }
-    } catch {
+    } catch (_) {
       toast.error('Network error');
     } finally {
       setDisconnecting(false);
@@ -180,7 +180,7 @@ export function WhatsAppConfig() {
           toast.info('Phone number is not yet verified. Complete verification below.');
         }
       }
-    } catch {
+    } catch (_) {
       toast.error('Failed to check verification status');
     } finally {
       setCheckingStatus(false);
