@@ -31,7 +31,8 @@ export async function middleware(request: NextRequest) {
   if (user && (
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/signup' ||
-    request.nextUrl.pathname === '/forgot-password'
+    request.nextUrl.pathname === '/forgot-password' ||
+    request.nextUrl.pathname === '/reset-password'
   )) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
