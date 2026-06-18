@@ -106,6 +106,7 @@ function AccountStatus() {
   useRealtimeTable<WhatsAppConfig>({
     table: "whatsapp_config",
     filter: userId ? `user_id=eq.${userId}` : undefined,
+    channelName: userId ? `sidebar:whatsapp_config:${userId}` : undefined,
     enabled: !!userId,
     onEvent: (event: RealtimeTableEvent<WhatsAppConfig>) => {
       if (event.eventType === "UPDATE") {
