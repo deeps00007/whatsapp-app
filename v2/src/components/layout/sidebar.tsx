@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -25,6 +25,8 @@ import {
   Shield,
   Phone,
 } from "lucide-react";
+import { useRealtimeTable, type RealtimeTableEvent } from "@/hooks/use-realtime-table";
+import type { WhatsAppConfig } from "@/types";
 import {
   Avatar,
   AvatarFallback,
@@ -70,29 +72,54 @@ function AccountStatus() {
     phone_verified: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/whatsapp/payment-status");
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) setStatus(data);
-        }
-      } catch {
-        // silent
-      } finally {
-        if (mounted) setLoading(false);
-      }
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) setUserId(session.user.id);
+      } catch { /* silent */ }
     })();
     return () => { mounted = false; };
   }, []);
 
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/whatsapp/payment-status");
+      if (res.ok) {
+        const data = await res.json();
+        setStatus(data);
+      }
+    } catch { /* silent */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    fetchStatus();
+  }, [userId, fetchStatus]);
+
+  useRealtimeTable<WhatsAppConfig>({
+    table: "whatsapp_config",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    enabled: !!userId,
+    onEvent: (event: RealtimeTableEvent<WhatsAppConfig>) => {
+      if (event.eventType === "UPDATE") {
+        fetchStatus();
+      }
+      if (event.eventType === "INSERT") {
+        fetchStatus();
+      }
+    },
+  });
+
   if (loading || !status?.connected) return null;
 
   const allGood = status.phone_verified && status.payment_method_connected;
-  const needsAttention = !status.phone_verified || !status.payment_method_connected;
 
   if (allGood) {
     return (
