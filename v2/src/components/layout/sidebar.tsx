@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   ExternalLink,
+  Shield,
+  Phone,
 } from "lucide-react";
 import {
   Avatar,
@@ -61,11 +63,11 @@ const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-function PaymentStatus() {
+function AccountStatus() {
   const [status, setStatus] = useState<{
     connected: boolean;
     payment_method_connected: boolean;
-    whatsapp_status: string;
+    phone_verified: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,35 +91,47 @@ function PaymentStatus() {
 
   if (loading || !status?.connected) return null;
 
-  const paid = status.payment_method_connected;
+  const allGood = status.phone_verified && status.payment_method_connected;
+  const needsAttention = !status.phone_verified || !status.payment_method_connected;
 
-  return (
-    <div className="mx-3 mt-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <CreditCard className="size-4 text-slate-400" />
-        <span className="text-xs font-medium text-slate-300">Payment Method</span>
-      </div>
-      {paid ? (
+  if (allGood) {
+    return (
+      <div className="mx-3 mt-2 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3">
         <div className="flex items-center gap-1.5">
           <CheckCircle2 className="size-3.5 text-emerald-400" />
-          <span className="text-xs text-emerald-400">Connected</span>
+          <span className="text-xs text-emerald-400 font-medium">Account ready</span>
         </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-1.5 mb-2">
-            <AlertTriangle className="size-3.5 text-amber-400" />
-            <span className="text-xs text-amber-400">Not connected</span>
-          </div>
-          <a
-            href="https://business.facebook.com/settings/payment-methods/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-          >
-            <ExternalLink className="size-3" />
-            Add Payment Method
-          </a>
-        </>
+        <p className="text-[10px] text-emerald-500 mt-1">Phone verified &amp; payment active</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-3 mt-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="size-3.5 text-amber-400" />
+        <span className="text-xs font-medium text-amber-400">Setup needed</span>
+      </div>
+      {!status.phone_verified && (
+        <Link
+          href="/settings?tab=whatsapp"
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <Shield className="size-3" />
+          Verify phone number
+        </Link>
+      )}
+      {!status.payment_method_connected && (
+        <a
+          href="https://business.facebook.com/settings/payment-methods/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <CreditCard className="size-3" />
+          Add payment method
+          <ExternalLink className="size-2.5" />
+        </a>
       )}
     </div>
   );
@@ -279,7 +293,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             })}
            </ul>
 
-           <PaymentStatus />
+           <AccountStatus />
          </nav>
 
         {/* User section */}

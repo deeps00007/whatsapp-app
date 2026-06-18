@@ -12,10 +12,13 @@ import {
   RefreshCw,
   Phone,
   Trash2,
+  MessageSquare,
+  CreditCard,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { WhatsAppConfig as WhatsAppConfigType } from '@/types';
@@ -27,6 +30,10 @@ export function WhatsAppConfig() {
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'idle' | 'sending' | 'enter_code' | 'verifying' | 'done'>('idle');
+  const [verificationMethod, setVerificationMethod] = useState<'SMS' | 'VOICE'>('SMS');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<{ payment_method_connected: boolean } | null>(null);
   const [config, setConfig] = useState<WhatsAppConfigType | null>(null);
   const [phoneInfo, setPhoneInfo] = useState<{ display_phone_number?: string; verified_name?: string; quality_rating?: string; code_verification_status?: string } | null>(null);
   const [oauthResult, setOauthResult] = useState<{ success?: boolean; needsVerification?: boolean; error?: string } | null>(null);
@@ -57,6 +64,11 @@ export function WhatsAppConfig() {
         if (res.ok) {
           const result = await res.json();
           setPhoneInfo(result.phone_info ?? null);
+        }
+        const payRes = await fetch('/api/whatsapp/payment-status');
+        if (payRes.ok) {
+          const payData = await payRes.json();
+          setPaymentStatus(payData);
         }
       }
     } catch (err) {
@@ -127,13 +139,59 @@ export function WhatsAppConfig() {
             .eq('user_id', user.id);
           if (!error) fetchConfig(user.id);
         } else {
-          toast.info('Phone number is not yet verified. Complete verification in Meta Business Manager first.');
+          toast.info('Phone number is not yet verified. Complete verification below.');
         }
       }
     } catch {
       toast.error('Failed to check verification status');
     } finally {
       setCheckingStatus(false);
+    }
+  };
+
+  const handleRequestCode = async (method: 'SMS' | 'VOICE') => {
+    setVerificationMethod(method);
+    setVerificationStep('sending');
+    try {
+      const res = await fetch('/api/whatsapp/phone-verification/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send code');
+      }
+      toast.success(`Verification code sent via ${method === 'SMS' ? 'SMS' : 'voice call'}!`);
+      setVerificationStep('enter_code');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send verification code');
+      setVerificationStep('idle');
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode || verificationCode.length < 4) {
+      toast.error('Please enter the verification code');
+      return;
+    }
+    setVerificationStep('verifying');
+    try {
+      const res = await fetch('/api/whatsapp/phone-verification/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: verificationCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Verification failed');
+      }
+      toast.success('Phone number verified successfully!');
+      setVerificationStep('done');
+      if (user) fetchConfig(user.id);
+    } catch (err: any) {
+      toast.error(err.message || 'Verification failed');
+      setVerificationStep('enter_code');
     }
   };
 
@@ -248,38 +306,148 @@ export function WhatsAppConfig() {
                   Verify Your Phone Number
                 </CardTitle>
                 <CardDescription className="text-amber-600 dark:text-amber-500">
-                  {config?.phone_number || phoneInfo?.display_phone_number} must be verified before you can send messages.
+                  {config?.phone_number || phoneInfo?.display_phone_number} must be verified before you can send broadcast messages.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-lg bg-amber-100/50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
-                  <p><strong>Steps:</strong></p>
-                  <p>1. Click &quot;Open Meta Business Manager&quot; below</p>
-                  <p>2. Go to <strong>WhatsApp &rarr; Phone Numbers</strong></p>
-                  <p>3. Click <strong>Verify</strong> next to your number</p>
-                  <p>4. Choose SMS or Voice Call, enter the 6-digit code</p>
-                  <p>5. Come back and click &quot;Check Verification Status&quot;</p>
-                </div>
+                {verificationStep === 'idle' && (
+                  <>
+                    <div className="rounded-lg bg-amber-100/50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
+                      <p><strong>Why verify?</strong> Unverified numbers cannot send template messages (broadcasts) to new contacts. Verified numbers build quality rating and unlock full messaging.</p>
+                    </div>
+                    <div className="flex gap-3 flex-wrap">
+                      <Button
+                        onClick={() => handleRequestCode('SMS')}
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Send Code via SMS
+                      </Button>
+                      <Button
+                        onClick={() => handleRequestCode('VOICE')}
+                        variant="outline"
+                        className="border-amber-300 dark:border-amber-700"
+                      >
+                        <Phone className="mr-2 h-4 w-4" />
+                        Send Code via Call
+                      </Button>
+                    </div>
+                  </>
+                )}
 
+                {verificationStep === 'sending' && (
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending verification code via {verificationMethod}…
+                  </div>
+                )}
+
+                {(verificationStep === 'enter_code' || verificationStep === 'verifying') && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      We sent a code to <strong>{config?.phone_number || phoneInfo?.display_phone_number}</strong> via {verificationMethod}. Enter it below.
+                    </p>
+                    <div className="flex gap-3 items-center">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Enter 6-digit code"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        className="w-48 border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900"
+                        autoFocus
+                      />
+                      <Button
+                        onClick={handleVerifyCode}
+                        disabled={verificationStep === 'verifying' || verificationCode.length < 4}
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        {verificationStep === 'verifying' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Verify
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setVerificationStep('idle'); setVerificationCode(''); }}
+                        className="text-amber-600 hover:text-amber-700"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      Didn&apos;t receive the code?{' '}
+                      <button
+                        onClick={() => handleRequestCode(verificationMethod)}
+                        className="underline hover:no-underline"
+                      >
+                        Resend via {verificationMethod}
+                      </button>
+                      {' | '}
+                      <button
+                        onClick={() => handleRequestCode(verificationMethod === 'SMS' ? 'VOICE' : 'SMS')}
+                        className="underline hover:no-underline"
+                      >
+                        Try {verificationMethod === 'SMS' ? 'Voice Call' : 'SMS'} instead
+                      </button>
+                    </p>
+                  </div>
+                )}
+
+                {verificationStep === 'done' && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="font-medium">Phone number verified! You can now send broadcast messages.</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payment Method Card */}
+          {isConnected && !paymentStatus?.payment_method_connected && (
+            <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                  <CreditCard className="h-5 w-5" />
+                  Add Payment Method
+                </CardTitle>
+                <CardDescription className="text-red-600 dark:text-red-500">
+                  Meta requires a payment method to deliver your messages. Without it, messages will be accepted but not delivered.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-lg bg-red-100/50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-300">
+                  <p>This step must be completed in Meta Business Manager. We cannot add payment methods through our platform — it&apos;s a Meta requirement.</p>
+                </div>
                 <div className="flex gap-3 flex-wrap">
                   <a
-                    href={`https://business.facebook.com/wa/manage/phone-numbers/?waba_id=${config?.waba_id || ''}`}
+                    href="https://business.facebook.com/settings/payment-methods/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Button variant="default" className="bg-amber-600 hover:bg-amber-700">
+                    <Button className="bg-red-600 hover:bg-red-700">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Open Meta Business Manager
+                      Add Payment in Meta
                     </Button>
                   </a>
                   <Button
                     variant="outline"
-                    onClick={handleCheckVerification}
-                    disabled={checkingStatus}
-                    className="border-amber-300 dark:border-amber-700"
+                    onClick={async () => {
+                      const res = await fetch('/api/whatsapp/payment-status');
+                      if (res.ok) {
+                        const data = await res.json();
+                        setPaymentStatus(data);
+                        if (data.payment_method_connected) {
+                          toast.success('Payment method detected!');
+                        } else {
+                          toast.info('No payment method found yet. Add one in Meta Business Manager.');
+                        }
+                      }
+                    }}
+                    className="border-red-300 dark:border-red-700"
                   >
-                    {checkingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Check Verification Status
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Re-check Payment Status
                   </Button>
                 </div>
               </CardContent>
@@ -287,12 +455,22 @@ export function WhatsAppConfig() {
           )}
 
           {/* Verified Success */}
-          {isVerified && (
+          {isVerified && verificationStep !== 'done' && (
             <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle className="text-green-700 dark:text-green-400">Phone Verified</AlertTitle>
               <AlertDescription className="text-green-600 dark:text-green-500">
                 Your phone number is verified and ready to send messages.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {paymentStatus?.payment_method_connected && (
+            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
+              <CreditCard className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-700 dark:text-green-400">Payment Method Connected</AlertTitle>
+              <AlertDescription className="text-green-600 dark:text-green-500">
+                Your Meta payment method is active. Messages will be delivered.
               </AlertDescription>
             </Alert>
           )}

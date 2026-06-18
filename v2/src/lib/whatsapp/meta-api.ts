@@ -634,3 +634,66 @@ export async function downloadMedia(
   const buffer = Buffer.from(await response.arrayBuffer())
   return { buffer, contentType }
 }
+
+// ============================================================
+// Phone verification
+// ============================================================
+
+export interface RequestVerificationCodeArgs {
+  phoneNumberId: string
+  accessToken: string
+  method: 'SMS' | 'VOICE'
+  language?: string
+}
+
+export interface RequestVerificationCodeResult {
+  success: true
+}
+
+export async function requestVerificationCode(
+  args: RequestVerificationCodeArgs
+): Promise<RequestVerificationCodeResult> {
+  const { phoneNumberId, accessToken, method, language = 'en' } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/request_code`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ code_method: method, language }),
+  })
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  return { success: true }
+}
+
+export interface VerifyCodeArgs {
+  phoneNumberId: string
+  accessToken: string
+  code: string
+}
+
+export interface VerifyCodeResult {
+  success: true
+}
+
+export async function verifyCode(
+  args: VerifyCodeArgs
+): Promise<VerifyCodeResult> {
+  const { phoneNumberId, accessToken, code } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/verify_code`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ code }),
+  })
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  return { success: true }
+}

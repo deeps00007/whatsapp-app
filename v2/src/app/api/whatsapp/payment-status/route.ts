@@ -15,7 +15,7 @@ export async function GET() {
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('waba_id, access_token, payment_method_connected, status')
+      .select('waba_id, access_token, phone_number_id, payment_method_connected, code_verification_status, status')
       .eq('user_id', user.id)
       .single()
 
@@ -23,6 +23,7 @@ export async function GET() {
       return NextResponse.json({
         connected: false,
         payment_method_connected: false,
+        phone_verified: false,
         whatsapp_status: 'disconnected',
       })
     }
@@ -31,6 +32,7 @@ export async function GET() {
       return NextResponse.json({
         connected: config.status === 'connected',
         payment_method_connected: false,
+        phone_verified: false,
         whatsapp_status: config.status,
       })
     }
@@ -39,6 +41,29 @@ export async function GET() {
 
     let paymentConnected = config.payment_method_connected
     let accountReviewStatus: string | null = null
+    let phoneVerified = config.code_verification_status === 'VERIFIED'
+
+    try {
+      if (config.phone_number_id) {
+        const phoneRes = await fetch(
+          `${META_API_BASE}/${config.phone_number_id}?fields=code_verification_status`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (phoneRes.ok) {
+          const phoneData = await phoneRes.json()
+          const metaStatus = phoneData.code_verification_status
+          phoneVerified = metaStatus === 'VERIFIED'
+          if (metaStatus && metaStatus !== config.code_verification_status) {
+            void supabase
+              .from('whatsapp_config')
+              .update({ code_verification_status: metaStatus })
+              .eq('user_id', user.id)
+          }
+        }
+      }
+    } catch {
+      // phone status check failed — keep cached value
+    }
 
     try {
       const wabaRes = await fetch(
@@ -81,6 +106,7 @@ export async function GET() {
     return NextResponse.json({
       connected: true,
       payment_method_connected: paymentConnected,
+      phone_verified: phoneVerified,
       whatsapp_status: config.status,
       account_review_status: accountReviewStatus,
     })
