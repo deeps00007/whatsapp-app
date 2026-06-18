@@ -79,6 +79,7 @@ export function TemplateManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState<string | null>(null);
   const [form, setForm] = useState<TemplateFormData>(emptyForm);
 
   useEffect(() => {
@@ -172,6 +173,39 @@ export function TemplateManager() {
     }
   }
 
+  async function handleCheckStatus(template: MessageTemplate) {
+    if (!user) return;
+    setCheckingStatus(template.id);
+    try {
+      const res = await fetch('/api/whatsapp/templates/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template_id: template.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to check status');
+
+      const newStatus = data.status || template.status;
+      if (newStatus !== template.status) {
+        toast.success(`Template "${template.name}" is now ${newStatus}`);
+        setTemplates((prev) =>
+          prev.map((t) =>
+            t.id === template.id
+              ? { ...t, status: newStatus as MessageTemplate['status'], meta_template_id: data.meta_template_id ?? t.meta_template_id }
+              : t
+          )
+        );
+      } else {
+        toast.info(`Template "${template.name}" is still ${newStatus}`);
+      }
+    } catch (err) {
+      console.error('Check status error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to check status');
+    } finally {
+      setCheckingStatus(null);
+    }
+  }
+
   async function handleDelete(id: string) {
     try {
       const { error } = await supabase.from('message_templates').delete().eq('id', id);
@@ -253,6 +287,22 @@ export function TemplateManager() {
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
+                  {(template.status === 'Pending' || template.status === 'Draft') && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCheckStatus(template)}
+                      disabled={checkingStatus === template.id}
+                      className="text-xs text-slate-300 hover:text-white hover:bg-slate-800 h-7 px-2"
+                    >
+                      {checkingStatus === template.id ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="size-3" />
+                      )}
+                      Check
+                    </Button>
+                  )}
                   {template.status === 'Pending' && (
                     <a
                       href="https://business.facebook.com/wa/manage/message-templates/"

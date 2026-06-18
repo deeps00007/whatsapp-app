@@ -166,6 +166,7 @@ export interface MessageTemplate {
   footer_text?: string;
   buttons?: Record<string, unknown>[];
   status?: 'Draft' | 'Pending' | 'Approved' | 'Rejected';
+  meta_template_id?: string;
   created_at: string;
 }
 

@@ -182,6 +182,7 @@ export async function POST() {
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
         status: normalizeStatus(t.status),
+        meta_template_id: t.id,
         updated_at: new Date().toISOString(),
       }
 
