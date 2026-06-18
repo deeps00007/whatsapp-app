@@ -112,7 +112,7 @@ export async function GET() {
     })
   } catch (err: any) {
     console.error('[payment-status] Error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -124,18 +124,61 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: config, error: configError } = await supabase
+      .from('whatsapp_config')
+      .select('waba_id, access_token, phone_number_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (configError || !config || !config.waba_id) {
+      return NextResponse.json({ error: 'WhatsApp not connected' }, { status: 400 })
+    }
+
+    const accessToken = decrypt(config.access_token)
+
+    let paymentDetected = false
+    try {
+      const wabaRes = await fetch(
+        `${META_API_BASE}/${config.waba_id}?fields=ownership_info{owner_business_id}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (wabaRes.ok) {
+        const wabaData = await wabaRes.json()
+        const businessId = wabaData.ownership_info?.owner_business_id
+        if (businessId) {
+          const payRes = await fetch(
+            `${META_API_BASE}/${businessId}/payment_methods?fields=id,method_type`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          )
+          if (payRes.ok) {
+            const payData = await payRes.json()
+            paymentDetected = (payData.data ?? []).length > 0
+          }
+        }
+      }
+    } catch (_) {
+      // Meta API unreachable
+    }
+
+    if (!paymentDetected) {
+      return NextResponse.json({
+        error: 'No payment method found in Meta Business Manager. Add one first.',
+        payment_method_connected: false,
+      }, { status: 400 })
+    }
+
     const { error } = await supabase
       .from('whatsapp_config')
       .update({ payment_method_connected: true })
       .eq('user_id', user.id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, payment_method_connected: true })
   } catch (err: any) {
     console.error('[payment-status confirm] Error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

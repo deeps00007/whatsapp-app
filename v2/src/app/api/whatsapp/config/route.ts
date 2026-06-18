@@ -209,10 +209,7 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : 'Unknown encryption error'
       console.error('Encryption failed:', message)
       return NextResponse.json(
-        {
-          error:
-            'Failed to encrypt token. Check that ENCRYPTION_KEY is a valid 64-character hex string in your environment variables.',
-        },
+        { error: 'Failed to save configuration. Please contact support.' },
         { status: 500 }
       )
     }

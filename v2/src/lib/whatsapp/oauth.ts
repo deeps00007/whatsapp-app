@@ -1,6 +1,18 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
 const META_API_VERSION = 'v21.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
 const DIALOG_BASE = 'https://www.facebook.com/v21.0/dialog/oauth'
+
+const ALLOWED_FRONTEND_HOSTS = [
+  'https://growbychat.app',
+  process.env.NEXT_PUBLIC_SITE_URL,
+].filter(Boolean) as string[]
+
+function safeFrontendHost(host: string | undefined): string {
+  if (host && ALLOWED_FRONTEND_HOSTS.includes(host)) return host
+  return ALLOWED_FRONTEND_HOSTS[0] || 'https://growbychat.app'
+}
 
 export function getOAuthEnv() {
   const clientId = process.env.FACEBOOK_CLIENT_ID!
@@ -17,12 +29,17 @@ export interface BuildOAuthUrlArgs {
 
 export function buildOAuthUrl(args: BuildOAuthUrlArgs): { oauthUrl: string; nonce: string } {
   const { userId, frontendHost, redirectUri } = args
-  const { clientId, configId } = getOAuthEnv()
+  const { clientId, clientSecret, configId } = getOAuthEnv()
 
   const nonce = crypto.randomUUID()
-  const state = Buffer.from(
+  const payload = Buffer.from(
     JSON.stringify({ user_id: userId, nonce, frontend_host: frontendHost })
   ).toString('base64url')
+  const stateSecret = process.env.STATE_SIGNING_KEY || clientSecret
+  const sig = createHmac('sha256', stateSecret)
+    .update(payload)
+    .digest('hex')
+  const state = `${payload}.${sig}`
 
   const extras = JSON.stringify({
     version: 'v3',
@@ -120,11 +137,11 @@ export async function discoverWaba(
   let businessName = ''
 
   const debugUrl =
-    `${META_API_BASE}/debug_token` +
-    `?input_token=${encodeURIComponent(longLivedToken)}` +
-    `&access_token=${encodeURIComponent(appToken)}`
+    `${META_API_BASE}/debug_token?input_token=${encodeURIComponent(longLivedToken)}`
 
-  const debugRes = await fetch(debugUrl)
+  const debugRes = await fetch(debugUrl, {
+    headers: { Authorization: `Bearer ${appToken}` },
+  })
   if (debugRes.ok) {
     const debugData = await debugRes.json()
     const granules = (debugData as any)?.data?.granular_scopes ?? []
@@ -139,11 +156,11 @@ export async function discoverWaba(
     }
   }
 
-  const wabaUrl =
-    `${META_API_BASE}/me/whatsapp_business_accounts` +
-    `?access_token=${encodeURIComponent(longLivedToken)}`
+  const wabaUrl = `${META_API_BASE}/me/whatsapp_business_accounts`
 
-  const wabaRes = await fetch(wabaUrl)
+  const wabaRes = await fetch(wabaUrl, {
+    headers: { Authorization: `Bearer ${longLivedToken}` },
+  })
   if (wabaRes.ok) {
     const wabaData = await wabaRes.json()
     const entries = (wabaData as any)?.data ?? []
@@ -153,9 +170,10 @@ export async function discoverWaba(
   }
 
   if (wabaId) {
-    const detailUrl =
-      `${META_API_BASE}/${wabaId}?fields=name&access_token=${encodeURIComponent(longLivedToken)}`
-    const detailRes = await fetch(detailUrl)
+    const detailUrl = `${META_API_BASE}/${wabaId}?fields=name`
+    const detailRes = await fetch(detailUrl, {
+      headers: { Authorization: `Bearer ${longLivedToken}` },
+    })
     if (detailRes.ok) {
       const detailData = await detailRes.json()
       businessName = (detailData as any)?.name ?? ''
@@ -201,11 +219,11 @@ export async function discoverPhoneNumbers(
   wabaId: string,
   longLivedToken: string
 ): Promise<PhoneDiscoveryResult> {
-  const url =
-    `${META_API_BASE}/${wabaId}/phone_numbers` +
-    `?access_token=${encodeURIComponent(longLivedToken)}`
+  const url = `${META_API_BASE}/${wabaId}/phone_numbers`
 
-  const res = await fetch(url)
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${longLivedToken}` },
+  })
   if (!res.ok) return { phoneNumberId: '', phoneNumber: '', codeVerificationStatus: 'NOT_VERIFIED', qualityRating: '' }
 
   const data = await res.json()
@@ -252,14 +270,30 @@ export function validateOAuthState(
   rawState: string
 ): { userId: string; nonce: string; frontendHost: string } | null {
   try {
-    const decoded = JSON.parse(Buffer.from(rawState, 'base64url').toString())
+    const [payload, sig] = rawState.split('.')
+    if (!payload || !sig) return null
+
+    const { clientSecret } = getOAuthEnv()
+    const stateSecret = process.env.STATE_SIGNING_KEY || clientSecret
+    const expectedSig = createHmac('sha256', stateSecret)
+      .update(payload)
+      .digest('hex')
+
+    if (
+      sig.length !== expectedSig.length ||
+      !timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))
+    ) {
+      return null
+    }
+
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString())
     if (!decoded.user_id || !decoded.nonce) return null
     return {
       userId: decoded.user_id,
       nonce: decoded.nonce,
-      frontendHost: decoded.frontend_host ?? 'https://growbychat.app',
+      frontendHost: safeFrontendHost(decoded.frontend_host),
     }
-  } catch {
+  } catch (_) {
     return null
   }
 }

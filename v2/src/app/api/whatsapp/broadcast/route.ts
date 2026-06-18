@@ -92,11 +92,16 @@ export async function POST(request: Request) {
       }))
     } else {
       return NextResponse.json(
-        {
-          error:
-            'Provide either `recipients` (preferred) or `phone_numbers` — must be a non-empty array',
-        },
-        { status: 400 }
+        { error: 'No recipients provided' },
+        { status: 400 },
+      )
+    }
+
+    const MAX_BROADCAST_RECIPIENTS = 1000
+    if (recipients.length > MAX_BROADCAST_RECIPIENTS) {
+      return NextResponse.json(
+        { error: `Maximum ${MAX_BROADCAST_RECIPIENTS} recipients per broadcast` },
+        { status: 400 },
       )
     }
 

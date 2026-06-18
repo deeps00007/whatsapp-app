@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
     const needsVerification = codeVerificationStatus !== 'VERIFIED' ? '&needs_verification=1' : ''
     const response = NextResponse.redirect(new URL(`/settings?tab=whatsapp&oauth=success${needsVerification}`, frontendHost))
-    response.cookies.set('oauth_nonce', '', { maxAge: 0, path: '/' })
+    response.cookies.set('oauth_nonce', '', { maxAge: 0, path: '/', httpOnly: true, secure: true, sameSite: 'none' })
     return response
   } catch (err: any) {
     console.error('[oauth/callback] Error:', err.message)

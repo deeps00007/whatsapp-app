@@ -128,8 +128,10 @@ export async function PUT(
     .from('flows')
     .update(flowPatch)
     .eq('id', id)
+    .eq('user_id', guard.userId)
   if (updErr) {
-    return NextResponse.json({ error: updErr.message }, { status: 500 })
+    console.error('[flows PUT] update error:', updErr)
+    return NextResponse.json({ error: 'Failed to update flow' }, { status: 500 })
   }
 
   if (body.nodes !== undefined) {
@@ -140,7 +142,8 @@ export async function PUT(
       .delete()
       .eq('flow_id', id)
     if (delErr) {
-      return NextResponse.json({ error: delErr.message }, { status: 500 })
+      console.error('[flows PUT] node delete error:', delErr)
+      return NextResponse.json({ error: 'Failed to update flow nodes' }, { status: 500 })
     }
     if (body.nodes.length > 0) {
       const { error: insErr } = await admin.from('flow_nodes').insert(
@@ -154,7 +157,8 @@ export async function PUT(
         })),
       )
       if (insErr) {
-        return NextResponse.json({ error: insErr.message }, { status: 500 })
+        console.error('[flows PUT] node insert error:', insErr)
+        return NextResponse.json({ error: 'Failed to save flow nodes' }, { status: 500 })
       }
     }
   }
@@ -185,9 +189,10 @@ export async function DELETE(
   // mechanism in v1, but that's intentional: deleting a flow is a
   // deliberate destructive action and the partial unique index will
   // free up the contact for new triggers immediately.
-  const { error } = await supabaseAdmin().from('flows').delete().eq('id', id)
+  const { error } = await supabaseAdmin().from('flows').delete().eq('id', id).eq('user_id', guard.userId)
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[flows DELETE] error:', error)
+    return NextResponse.json({ error: 'Failed to delete flow' }, { status: 500 })
   }
   return NextResponse.json({ ok: true })
 }
