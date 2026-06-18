@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useRealtimeTable, type RealtimeTableEvent } from '@/hooks/use-realtime-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -105,6 +106,29 @@ export function TemplateManager() {
       setLoading(false);
     }
   }
+
+  useRealtimeTable<MessageTemplate>({
+    table: 'message_templates',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: !!user,
+    onEvent: (event: RealtimeTableEvent<MessageTemplate>) => {
+      if (event.eventType === 'INSERT') {
+        setTemplates((prev) => [event.new, ...prev]);
+      } else if (event.eventType === 'UPDATE') {
+        setTemplates((prev) =>
+          prev.map((t) => (t.id === event.new.id ? { ...t, ...event.new } : t))
+        );
+        const oldStatus = templates.find((t) => t.id === event.new.id)?.status;
+        if (event.new.status === 'Approved' && oldStatus !== 'Approved') {
+          toast.success(`Template "${event.new.name}" approved!`);
+        } else if (event.new.status === 'Rejected' && oldStatus !== 'Rejected') {
+          toast.error(`Template "${event.new.name}" was rejected`);
+        }
+      } else if (event.eventType === 'DELETE') {
+        setTemplates((prev) => prev.filter((t) => t.id !== (event.old as { id: string }).id));
+      }
+    },
+  });
 
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Template name is required'); return; }

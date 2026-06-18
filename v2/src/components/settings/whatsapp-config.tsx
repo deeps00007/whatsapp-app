@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useRealtimeTable, type RealtimeTableEvent } from '@/hooks/use-realtime-table';
 import {
   CheckCircle2,
   XCircle,
@@ -115,6 +116,27 @@ export function WhatsAppConfig() {
     }, 1000);
     return () => clearInterval(interval);
   }, [cooldownUntil]);
+
+  useRealtimeTable<WhatsAppConfigType>({
+    table: 'whatsapp_config',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: !!user,
+    onEvent: (event: RealtimeTableEvent<WhatsAppConfigType>) => {
+      if (event.eventType === 'UPDATE') {
+        setConfig((prev) => {
+          if (!prev || prev.id !== event.new.id) return prev;
+          return { ...prev, ...event.new };
+        });
+        if (event.new.code_verification_status === 'VERIFIED' && config?.code_verification_status !== 'VERIFIED') {
+          toast.success('Phone number verified!');
+        }
+        if (event.new.payment_method_connected && !config?.payment_method_connected) {
+          toast.success('Payment method detected!');
+          setPaymentStatus((prev) => prev ? { ...prev, payment_method_connected: true } : prev);
+        }
+      }
+    },
+  });
 
   const handleConnect = () => {
     window.location.href = '/api/whatsapp/oauth/init';

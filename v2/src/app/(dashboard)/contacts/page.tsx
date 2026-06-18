@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { useRealtimeTable, type RealtimeTableEvent } from '@/hooks/use-realtime-table';
+import { useAuth } from '@/hooks/use-auth';
 import type { Contact, Tag, ContactTag } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +55,7 @@ interface ContactWithTags extends Contact {
 
 export default function ContactsPage() {
   const supabase = createClient();
+  const { user } = useAuth();
 
   const [contacts, setContacts] = useState<ContactWithTags[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +156,27 @@ export default function ContactsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContacts();
   }, [fetchContacts]);
+
+  useRealtimeTable<Contact>({
+    table: 'contacts',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: !!user,
+    onEvent: (event: RealtimeTableEvent<Contact>) => {
+      if (event.eventType === 'INSERT') {
+        setTotalCount((prev) => prev + 1);
+        if (page === 0 && !search.trim()) {
+          setContacts((prev) => [{ ...event.new, tags: [] }, ...prev]);
+        }
+      } else if (event.eventType === 'UPDATE') {
+        setContacts((prev) =>
+          prev.map((c) => (c.id === event.new.id ? { ...c, ...event.new } : c))
+        );
+      } else if (event.eventType === 'DELETE') {
+        setContacts((prev) => prev.filter((c) => c.id !== (event.old as { id: string }).id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+      }
+    },
+  });
 
   function openAddForm() {
     setEditContact(null);

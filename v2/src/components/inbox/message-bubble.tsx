@@ -281,6 +281,11 @@ export function MessageBubble({
           <span className="text-[10px] text-white/60">{time}</span>
           {isAgent && <StatusIcon status={message.status} />}
         </div>
+        {message.status === 'failed' && message.error_message && (
+          <p className="mt-1 text-[10px] text-red-400/80 truncate max-w-[200px]" title={message.error_message}>
+            {message.error_message}
+          </p>
+        )}
       </div>
       {reactions && reactions.length > 0 && onToggleReaction && (
         <MessageReactions

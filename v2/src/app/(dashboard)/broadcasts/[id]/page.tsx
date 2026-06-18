@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useRealtimeTable, type RealtimeTableEvent } from '@/hooks/use-realtime-table';
 import { Broadcast, BroadcastRecipient, RecipientStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -187,6 +188,28 @@ export default function BroadcastDetailPage() {
 
     fetchData();
   }, [broadcastId]);
+
+  useRealtimeTable<Broadcast>({
+    table: 'broadcasts',
+    filter: `id=eq.${broadcastId}`,
+    onEvent: (event: RealtimeTableEvent<Broadcast>) => {
+      if (event.eventType === 'UPDATE' && event.new.id === broadcastId) {
+        setBroadcast((prev) => (prev ? { ...prev, ...event.new } : prev));
+      }
+    },
+  });
+
+  useRealtimeTable<BroadcastRecipient>({
+    table: 'broadcast_recipients',
+    filter: `broadcast_id=eq.${broadcastId}`,
+    onEvent: (event: RealtimeTableEvent<BroadcastRecipient>) => {
+      if (event.eventType === 'UPDATE') {
+        setRecipients((prev) =>
+          prev.map((r) => (r.id === event.new.id ? { ...r, ...event.new } : r))
+        );
+      }
+    },
+  });
 
   const filteredRecipients = useMemo(
     () =>

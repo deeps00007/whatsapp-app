@@ -122,6 +122,7 @@ export interface Message {
    * Added in migration 014 (coexistence support).
    */
   source?: 'webhook' | 'app_import' | 'manual';
+  error_message?: string;
 }
 
 export type ReactionActor = 'customer' | 'agent';
@@ -152,6 +153,7 @@ export interface WhatsAppConfig {
   business_name?: string;
   code_verification_status?: string;
   quality_rating?: string;
+  payment_method_connected?: boolean;
 }
 
 export interface MessageTemplate {

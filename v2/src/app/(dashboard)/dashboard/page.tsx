@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRealtimeTable } from '@/hooks/use-realtime-table'
+import { useAuth } from '@/hooks/use-auth'
 import {
   MessageSquare,
   UserPlus,
@@ -35,6 +37,7 @@ import { ActivityFeed } from '@/components/dashboard/activity-feed'
 type RangeDays = 7 | 30 | 90
 
 export default function DashboardPage() {
+  const { user } = useAuth()
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
 
@@ -96,6 +99,20 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll()
   }, [loadAll])
+
+  useRealtimeTable({
+    table: 'conversations',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    enabled: !!user,
+    onEvent: () => loadAll(),
+  })
+
+  useRealtimeTable({
+    table: 'messages',
+    enabled: !!user,
+    channelName: `dashboard-messages:${user?.id}`,
+    onEvent: () => loadAll(),
+  })
 
   // Range switch handler — kept in an event callback (not an effect)
   // so the setState calls stay out of the react-hooks/set-state-in-effect

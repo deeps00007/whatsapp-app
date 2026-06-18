@@ -325,6 +325,21 @@ export default function InboxPage() {
   }, []);
 
   /**
+   * Polling fallback for Realtime. Supabase Realtime is best-effort:
+   * events from webhook-inserted rows (service role key) can be filtered
+   * by RLS or dropped by the WebSocket. A 5-second poll ensures the
+   * conversation list and message thread stay current even when Realtime
+   * misses an event. The resyncToken bump triggers child refetches, which
+   * are already deduped and cheap.
+   */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setResyncToken((n) => n + 1);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /**
    * Manual refresh trigger for the thread-header refresh button.
    * Bumps the same resyncToken the reconnect / visibility paths use,
    * so it goes through the existing dedupe & refetch plumbing — no
