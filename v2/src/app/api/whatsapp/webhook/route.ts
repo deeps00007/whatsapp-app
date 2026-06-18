@@ -67,6 +67,7 @@ interface WhatsAppWebhookEntry {
         status: string
         timestamp: string
         recipient_id: string
+        errors?: Array<{ code: number; title: string; message?: string; error_data?: { details: string } }>
       }>
     }
     field: string
@@ -315,12 +316,31 @@ async function handleStatusUpdate(status: {
   status: string
   timestamp: string
   recipient_id: string
+  errors?: Array<{ code: number; title: string; message?: string; error_data?: { details: string } }>
 }) {
+  const errorDetail = status.status === 'failed' && status.errors?.length
+    ? `${status.errors[0].code}: ${status.errors[0].title}` +
+      (status.errors[0].message ? ` — ${status.errors[0].message}` : '') +
+      (status.errors[0].error_data?.details ? ` — ${status.errors[0].error_data.details}` : '')
+    : undefined
+
+  if (status.status === 'failed' && status.errors?.length) {
+    const err = status.errors[0]
+    console.error(
+      `[webhook] Message ${status.id} failed — Meta error ${err.code}: ${err.title}` +
+      (err.message ? ` — ${err.message}` : '') +
+      (err.error_data?.details ? ` — ${err.error_data.details}` : '')
+    )
+  }
+
   // 1) Mirror onto messages (legacy behavior) — Meta's status values
   //    already match the CHECK constraint on messages.status.
+  const msgUpdate: Record<string, unknown> = { status: status.status }
+  if (errorDetail) msgUpdate.error_message = errorDetail
+
   const { error: msgErr } = await supabaseAdmin()
     .from('messages')
-    .update({ status: status.status })
+    .update(msgUpdate)
     .eq('message_id', status.id)
 
   if (msgErr) {
@@ -353,6 +373,7 @@ async function handleStatusUpdate(status: {
   if (status.status === 'sent' && !('sent_at' in update)) update.sent_at = tsIso
   if (status.status === 'delivered') update.delivered_at = tsIso
   if (status.status === 'read') update.read_at = tsIso
+  if (status.status === 'failed' && errorDetail) update.error_message = errorDetail
 
   const { error: recUpdateErr } = await supabaseAdmin()
     .from('broadcast_recipients')
