@@ -19,7 +19,7 @@ export async function GET() {
     .from('automations')
     .select('*')
     .order('created_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Failed to fetch automations' }, { status: 500 })
   return NextResponse.json({ automations: data ?? [] })
 }
 
@@ -94,14 +94,14 @@ export async function POST(request: Request) {
 
   if (insertErr || !automation) {
     return NextResponse.json(
-      { error: insertErr?.message ?? 'insert failed' },
+      { error: 'Failed to create automation' },
       { status: 500 },
     )
   }
 
   if (effectiveSteps && effectiveSteps.length > 0) {
     const err = await insertSteps(automation.id, effectiveSteps)
-    if (err) return NextResponse.json({ error: err }, { status: 500 })
+    if (err) return NextResponse.json({ error: 'Failed to save steps' }, { status: 500 })
   }
 
   return NextResponse.json({ automation }, { status: 201 })

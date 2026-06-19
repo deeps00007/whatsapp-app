@@ -20,7 +20,7 @@ export async function POST(
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
-  if (origErr) return NextResponse.json({ error: origErr.message }, { status: 500 })
+  if (origErr) return NextResponse.json({ error: 'Failed to fetch automation' }, { status: 500 })
   if (!original) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { data: copy, error: copyErr } = await admin
@@ -36,7 +36,7 @@ export async function POST(
     .select()
     .single()
   if (copyErr || !copy) {
-    return NextResponse.json({ error: copyErr?.message ?? 'copy failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to duplicate automation' }, { status: 500 })
   }
 
   const { data: steps } = await admin
@@ -65,7 +65,7 @@ export async function POST(
       position: row.position,
     }))
     const { error: insErr } = await admin.from('automation_steps').insert(rows)
-    if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+    if (insErr) return NextResponse.json({ error: 'Failed to duplicate steps' }, { status: 500 })
   }
 
   return NextResponse.json({ automation: copy }, { status: 201 })

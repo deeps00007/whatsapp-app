@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (cookieNonce !== nonce) {
-    console.error('[oauth/callback] Nonce mismatch. Cookie:', cookieNonce, 'State:', nonce)
+    console.error('[oauth/callback] Nonce mismatch')
     return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=nonce_mismatch', frontendHost))
   }
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user || user.id !== userId) {
-    console.error('[oauth/callback] User mismatch:', user?.id, 'vs', userId)
+    console.error('[oauth/callback] User identity mismatch')
     return NextResponse.redirect(new URL('/settings?tab=whatsapp&oauth=error&reason=auth_mismatch', frontendHost))
   }
 

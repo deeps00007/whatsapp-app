@@ -35,7 +35,7 @@ export async function GET(
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Failed to fetch automation' }, { status: 500 })
   if (!automation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const steps = await loadStepsTree(id)
@@ -109,7 +109,7 @@ export async function PATCH(
       .from('automations')
       .update(update)
       .eq('id', id)
-    if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+    if (updErr) return NextResponse.json({ error: 'Failed to update automation' }, { status: 500 })
   }
 
   if (Array.isArray(body.steps)) {
@@ -133,6 +133,5 @@ export async function DELETE(
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+  if (error) return NextResponse.json({ error: 'Failed to delete automation' }, { status: 500 })
 }

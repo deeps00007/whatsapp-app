@@ -155,6 +155,11 @@ export async function GET(request: Request) {
 
 // POST - Receive messages
 export async function POST(request: Request) {
+  const contentLength = parseInt(request.headers.get('content-length') ?? '0', 10)
+  if (contentLength > 1_048_576) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+  }
+
   // Read raw body first so we can HMAC-verify the exact bytes Meta
   // signed. request.json() would re-encode and break the signature.
   const rawBody = await request.text()

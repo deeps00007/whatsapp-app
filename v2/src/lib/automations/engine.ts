@@ -14,7 +14,7 @@ import type {
   CreateDealStepConfig,
   AssignConversationStepConfig,
 } from '@/types'
-import { supabaseAdmin } from './admin-client'
+import { supabaseAdmin } from '@/lib/supabase/admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
 
 // ------------------------------------------------------------
@@ -294,8 +294,25 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   }
 }
 
+async function verifyContactOwnership(contactId: string, userId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin()
+    .from('contacts')
+    .select('id')
+    .eq('id', contactId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error || !data) {
+    throw new Error('contact not found or not owned by user')
+  }
+}
+
 async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string> {
   const db = supabaseAdmin()
+  const userId = args.automation.user_id
+
+  if (args.contactId) {
+    await verifyContactOwnership(args.contactId, userId)
+  }
 
   switch (step.step_type) {
     case 'send_message': {
@@ -350,6 +367,13 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'add_tag': {
       const cfg = step.step_config as TagStepConfig
       if (!args.contactId || !cfg.tag_id) throw new Error('add_tag needs contact + tag_id')
+      const { data: tagCheck } = await db
+        .from('tags')
+        .select('id')
+        .eq('id', cfg.tag_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!tagCheck) throw new Error('tag not found or not owned by user')
       await db
         .from('contact_tags')
         .upsert(
@@ -362,6 +386,13 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'remove_tag': {
       const cfg = step.step_config as TagStepConfig
       if (!args.contactId || !cfg.tag_id) throw new Error('remove_tag needs contact + tag_id')
+      const { data: tagCheck2 } = await db
+        .from('tags')
+        .select('id')
+        .eq('id', cfg.tag_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!tagCheck2) throw new Error('tag not found or not owned by user')
       await db
         .from('contact_tags')
         .delete()
@@ -402,6 +433,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         .from('contacts')
         .update({ [cfg.field]: cfg.value, updated_at: new Date().toISOString() })
         .eq('id', args.contactId)
+        .eq('user_id', userId)
       return `${cfg.field} updated`
     }
 
@@ -423,6 +455,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'send_webhook': {
       const cfg = step.step_config as SendWebhookStepConfig
       if (!cfg.url) throw new Error('send_webhook needs url')
+      validateWebhookUrl(cfg.url)
       const body = cfg.body_template ? interpolate(cfg.body_template, args) : JSON.stringify(args.context)
       const res = await fetch(cfg.url, {
         method: 'POST',
@@ -489,9 +522,17 @@ function triggerMatches(automation: Automation, ctx: AutomationContext | undefin
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {
   const db = supabaseAdmin()
+  const userId = args.automation.user_id
   switch (cfg.subject) {
     case 'tag_presence': {
       if (!args.contactId || !cfg.operand) return false
+      const { data: tagExists } = await db
+        .from('tags')
+        .select('id')
+        .eq('id', cfg.operand)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!tagExists) return false
       const { count } = await db
         .from('contact_tags')
         .select('id', { count: 'exact', head: true })
@@ -505,6 +546,7 @@ async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): P
         .from('contacts')
         .select(cfg.operand)
         .eq('id', args.contactId)
+        .eq('user_id', userId)
         .maybeSingle()
       const v = (data as Record<string, unknown> | null)?.[cfg.operand]
       return v != null && String(v) === String(cfg.value ?? '')
@@ -590,4 +632,46 @@ async function markPending(id: string, status: 'done' | 'failed') {
     .from('automation_pending_executions')
     .update({ status })
     .eq('id', id)
+}
+
+function validateWebhookUrl(raw: string): void {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error('invalid webhook URL')
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error('webhook URL must use http or https')
+  }
+  const hostname = url.hostname.toLowerCase()
+  const blocked = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '::1',
+    '169.254.169.254',
+    '100.64.0.0',
+    '10.0.0.0',
+    '172.16.0.0',
+    '192.168.0.0',
+    'fc00::',
+    'fe80::',
+  ]
+  if (blocked.some((b) => hostname === b || hostname.startsWith(b))) {
+    throw new Error('webhook URL points to a private or reserved address')
+  }
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+    const octets = hostname.split('.').map(Number)
+    if (
+      octets[0] === 10 ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168) ||
+      (octets[0] === 127) ||
+      (octets[0] === 169 && octets[1] === 254) ||
+      (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127)
+    ) {
+      throw new Error('webhook URL points to a private or reserved address')
+    }
+  }
 }

@@ -39,7 +39,7 @@ export async function GET() {
     .select('*')
     .order('created_at', { ascending: false })
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch flows' }, { status: 500 })
   }
   return NextResponse.json({ flows: data ?? [] })
 }
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       .single()
     if (flowErr || !flow) {
       return NextResponse.json(
-        { error: flowErr?.message ?? 'flow insert failed' },
+        { error: 'Failed to create flow' },
         { status: 500 },
       )
     }
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
         // (probably zero) nodes too.
         await admin.from('flows').delete().eq('id', flow.id)
         return NextResponse.json(
-          { error: nodesErr.message },
+          { error: 'Failed to save flow nodes' },
           { status: 500 },
         )
       }
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     .single()
   if (error || !data) {
     return NextResponse.json(
-      { error: error?.message ?? 'insert failed' },
+      { error: 'Failed to create flow' },
       { status: 500 },
     )
   }
