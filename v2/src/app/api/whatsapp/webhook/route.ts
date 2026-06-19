@@ -254,7 +254,8 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
           message,
           contact,
           config.user_id,
-          decryptedAccessToken
+          decryptedAccessToken,
+          config.coexistence_mode
         )
       }
     }
@@ -498,10 +499,54 @@ async function processMessage(
   message: WhatsAppMessage,
   contact: { profile: { name: string }; wa_id: string },
   userId: string,
-  accessToken: string
+  accessToken: string,
+  coexistenceMode: boolean
 ) {
   const senderPhone = normalizePhone(message.from)
   const contactName = contact.profile.name
+
+  // In coexistence mode, the WhatsApp Business mobile app is still
+  // active on this phone number. All inbound messages — including
+  // personal/friend messages — arrive at the webhook. We only want
+  // to process messages for business conversations that were started
+  // from the CRM (i.e., the SaaS has already sent an outbound message
+  // to this contact). Personal messages from friends should go to the
+  // mobile app only, not clutter the CRM inbox or contact list.
+  if (coexistenceMode) {
+    const db = supabaseAdmin()
+
+    // Find existing contact by exact phone match
+    const { data: existingContact } = await db
+      .from('contacts')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('phone', senderPhone)
+      .maybeSingle()
+
+    let hasCrmConversation = false
+    if (existingContact) {
+      const { data: conv } = await db
+        .from('conversations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('contact_id', existingContact.id)
+        .maybeSingle()
+
+      if (conv) {
+        const { count } = await db
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .in('sender_type', ['agent', 'bot'])
+        hasCrmConversation = (count ?? 0) > 0
+      }
+    }
+
+    if (!hasCrmConversation) {
+      console.log('[webhook] coexistence: skipping personal message from', senderPhone)
+      return
+    }
+  }
 
   // Find or create contact
   const contactOutcome = await findOrCreateContact(
@@ -844,11 +889,9 @@ async function findOrCreateContact(
   const normalized = normalizePhone(phone)
   const db = supabaseAdmin()
 
-  // Server-side lookup using LIKE with the last 8+ digits, then
+  // Server-side lookup using LIKE with the last 8 digits, then
   // refine with phonesMatch. This avoids fetching ALL contacts.
   const suffix8 = normalized.slice(-8)
-  const suffix9 = normalized.slice(-9)
-  const suffix10 = normalized.slice(-10)
   const { data: candidates, error: contactsError } = await db
     .from('contacts')
     .select('*')
@@ -872,13 +915,17 @@ async function findOrCreateContact(
     return { contact: existingContact, wasCreated: false }
   }
 
+  // No match — create new contact. Upsert on (user_id, phone) handles
+  // the race condition where two parallel webhook invocations both
+  // miss the lookup and try to INSERT simultaneously. The UNIQUE index
+  // uq_contacts_user_phone ensures only one succeeds; onConflict
+  // returns the existing row instead of erroring.
   const { data: newContact, error: createError } = await db
     .from('contacts')
-    .insert({
-      user_id: userId,
-      phone,
-      name: name || phone,
-    })
+    .upsert(
+      { user_id: userId, phone, name: name || phone },
+      { onConflict: 'user_id,phone', ignoreDuplicates: true }
+    )
     .select()
     .single()
 
@@ -887,7 +934,11 @@ async function findOrCreateContact(
     return null
   }
 
-  return { contact: newContact, wasCreated: true }
+  // If upsert returned an existing row (ignoreDuplicates), it means
+  // another concurrent invocation won — check if we actually created it.
+  const wasCreated = newContact.name === (name || phone) || newContact.created_at === newContact.updated_at
+
+  return { contact: newContact, wasCreated }
 }
 
 async function findOrCreateConversation(userId: string, contactId: string) {
