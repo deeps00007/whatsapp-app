@@ -18,6 +18,8 @@ import { format } from "date-fns";
 import { ReplyQuote } from "./reply-quote";
 import { MessageReactions } from "./message-reactions";
 
+type GroupPosition = "single" | "first" | "middle" | "last";
+
 interface MessageBubbleProps {
   message: Message;
   /** Pre-computed quote info for messages that reply to another. */
@@ -25,6 +27,11 @@ interface MessageBubbleProps {
   reactions?: MessageReaction[];
   currentUserId?: string;
   onToggleReaction?: (emoji: string) => void;
+  /** Position within a consecutive-sender group — controls bubble shape and spacing. */
+  groupPosition?: GroupPosition;
+  /** Whether to show the sender name above the bubble (first message in a group only). */
+  showSenderName?: boolean;
+  senderName?: string;
 }
 
 function StatusIcon({ status }: { status: Message["status"] }) {
@@ -247,9 +254,31 @@ export function MessageBubble({
   reactions,
   currentUserId,
   onToggleReaction,
+  groupPosition = "single",
+  showSenderName = false,
+  senderName,
 }: MessageBubbleProps) {
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
+
+  const isFirst = groupPosition === "first" || groupPosition === "single";
+  const isLast = groupPosition === "last" || groupPosition === "single";
+
+  // Tail (the little bump on the corner) only shows on the last bubble
+  // in a group. First/middle bubbles lose the tail.
+  const bubbleRounded = cn(
+    "relative px-3",
+    isAgent
+      ? isLast && isFirst ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
+        : isLast ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
+        : isFirst ? "rounded-2xl rounded-tr-md bg-primary text-primary-foreground"
+        : "rounded-2xl rounded-tr-md rounded-br-md bg-primary text-primary-foreground"
+      : isLast && isFirst ? "rounded-2xl rounded-bl-md bg-slate-800 text-slate-100"
+        : isLast ? "rounded-2xl rounded-bl-md bg-slate-800 text-slate-100"
+        : isFirst ? "rounded-2xl rounded-tl-md bg-slate-800 text-slate-100"
+        : "rounded-2xl rounded-tl-md rounded-bl-md bg-slate-800 text-slate-100",
+    isLast ? "py-2" : "py-1.5",
+  );
 
   // Row alignment + width cap are owned by <MessageActions> so its hover
   // group matches the bubble's content area, not the full row.
@@ -260,14 +289,12 @@ export function MessageBubble({
         isAgent ? "items-end" : "items-start",
       )}
     >
-      <div
-        className={cn(
-          "relative rounded-2xl px-3 py-2",
-          isAgent
-            ? "rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-bl-md bg-slate-800 text-slate-100",
-        )}
-      >
+      {showSenderName && !isAgent && senderName && (
+        <span className="mb-0.5 text-[11px] font-medium text-slate-400">
+          {senderName}
+        </span>
+      )}
+      <div className={bubbleRounded}>
         {reply && (
           <ReplyQuote authorLabel={reply.authorLabel} preview={reply.preview} />
         )}

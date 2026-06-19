@@ -592,12 +592,7 @@ async function processMessage(
     status: 'delivered',
     created_at: new Date(parseInt(message.timestamp) * 1000).toISOString(),
     reply_to_message_id: replyToInternalId,
-    // Only populated for content_type='interactive'. Migration 010 added
-    // the column; null for every other content_type so existing inserts
-    // behave identically.
     interactive_reply_id: interactiveReplyId,
-    // Mark real-time API webhook messages distinctly from imported history.
-    // Added in migration 014 (coexistence support).
     source: 'webhook',
   })
 
@@ -606,99 +601,14 @@ async function processMessage(
     return
   }
 
-  // Update conversation — atomic increment via RPC avoids read-modify-write
-  // race when two inbound messages arrive concurrently for the same chat.
-  const { error: convError } = await supabaseAdmin()
-    .rpc('increment_unread', { conv_id: conversation.id })
-
-  if (convError) {
-    console.error('Error incrementing unread_count via RPC:', convError)
-  }
-
-  const { error: convTextError } = await supabaseAdmin()
-    .from('conversations')
-    .update({
-      last_message_text: contentText || `[${message.type}]`,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', conversation.id)
-
-  if (convTextError) {
-    console.error('Error updating conversation text:', convTextError)
-  }
-
-  // If this contact was a recent broadcast recipient, flag the reply
-  // so the broadcast's `replied_count` advances (via the aggregate
-  // trigger installed in migration 003).
-  await flagBroadcastReplyIfAny(userId, contactRecord.id)
-
-  // ============================================================
-  // Flow runner dispatch.
-  //
-  // If the runner consumes the message (it either advanced an active
-  // run or started a new one), we suppress the `new_message_received`
-  // + `keyword_match` automation triggers for this inbound. Customer
-  // is navigating the bot menu, not sending a fresh trigger word
-  // that should fork into automations.
-  //
-  // The relationship-level triggers (`new_contact_created`,
-  // `first_inbound_message`) still fire even when consumed — those
-  // are about WHO is messaging, not what they said.
-  //
-  // Awaited (not fire-and-forget) because we need the `consumed`
-  // result before deciding whether to dispatch automations. The
-  // runner has its own try/catch and never throws. Accounts with
-  // no active flows take the runner's early-exit "no_match" path
-  // basically for free (one indexed SELECT for the active run).
-  // ============================================================
-  const flowResult = await dispatchInboundToFlows({
-    userId,
-    contactId: contactRecord.id,
-    conversationId: conversation.id,
-    message:
-      interactiveReplyId
-        ? {
-            kind: 'interactive_reply',
-            reply_id: interactiveReplyId,
-            reply_title: contentText ?? '',
-            meta_message_id: message.id,
-          }
-        : {
-            kind: 'text',
-            text: contentText ?? message.text?.body ?? '',
-            meta_message_id: message.id,
-          },
-    isFirstInboundMessage,
-  })
-  const flowConsumed = flowResult.consumed
-
-  // Fire any automations that react to this webhook event. All dispatches
-  // run here (not earlier) so the contact, conversation, and inbound
-  // message all exist before any step — including send_message — runs.
-  // Fire-and-forget: a slow or failing automation must not block the
-  // webhook's 200 OK response to Meta.
   const inboundText = contentText ?? message.text?.body ?? ''
-  const automationTriggers: (
-    | 'new_contact_created'
-    | 'first_inbound_message'
-    | 'new_message_received'
-    | 'keyword_match'
-  )[] = []
-  // Content-level triggers are suppressed when a flow consumed the
-  // message — see the comment block above.
-  if (!flowConsumed) {
-    automationTriggers.push('new_message_received', 'keyword_match')
-  }
-  // new_contact_created fires only when the webhook just auto-created the
-  // contact row. first_inbound_message fires whenever this is the contact's
-  // first-ever customer-sent message — a superset that also catches
-  // manually-imported contacts sending for the first time. We dispatch both
-  // so users can pick whichever semantic they want; an automation that
-  // listens to only one trigger runs only when that trigger matches.
-  if (contactOutcome.wasCreated) automationTriggers.unshift('new_contact_created')
-  if (isFirstInboundMessage) automationTriggers.unshift('first_inbound_message')
-  for (const triggerType of automationTriggers) {
+
+  // Fire relationship-level automations immediately — they don't depend
+  // on the flow consumed flag. This cuts auto-reply latency significantly.
+  const relationshipTriggers: ('new_contact_created' | 'first_inbound_message')[] = []
+  if (contactOutcome.wasCreated) relationshipTriggers.push('new_contact_created')
+  if (isFirstInboundMessage) relationshipTriggers.push('first_inbound_message')
+  for (const triggerType of relationshipTriggers) {
     runAutomationsForTrigger({
       userId,
       triggerType,
@@ -708,6 +618,66 @@ async function processMessage(
         conversation_id: conversation.id,
       },
     }).catch((err) => console.error('[automations] dispatch failed:', err))
+  }
+
+  // Parallelize: conversation update, unread increment, broadcast flag,
+  // flow dispatch, and content-level automation dispatch all run concurrently.
+  const [flowResult] = await Promise.all([
+    dispatchInboundToFlows({
+      userId,
+      contactId: contactRecord.id,
+      conversationId: conversation.id,
+      message:
+        interactiveReplyId
+          ? {
+              kind: 'interactive_reply',
+              reply_id: interactiveReplyId,
+              reply_title: contentText ?? '',
+              meta_message_id: message.id,
+            }
+          : {
+              kind: 'text',
+              text: inboundText,
+              meta_message_id: message.id,
+            },
+      isFirstInboundMessage,
+    }),
+    // Unread increment
+    supabaseAdmin()
+      .rpc('increment_unread', { conv_id: conversation.id })
+      .then(({ error }) => {
+        if (error) console.error('Error incrementing unread_count via RPC:', error)
+      }),
+    // Conversation text update
+    supabaseAdmin()
+      .from('conversations')
+      .update({
+        last_message_text: contentText || `[${message.type}]`,
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversation.id)
+      .then(({ error }) => {
+        if (error) console.error('Error updating conversation text:', error)
+      }),
+    // Broadcast reply flag
+    flagBroadcastReplyIfAny(userId, contactRecord.id),
+  ])
+
+  // Content-level automations — fire after flow result is known so we can
+  // suppress them when a flow consumed the message.
+  if (!flowResult.consumed) {
+    for (const triggerType of ['new_message_received', 'keyword_match'] as const) {
+      runAutomationsForTrigger({
+        userId,
+        triggerType,
+        contactId: contactRecord.id,
+        context: {
+          message_text: inboundText,
+          conversation_id: conversation.id,
+        },
+      }).catch((err) => console.error('[automations] dispatch failed:', err))
+    }
   }
 }
 
@@ -871,24 +841,30 @@ async function findOrCreateContact(
   phone: string,
   name: string
 ): Promise<ContactOutcome | null> {
-  // Look up existing contacts for this user
-  const { data: contacts, error: contactsError } = await supabaseAdmin()
+  const normalized = normalizePhone(phone)
+  const db = supabaseAdmin()
+
+  // Server-side lookup using LIKE with the last 8+ digits, then
+  // refine with phonesMatch. This avoids fetching ALL contacts.
+  const suffix8 = normalized.slice(-8)
+  const suffix9 = normalized.slice(-9)
+  const suffix10 = normalized.slice(-10)
+  const { data: candidates, error: contactsError } = await db
     .from('contacts')
     .select('*')
     .eq('user_id', userId)
+    .or(`phone.ilike.%${suffix8}`)
 
   if (contactsError) {
     console.error('Error fetching contacts:', contactsError)
     return null
   }
 
-  // Use phonesMatch for flexible matching
-  const existingContact = contacts?.find((c: ContactRow) => phonesMatch(c.phone, phone))
+  const existingContact = candidates?.find((c: ContactRow) => phonesMatch(c.phone, phone))
 
   if (existingContact) {
-    // Update name if it changed
     if (name && name !== existingContact.name) {
-      await supabaseAdmin()
+      await db
         .from('contacts')
         .update({ name, updated_at: new Date().toISOString() })
         .eq('id', existingContact.id)
@@ -896,8 +872,7 @@ async function findOrCreateContact(
     return { contact: existingContact, wasCreated: false }
   }
 
-  // Create new contact
-  const { data: newContact, error: createError } = await supabaseAdmin()
+  const { data: newContact, error: createError } = await db
     .from('contacts')
     .insert({
       user_id: userId,

@@ -461,6 +461,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(cfg.headers ?? {}) },
         body,
+        signal: AbortSignal.timeout(30_000),
       })
       if (!res.ok) throw new Error(`webhook returned ${res.status}`)
       return `webhook ${res.status}`

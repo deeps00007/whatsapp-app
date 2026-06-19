@@ -113,6 +113,58 @@ function groupMessagesByDate(messages: Message[]) {
   return groups;
 }
 
+interface GroupedMessage {
+  message: Message;
+  position: "single" | "first" | "middle" | "last";
+  showSenderName: boolean;
+}
+
+function computeSenderGroups(messages: Message[]): GroupedMessage[] {
+  if (messages.length === 0) return [];
+  const result: GroupedMessage[] = [];
+  const GAP_MINUTES = 5;
+
+  for (let i = 0; i < messages.length; i++) {
+    const curr = messages[i];
+    const prev = i > 0 ? messages[i - 1] : null;
+    const next = i < messages.length - 1 ? messages[i + 1] : null;
+
+    const sameSenderAsPrev =
+      prev && prev.sender_type === curr.sender_type;
+    const timeDiffFromPrev = prev
+      ? Math.abs(new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime()) / 60_000
+      : Infinity;
+    const withinGap = timeDiffFromPrev <= GAP_MINUTES;
+    const consecutivePrev = sameSenderAsPrev && withinGap;
+
+    const sameSenderAsNext =
+      next && next.sender_type === curr.sender_type;
+    const timeDiffToNext = next
+      ? Math.abs(new Date(next.created_at).getTime() - new Date(curr.created_at).getTime()) / 60_000
+      : Infinity;
+    const withinGapNext = timeDiffToNext <= GAP_MINUTES;
+    const consecutiveNext = sameSenderAsNext && withinGapNext;
+
+    let position: "single" | "first" | "middle" | "last";
+    if (consecutivePrev && consecutiveNext) {
+      position = "middle";
+    } else if (consecutivePrev && !consecutiveNext) {
+      position = "last";
+    } else if (!consecutivePrev && consecutiveNext) {
+      position = "first";
+    } else {
+      position = "single";
+    }
+
+    const isAgent = curr.sender_type === "agent" || curr.sender_type === "bot";
+    const showSenderName = !isAgent && (position === "single" || position === "first");
+
+    result.push({ message: curr, position, showSenderName });
+  }
+
+  return result;
+}
+
 const STATUS_OPTIONS: { label: string; value: ConversationStatus; color: string }[] = [
   { label: "Open", value: "open", color: "text-primary" },
   { label: "Pending", value: "pending", color: "text-amber-400" },
@@ -861,18 +913,19 @@ export function MessageThread({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {messageGroups.map((group) => (
               <div key={group.date}>
                 {/* Date separator */}
-                <div className="mb-4 flex items-center justify-center">
+                <div className="mb-3 flex items-center justify-center">
                   <span className="rounded-full bg-slate-800 px-3 py-1 text-[10px] font-medium text-slate-400">
                     {formatDateSeparator(group.date)}
                   </span>
                 </div>
                 {/* Messages */}
-                <div className="space-y-2">
-                  {group.messages.map((msg) => {
+                <div>
+                  {computeSenderGroups(group.messages).map((g) => {
+                    const msg = g.message;
                     const parent = msg.reply_to_message_id
                       ? messagesById.get(msg.reply_to_message_id)
                       : null;
@@ -883,8 +936,6 @@ export function MessageThread({
                         }
                       : null;
                     const msgReactions = reactionsByMessageId.get(msg.id);
-                    // Toggle is computed at the call site — `msgReactions`
-                    // and `user?.id` are already in scope, no extra hook.
                     const handlePillToggle = (emoji: string) => {
                       const own = msgReactions?.find(
                         (r) =>
@@ -909,6 +960,9 @@ export function MessageThread({
                           reactions={msgReactions}
                           currentUserId={user?.id}
                           onToggleReaction={handlePillToggle}
+                          groupPosition={g.position}
+                          showSenderName={g.showSenderName}
+                          senderName={contactDisplayName}
                         />
                       </MessageActions>
                     );
