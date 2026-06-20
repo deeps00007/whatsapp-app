@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/whatsapp/encryption'
+import { supabaseAdmin } from '@/lib/supabase/admin-client'
 
 /**
  * Sync message templates from Meta → local message_templates table.
@@ -173,13 +174,65 @@ export async function POST() {
       const header = (t.components ?? []).find((c) => c.type === 'HEADER')
       const footer = (t.components ?? []).find((c) => c.type === 'FOOTER')
 
+      let headerContent: string | null =
+        header?.text ?? null
+
+      const headerFormat = header?.format?.toLowerCase() ?? null
+      const isMediaHeader = headerFormat && ['image', 'video', 'document'].includes(headerFormat)
+
+      if (isMediaHeader && !headerContent) {
+        const cdnUrl = header?.example?.header_url?.[0]
+        const handle = header?.example?.header_handle?.[0]
+        if (cdnUrl || handle) {
+          try {
+            const sourceUrl = cdnUrl || `${META_API_BASE}/${handle}`
+            const mediaRes = await fetch(sourceUrl, {
+              headers: cdnUrl ? {} : { Authorization: `Bearer ${accessToken}` },
+            })
+            if (mediaRes.ok) {
+              const contentType = mediaRes.headers.get('content-type') || 'application/octet-stream'
+              const buffer = Buffer.from(await mediaRes.arrayBuffer())
+              const ext = contentType.includes('png') ? '.png'
+                : contentType.includes('jpeg') || contentType.includes('jpg') ? '.jpg'
+                : contentType.includes('webp') ? '.webp'
+                : contentType.includes('mp4') ? '.mp4'
+                : contentType.includes('pdf') ? '.pdf'
+                : ''
+              const safeName = t.name.replace(/[^a-z0-9_]/gi, '_')
+              const filePath = `${user.id}/${safeName}${ext}`
+
+              const { error: uploadErr } = await supabaseAdmin()
+                .storage
+                .from('template-media')
+                .upload(filePath, buffer, { contentType, upsert: true })
+
+              if (!uploadErr) {
+                const { data: urlData } = supabaseAdmin()
+                  .storage
+                  .from('template-media')
+                  .getPublicUrl(filePath)
+                headerContent = urlData.publicUrl
+              } else {
+                console.warn('[sync] Failed to upload template media:', uploadErr.message)
+                headerContent = cdnUrl || null
+              }
+            } else {
+              headerContent = cdnUrl || null
+            }
+          } catch (err) {
+            console.warn('[sync] Failed to download template media:', err)
+            headerContent = cdnUrl || null
+          }
+        }
+      }
+
       const row = {
         user_id: user.id,
         name: t.name,
         category: normalizeCategory(t.category),
         language: t.language,
-        header_type: header?.format?.toLowerCase() ?? null,
-        header_content: header?.text ?? header?.example?.header_url?.[0] ?? header?.example?.header_handle?.[0] ?? null,
+        header_type: headerFormat,
+        header_content: headerContent,
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
         status: normalizeStatus(t.status),
