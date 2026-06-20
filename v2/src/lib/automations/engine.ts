@@ -16,6 +16,7 @@ import type {
 } from '@/types'
 import { supabaseAdmin } from '@/lib/supabase/admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
+import { extractVariables } from '@/lib/whatsapp/template-variables'
 
 // ------------------------------------------------------------
 // Public API
@@ -368,10 +369,16 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         : []
       const { data: templateInfo } = await db
         .from('message_templates')
-        .select('header_type, header_content')
+        .select('header_type, header_content, body_text')
         .eq('user_id', args.automation.user_id)
         .eq('name', cfg.template_name)
         .maybeSingle()
+
+      const templateParamNames = templateInfo?.body_text
+        ? extractVariables(templateInfo.body_text)
+            .filter(v => v.isNamed)
+            .map(v => v.name)
+        : []
 
       const { whatsapp_message_id } = await engineSendTemplate({
         userId: args.automation.user_id,
@@ -380,6 +387,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         templateName: cfg.template_name,
         language: cfg.language,
         params,
+        paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
         headerType: templateInfo?.header_type,
         headerMediaUrl: templateInfo?.header_content,
       })

@@ -134,6 +134,10 @@ export interface SendTemplateMessageArgs {
   templateName: string
   language?: string
   params?: string[]
+  /** Variable names extracted from the template body (e.g. ["name"] for {{name}}).
+   *  When provided, each body parameter gets a `parameter_name` field so Meta
+   *  can match named variables like `{{name}}` instead of positional `{{1}}`. */
+  paramNames?: string[]
   headerType?: string | null
   headerMediaUrl?: string | null
   contextMessageId?: string
@@ -149,6 +153,7 @@ export async function sendTemplateMessage(
     templateName,
     language = 'en_US',
     params,
+    paramNames,
     headerType,
     headerMediaUrl,
     contextMessageId,
@@ -176,7 +181,13 @@ export async function sendTemplateMessage(
   if (params && params.length > 0) {
     components.push({
       type: 'body',
-      parameters: params.map((p) => ({ type: 'text', text: String(p) })),
+      parameters: params.map((p, i) => {
+        const param: Record<string, unknown> = { type: 'text', text: String(p) }
+        if (paramNames?.[i]) {
+          param.parameter_name = paramNames[i]
+        }
+        return param
+      }),
     })
   }
 

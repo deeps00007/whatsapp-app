@@ -13,6 +13,8 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { extractVariables } from '@/lib/whatsapp/template-variables'
+import { supabaseAdmin } from '@/lib/supabase/admin-client'
 
 interface BroadcastResult {
   phone: string
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
 
     const { data: templateCheck } = await supabase
       .from('message_templates')
-      .select('status, header_type, header_content')
+      .select('status, header_type, header_content, body_text')
       .eq('user_id', user.id)
       .eq('name', template_name)
       .maybeSingle()
@@ -125,6 +127,12 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const templateParamNames = templateCheck.body_text
+      ? extractVariables(templateCheck.body_text)
+          .filter(v => v.isNamed)
+          .map(v => v.name)
+      : []
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
@@ -140,6 +148,23 @@ export async function POST(request: Request) {
     }
 
     const accessToken = decrypt(config.access_token)
+
+    const db = supabaseAdmin()
+
+    const phoneToContactId = new Map<string, string>()
+    if (recipients.length > 0) {
+      const phones = recipients.map(r => sanitizePhoneForMeta(r.phone)).filter(p => isValidE164(p))
+      if (phones.length > 0) {
+        const { data: contacts } = await db
+          .from('contacts')
+          .select('id, phone')
+          .eq('user_id', user.id)
+          .in('phone', phones)
+        for (const c of contacts ?? []) {
+          phoneToContactId.set(c.phone, c.id)
+        }
+      }
+    }
 
     const results: BroadcastResult[] = []
     let sentCount = 0
@@ -173,6 +198,7 @@ export async function POST(request: Request) {
             templateName: template_name,
             language: template_language || 'en_US',
             params: recipient.params ?? [],
+            paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
             headerType: templateCheck.header_type,
             headerMediaUrl: templateCheck.header_content,
           })
@@ -192,6 +218,53 @@ export async function POST(request: Request) {
       }
 
       if (sentMessageId) {
+        const contactId = phoneToContactId.get(sanitized)
+        if (contactId) {
+          try {
+            let conversationId: string | null = null
+            const { data: existingConv } = await db
+              .from('conversations')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('contact_id', contactId)
+              .maybeSingle()
+            if (existingConv) {
+              conversationId = existingConv.id
+            } else {
+              const { data: newConv, error: convErr } = await db
+                .from('conversations')
+                .insert({
+                  user_id: user.id,
+                  contact_id: contactId,
+                  status: 'open',
+                })
+                .select('id')
+                .single()
+              if (!convErr && newConv) conversationId = newConv.id
+            }
+            if (conversationId) {
+              await db.from('messages').insert({
+                conversation_id: conversationId,
+                sender_type: 'agent',
+                content_type: 'template',
+                content_text: null,
+                template_name,
+                message_id: sentMessageId,
+                status: 'sent',
+              })
+              await db
+                .from('conversations')
+                .update({
+                  last_message_text: `[template: ${template_name}]`,
+                  last_message_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', conversationId)
+            }
+          } catch (dbErr) {
+            console.error('[broadcast] DB write failed for recipient:', dbErr)
+          }
+        }
         results.push({
           phone: recipient.phone,
           status: 'sent',

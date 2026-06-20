@@ -14,6 +14,7 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { extractVariables } from '@/lib/whatsapp/template-variables'
 
 export async function POST(request: Request) {
   try {
@@ -95,15 +96,21 @@ export async function POST(request: Request) {
 
     let templateHeaderType: string | null = null
     let templateHeaderUrl: string | null = null
+    let templateParamNames: string[] = []
     if (message_type === 'template' && template_name) {
       const { data: tpl } = await supabase
         .from('message_templates')
-        .select('header_type, header_content')
+        .select('header_type, header_content, body_text')
         .eq('user_id', user.id)
         .eq('name', template_name)
         .maybeSingle()
       templateHeaderType = tpl?.header_type ?? null
       templateHeaderUrl = tpl?.header_content ?? null
+      if (tpl?.body_text) {
+        templateParamNames = extractVariables(tpl.body_text)
+          .filter(v => v.isNamed)
+          .map(v => v.name)
+      }
     }
 
     // Sanitize and validate phone
@@ -178,6 +185,7 @@ export async function POST(request: Request) {
           to: phone,
           templateName: template_name,
           params: template_params || [],
+          paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
           headerType: templateHeaderType,
           headerMediaUrl: templateHeaderUrl,
           contextMessageId,

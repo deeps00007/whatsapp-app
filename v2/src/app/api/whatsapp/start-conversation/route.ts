@@ -4,6 +4,7 @@ import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
+import { extractVariables } from '@/lib/whatsapp/template-variables'
 
 export async function POST(request: Request) {
   try {
@@ -100,15 +101,21 @@ export async function POST(request: Request) {
 
     let templateHeaderType: string | null = null
     let templateHeaderUrl: string | null = null
+    let templateParamNames: string[] = []
     if (template_name) {
       const { data: tpl } = await supabase
         .from('message_templates')
-        .select('header_type, header_content')
+        .select('header_type, header_content, body_text')
         .eq('user_id', user.id)
         .eq('name', template_name)
         .maybeSingle()
       templateHeaderType = tpl?.header_type ?? null
       templateHeaderUrl = tpl?.header_content ?? null
+      if (tpl?.body_text) {
+        templateParamNames = extractVariables(tpl.body_text)
+          .filter(v => v.isNamed)
+          .map(v => v.name)
+      }
     }
 
     let waMessageId = ''
@@ -122,6 +129,7 @@ export async function POST(request: Request) {
         templateName: template_name,
         language: template_language || 'en_US',
         params: template_params || [],
+        paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
         headerType: templateHeaderType,
         headerMediaUrl: templateHeaderUrl,
       })

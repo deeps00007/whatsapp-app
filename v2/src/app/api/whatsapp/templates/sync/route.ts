@@ -185,9 +185,11 @@ export async function POST() {
         const handle = header?.example?.header_handle?.[0]
         if (cdnUrl || handle) {
           try {
-            const sourceUrl = cdnUrl || `${META_API_BASE}/${handle}`
+            const handleIsUrl = handle && /^https?:\/\//i.test(handle)
+            const sourceUrl = cdnUrl || (handleIsUrl ? handle : `${META_API_BASE}/${handle}`)
+            const needsAuth = !cdnUrl || handleIsUrl
             const mediaRes = await fetch(sourceUrl, {
-              headers: cdnUrl ? {} : { Authorization: `Bearer ${accessToken}` },
+              headers: needsAuth ? { Authorization: `Bearer ${accessToken}` } : {},
             })
             if (mediaRes.ok) {
               const contentType = mediaRes.headers.get('content-type') || 'application/octet-stream'
