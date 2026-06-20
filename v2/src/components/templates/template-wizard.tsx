@@ -148,9 +148,12 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
   const [sampleValues, setSampleValues] = useState<Record<number, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [mediaPreviewError, setMediaPreviewError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<{ success: boolean; id: string; status: string } | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  useEffect(() => { setMediaPreviewError(false) }, [headerContent, headerType])
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const headerRef = useRef<HTMLInputElement>(null)
@@ -553,12 +556,50 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                       </div>
                     )}
                     {["image", "video", "document"].includes(headerType) && (
-                      <Input
-                        value={headerContent}
-                        onChange={(e) => setHeaderContent(e.target.value)}
-                        placeholder="Asset handle from the Resumable Upload API"
-                        className="bg-slate-800 border-slate-700 text-slate-100"
-                      />
+                      <div className="space-y-1.5">
+                        <Input
+                          value={headerContent}
+                          onChange={(e) => { setHeaderContent(e.target.value); setMediaPreviewError(false) }}
+                          placeholder={
+                            headerType === "image" ? "https://example.com/image.jpg"
+                            : headerType === "video" ? "https://example.com/video.mp4"
+                            : "https://example.com/document.pdf"
+                          }
+                          className="bg-slate-800 border-slate-700 text-slate-100"
+                        />
+                        <p className="text-[11px] text-slate-500">
+                          Enter a publicly accessible URL. Meta will use this for template review.
+                          {!/^https?:\/\//i.test(headerContent) && headerContent && (
+                            <span className="ml-1 text-amber-400">URL must start with https://</span>
+                          )}
+                        </p>
+                        {headerType === "image" && headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
+                          <div className="mt-1 overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                            <img
+                              src={headerContent}
+                              alt="Preview"
+                              className="max-h-32 w-full object-cover"
+                              onError={() => setMediaPreviewError(true)}
+                            />
+                          </div>
+                        )}
+                        {headerType === "video" && headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
+                          <div className="mt-1 overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                            <video
+                              src={headerContent}
+                              className="max-h-32 w-full object-cover"
+                              onError={() => setMediaPreviewError(true)}
+                              muted
+                              playsInline
+                            />
+                          </div>
+                        )}
+                        {mediaPreviewError && headerContent && /^https?:\/\//i.test(headerContent) && (
+                          <p className="text-[11px] text-amber-400">
+                            Could not load media preview. Make sure the URL is publicly accessible.
+                          </p>
+                        )}
+                      </div>
                     )}
                     {touched.headerContent && step2Errors.headerContent && <p className="text-xs text-red-400">{step2Errors.headerContent}</p>}
                   </section>
@@ -715,12 +756,31 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                 )}
                 {headerType === "image" && (
                   <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-slate-600">
-                    <ImageIcon className="h-6 w-6 text-slate-400" />
+                    {headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError ? (
+                      <img
+                        src={headerContent}
+                        alt="Header preview"
+                        className="h-full w-full object-cover rounded-lg"
+                        onError={() => setMediaPreviewError(true)}
+                      />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-slate-400" />
+                    )}
                   </div>
                 )}
                 {headerType === "video" && (
-                  <div className="mb-2 flex h-28 items-center justify-center rounded-lg bg-slate-600">
-                    <Video className="h-6 w-6 text-slate-400" />
+                  <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-slate-600">
+                    {headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError ? (
+                      <video
+                        src={headerContent}
+                        className="h-full w-full object-cover rounded-lg"
+                        onError={() => setMediaPreviewError(true)}
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <Video className="h-6 w-6 text-slate-400" />
+                    )}
                   </div>
                 )}
                 {headerType === "document" && (

@@ -565,6 +565,11 @@ export async function createMessageTemplate(
     const headerComp: Record<string, unknown> = { type: 'HEADER', format: headerType.toUpperCase() }
     if (headerType === 'text' && headerContent) {
       headerComp.text = headerContent
+    } else if (headerContent && ['image', 'video', 'document'].includes(headerType)) {
+      const isUrl = /^https?:\/\//i.test(headerContent)
+      headerComp.example = isUrl
+        ? { header_url: [headerContent] }
+        : { header_handle: [headerContent] }
     }
     components.push(headerComp)
   }
