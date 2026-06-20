@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useMemo, useEffect } from "react"
+import { useState, useRef, useMemo, useEffect, useCallback } from "react"
 import {
   Check,
   CheckCheck,
@@ -18,6 +18,7 @@ import {
   Copy,
   ExternalLink,
   Phone,
+  Upload,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -149,6 +150,8 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
   const [sampleValues, setSampleValues] = useState<Record<number, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [mediaPreviewError, setMediaPreviewError] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<{ success: boolean; id: string; status: string } | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -212,6 +215,63 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
   function removeButton(id: string) {
     setButtons((b) => b.filter((btn) => btn.id !== id))
+  }
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const ACCEPTED_TYPES: Record<string, string> = {
+    image: "image/png,image/jpeg,image/webp",
+    video: "video/mp4,video/3gpp",
+    document: "application/pdf",
+  }
+
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    setUploadError(null)
+    setMediaPreviewError(false)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("headerType", headerType)
+
+      const res = await fetch("/api/whatsapp/templates/upload-media", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed")
+      }
+
+      setHeaderContent(data.url)
+      toast.success("Media uploaded successfully")
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed"
+      setUploadError(msg)
+      toast.error(msg)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleFileUpload(file)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFileUpload(file)
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   function validateStep2(): Record<string, string> {
@@ -311,6 +371,9 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
     setAuthExpiry(false)
     setSubmitResult(null)
     setSubmitError(null)
+    setUploadError(null)
+    setUploading(false)
+    setMediaPreviewError(false)
     setTouched({})
   }
 
@@ -556,48 +619,125 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                       </div>
                     )}
                     {["image", "video", "document"].includes(headerType) && (
-                      <div className="space-y-1.5">
-                        <Input
-                          value={headerContent}
-                          onChange={(e) => { setHeaderContent(e.target.value); setMediaPreviewError(false) }}
-                          placeholder={
-                            headerType === "image" ? "https://example.com/image.jpg"
-                            : headerType === "video" ? "https://example.com/video.mp4"
-                            : "https://example.com/document.pdf"
-                          }
-                          className="bg-slate-800 border-slate-700 text-slate-100"
+                      <div className="space-y-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept={ACCEPTED_TYPES[headerType] || "*"}
+                          onChange={onFileChange}
+                          className="hidden"
                         />
-                        <p className="text-[11px] text-slate-500">
-                          Enter a publicly accessible URL. Meta will use this for template review.
-                          {!/^https?:\/\//i.test(headerContent) && headerContent && (
-                            <span className="ml-1 text-amber-400">URL must start with https://</span>
-                          )}
-                        </p>
-                        {headerType === "image" && headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
-                          <div className="mt-1 overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
-                            <img
-                              src={headerContent}
-                              alt="Preview"
-                              className="max-h-32 w-full object-cover"
-                              onError={() => setMediaPreviewError(true)}
-                            />
+
+                        {!headerContent && (
+                          <div
+                            onDrop={onDrop}
+                            onDragOver={onDragOver}
+                            onClick={() => !uploading && fileInputRef.current?.click()}
+                            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-700 bg-slate-800/50 px-4 py-6 transition ${
+                              uploading ? "pointer-events-none opacity-60" : "hover:border-primary/50 hover:bg-slate-800"
+                            }`}
+                          >
+                            {uploading ? (
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            ) : (
+                              <>
+                                {headerType === "image" && <ImageIcon className="h-6 w-6 text-slate-500" />}
+                                {headerType === "video" && <Video className="h-6 w-6 text-slate-500" />}
+                                {headerType === "document" && <FileText className="h-6 w-6 text-slate-500" />}
+                              </>
+                            )}
+                            <div className="text-center">
+                              {uploading ? (
+                                <p className="text-sm text-slate-400">Uploading...</p>
+                              ) : (
+                                <>
+                                  <p className="text-sm font-medium text-slate-300">
+                                    <span className="text-primary">Click to upload</span> or drag and drop
+                                  </p>
+                                  <p className="mt-0.5 text-[11px] text-slate-500">
+                                    {headerType === "image" && "PNG, JPG or WebP (max 1MB)"}
+                                    {headerType === "video" && "MP4 or 3GP (max 16MB)"}
+                                    {headerType === "document" && "PDF (max 5MB)"}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         )}
-                        {headerType === "video" && headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
-                          <div className="mt-1 overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
-                            <video
-                              src={headerContent}
-                              className="max-h-32 w-full object-cover"
-                              onError={() => setMediaPreviewError(true)}
-                              muted
-                              playsInline
-                            />
+
+                        {headerContent && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={headerContent}
+                                onChange={(e) => { setHeaderContent(e.target.value); setMediaPreviewError(false) }}
+                                placeholder={
+                                  headerType === "image" ? "https://example.com/image.jpg"
+                                  : headerType === "video" ? "https://example.com/video.mp4"
+                                  : "https://example.com/document.pdf"
+                                }
+                                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 text-xs"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setHeaderContent(""); setMediaPreviewError(false); setUploadError(null) }}
+                                className="shrink-0 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-800 h-8 px-2"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+
+                            {headerType === "image" && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
+                              <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                                <img
+                                  src={headerContent}
+                                  alt="Preview"
+                                  className="max-h-32 w-full object-cover"
+                                  onError={() => setMediaPreviewError(true)}
+                                />
+                              </div>
+                            )}
+                            {headerType === "video" && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
+                              <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                                <video
+                                  src={headerContent}
+                                  className="max-h-32 w-full object-cover"
+                                  onError={() => setMediaPreviewError(true)}
+                                  muted
+                                  playsInline
+                                />
+                              </div>
+                            )}
+                            {mediaPreviewError && /^https?:\/\//i.test(headerContent) && (
+                              <p className="text-[11px] text-amber-400">
+                                Could not load media preview. Make sure the URL is publicly accessible.
+                              </p>
+                            )}
                           </div>
                         )}
-                        {mediaPreviewError && headerContent && /^https?:\/\//i.test(headerContent) && (
-                          <p className="text-[11px] text-amber-400">
-                            Could not load media preview. Make sure the URL is publicly accessible.
+
+                        {uploadError && (
+                          <p className="flex items-center gap-1 text-[11px] text-red-400">
+                            <AlertCircle className="h-3 w-3" /> {uploadError}
                           </p>
+                        )}
+
+                        {!headerContent && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-500">or paste a URL:</span>
+                            <Input
+                              value=""
+                              onChange={(e) => { if (e.target.value) { setHeaderContent(e.target.value); setMediaPreviewError(false) } }}
+                              placeholder={
+                                headerType === "image" ? "https://example.com/image.jpg"
+                                : headerType === "video" ? "https://example.com/video.mp4"
+                                : "https://example.com/document.pdf"
+                              }
+                              className="flex-1 h-7 bg-slate-800 border-slate-700 text-slate-100 text-xs"
+                            />
+                          </div>
                         )}
                       </div>
                     )}
