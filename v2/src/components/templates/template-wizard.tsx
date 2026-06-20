@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { extractVariables as extractVarsShared, isSequential as isSeqShared } from "@/lib/whatsapp/template-variables"
 
 const STEPS = ["Set up template", "Edit template", "Submit for review"]
 
@@ -113,7 +114,7 @@ const FOOTER_MAX = 60
 const BUTTON_TEXT_MAX = 25
 
 function extractVariables(text: string): number[] {
-  return [...text.matchAll(/\{\{(\d+)\}\}/g)].map((m) => parseInt(m[1], 10))
+  return extractVarsShared(text).map((v) => v.index + 1)
 }
 
 function isSequential(vars: number[]): boolean {
@@ -284,8 +285,8 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
       else if (bodyText.length > BODY_MAX) errs.bodyText = `Body exceeds ${BODY_MAX} characters.`
       else {
         const trimmed = bodyText.trim()
-        if (/^\{\{\d+\}\}/.test(trimmed)) errs.bodyText = "Body text can't start with a variable."
-        else if (/\{\{\d+\}\}$/.test(trimmed)) errs.bodyText = "Body text can't end with a variable."
+        if (/^\{\{[\d\w_]+\}\}/.test(trimmed)) errs.bodyText = "Body text can't start with a variable."
+        else if (/\{\{[\d\w_]+\}\}$/.test(trimmed)) errs.bodyText = "Body text can't end with a variable."
       }
     }
 
@@ -298,7 +299,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
     }
 
     if (footerText.length > FOOTER_MAX) errs.footerText = `Footer exceeds ${FOOTER_MAX} characters.`
-    if (/\{\{\d+\}\}/.test(footerText)) errs.footerText = "Footer text can't contain variables."
+    if (/\{\{[\d\w_]+\}\}/.test(footerText)) errs.footerText = "Footer text can't contain variables."
 
     if (allVariables.length > 0 && !isSequential(allVariables)) {
       errs.bodyText = errs.bodyText || "Variables must be sequential starting at {{1}}."

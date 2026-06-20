@@ -335,10 +335,23 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       if (!args.contactId) throw new Error('send_template needs a contact')
       if (!cfg.template_name) throw new Error('send_template needs template_name')
       const conversationId = await resolveConversationId(args)
+
+      // Resolve {{contact.name}}, {{contact.phone}}, etc. in variable values
+      const contactData = args.contactId
+        ? (await db.from('contacts').select('name,phone,email,company,address,city,state,country,notes').eq('id', args.contactId).maybeSingle()).data
+        : null
+
+      const resolveValue = (val: string): string => {
+        return val.replace(/\{\{contact\.(\w+)\}\}/gi, (_, field) => {
+          if (contactData && field in contactData) {
+            return String((contactData as Record<string, unknown>)[field] ?? '')
+          }
+          return ''
+        })
+      }
+
       // Meta templates use positional {{1}}, {{2}}, … placeholders, so
-      // we MUST emit params in strict numeric order. Lexicographic sort
-      // of "1", "2", …, "10" yields "1", "10", "2", … which silently
-      // scrambles every template with ≥10 variables.
+      // we MUST emit params in strict numeric order.
       const params = cfg.variables
         ? Object.keys(cfg.variables)
             .sort((a, b) => {
@@ -351,7 +364,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
               if (bNum) return 1
               return a.localeCompare(b)
             })
-            .map((k) => String(cfg.variables![k]))
+            .map((k) => resolveValue(String(cfg.variables![k])))
         : []
       const { whatsapp_message_id } = await engineSendTemplate({
         userId: args.automation.user_id,

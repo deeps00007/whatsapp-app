@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MessageTemplate } from "@/types";
+import {
+  extractVariables,
+  renderBodyPreview,
+  autoFillParams,
+  type TemplateVariable,
+} from "@/lib/whatsapp/template-variables";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,32 +32,14 @@ interface TemplatePickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (template: MessageTemplate, params: string[]) => void;
-}
-
-// Meta numbers template placeholders from 1 ({{1}}, {{2}}, …) and the
-// indices passed to the Graph API must be contiguous starting at 1.
-// We sort + dedupe here so a body using only {{2}} still drives a single
-// input slot, and so render-order matches send-order.
-function extractVariables(body: string): number[] {
-  const ids = new Set<number>();
-  for (const m of body.matchAll(/\{\{(\d+)\}\}/g)) {
-    ids.add(Number(m[1]));
-  }
-  return Array.from(ids).sort((a, b) => a - b);
-}
-
-function renderBodyPreview(body: string, params: string[]): string {
-  return body.replace(/\{\{(\d+)\}\}/g, (_, raw) => {
-    const idx = Number(raw) - 1;
-    const value = params[idx];
-    return value && value.trim().length > 0 ? value : `{{${raw}}}`;
-  });
+  contact?: { name?: string; phone?: string; email?: string; company?: string; address?: string; city?: string; state?: string; country?: string; notes?: string; [key: string]: unknown } | null;
 }
 
 export function TemplatePicker({
   open,
   onOpenChange,
   onSelect,
+  contact,
 }: TemplatePickerProps) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +106,8 @@ export function TemplatePicker({
       return;
     }
     setSelected(template);
-    setParams(new Array(vars.length).fill(""));
+    const autoFilled = autoFillParams(vars, contact ?? null);
+    setParams(autoFilled);
   }
 
   function confirm() {
@@ -127,7 +116,7 @@ export function TemplatePicker({
     handleOpenChange(false);
   }
 
-  const variables = selected ? extractVariables(selected.body_text) : [];
+  const variables: TemplateVariable[] = selected ? extractVariables(selected.body_text) : [];
   const canConfirm =
     !!selected &&
     variables.every((_, i) => (params[i] ?? "").trim().length > 0);
@@ -208,8 +197,11 @@ export function TemplatePicker({
               )}
             </div>
             {variables.map((v, i) => (
-              <div key={v} className="space-y-1">
-                <Label className="text-xs text-slate-300">{`Variable {{${v}}}`}</Label>
+              <div key={v.name} className="space-y-1">
+                <Label className="text-xs text-slate-300">
+                  {v.isNamed ? `Variable {{${v.name}}}` : `Variable {{${v.name}}}`}
+                  {v.isNamed && contact?.[v.name.toLowerCase()] ? " (auto-filled from contact)" : ""}
+                </Label>
                 <Input
                   value={params[i] ?? ""}
                   onChange={(e) => {
@@ -217,7 +209,7 @@ export function TemplatePicker({
                     next[i] = e.target.value;
                     setParams(next);
                   }}
-                  placeholder={`Value for {{${v}}}`}
+                  placeholder={`Value for {{${v.name}}}`}
                   className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
                 />
               </div>

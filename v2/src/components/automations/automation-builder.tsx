@@ -24,6 +24,7 @@ import {
   Loader2,
   ArrowDown,
   ArrowUp,
+  X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -132,7 +133,7 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
     case "send_message":
       return { text: "" }
     case "send_template":
-      return { template_name: "", language: "en_US" }
+      return { template_name: "", language: "en_US", variables: {} }
     case "add_tag":
     case "remove_tag":
       return { tag_id: "" }
@@ -723,6 +724,8 @@ function StepEditor({
         </FieldBlock>
       )
     case "send_template":
+      const templateVars = (cfg.variables as Record<string, string>) ?? {}
+      const varKeys = Object.keys(templateVars)
       return (
         <>
           <FieldBlock label="Template name">
@@ -730,6 +733,7 @@ function StepEditor({
               value={(cfg.template_name as string) ?? ""}
               onChange={(e) => set({ template_name: e.target.value })}
               className="bg-slate-800 text-white"
+              placeholder="e.g. welcome_greeting"
             />
           </FieldBlock>
           <FieldBlock label="Language">
@@ -737,7 +741,61 @@ function StepEditor({
               value={(cfg.language as string) ?? ""}
               onChange={(e) => set({ language: e.target.value })}
               className="bg-slate-800 text-white"
+              placeholder="en_US"
             />
+          </FieldBlock>
+          <FieldBlock label="Variables">
+            <div className="space-y-2">
+              {varKeys.length === 0 && (
+                <p className="text-xs text-slate-500">No variables configured. Add one below.</p>
+              )}
+              {varKeys.map((k) => (
+                <div key={k} className="flex items-center gap-2">
+                  <Input
+                    value={k}
+                    onChange={(e) => {
+                      const next: Record<string, string> = {}
+                      for (const [key, val] of Object.entries(templateVars)) {
+                        next[key === k ? e.target.value : key] = val
+                      }
+                      set({ variables: next })
+                    }}
+                    className="w-28 bg-slate-800 text-white text-xs"
+                    placeholder="{{1}} or {{name}}"
+                  />
+                  <Input
+                    value={templateVars[k]}
+                    onChange={(e) => set({ variables: { ...templateVars, [k]: e.target.value } })}
+                    className="flex-1 bg-slate-800 text-white text-xs"
+                    placeholder='Value or contact field like {{contact.name}}'
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = { ...templateVars }
+                      delete next[k]
+                      set({ variables: next })
+                    }}
+                    className="text-slate-500 hover:text-red-400"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextKey = String(varKeys.length + 1)
+                  set({ variables: { ...templateVars, [nextKey]: "" } })
+                }}
+                className="flex items-center gap-1 text-xs text-slate-500 hover:text-white"
+              >
+                <Plus className="h-3 w-3" /> Add variable
+              </button>
+              <p className="text-[11px] text-slate-600">
+                Use <code className="text-slate-400">{"{{contact.name}}"}</code>, <code className="text-slate-400">{"{{contact.phone}}"}</code>, <code className="text-slate-400">{"{{contact.email}}"}</code> to auto-fill from contact record.
+              </p>
+            </div>
           </FieldBlock>
         </>
       )

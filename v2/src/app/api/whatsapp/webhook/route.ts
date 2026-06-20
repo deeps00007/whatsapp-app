@@ -666,48 +666,55 @@ async function processMessage(
   }
 
   // Parallelize: conversation update, unread increment, broadcast flag,
-  // flow dispatch, and content-level automation dispatch all run concurrently.
-  const [flowResult] = await Promise.all([
-    dispatchInboundToFlows({
-      userId,
-      contactId: contactRecord.id,
-      conversationId: conversation.id,
-      message:
-        interactiveReplyId
-          ? {
-              kind: 'interactive_reply',
-              reply_id: interactiveReplyId,
-              reply_title: contentText ?? '',
-              meta_message_id: message.id,
-            }
-          : {
-              kind: 'text',
-              text: inboundText,
-              meta_message_id: message.id,
-            },
-      isFirstInboundMessage,
-    }),
-    // Unread increment
-    supabaseAdmin()
-      .rpc('increment_unread', { conv_id: conversation.id })
-      .then(({ error }) => {
-        if (error) console.error('Error incrementing unread_count via RPC:', error)
+  // flow dispatch all run concurrently. Side-effects are wrapped in
+  // individual try-catch so a failure in one never suppresses automations.
+  let flowResult: { consumed: boolean }
+  try {
+    [flowResult] = await Promise.all([
+      dispatchInboundToFlows({
+        userId,
+        contactId: contactRecord.id,
+        conversationId: conversation.id,
+        message:
+          interactiveReplyId
+            ? {
+                kind: 'interactive_reply',
+                reply_id: interactiveReplyId,
+                reply_title: contentText ?? '',
+                meta_message_id: message.id,
+              }
+            : {
+                kind: 'text',
+                text: inboundText,
+                meta_message_id: message.id,
+              },
+        isFirstInboundMessage,
       }),
-    // Conversation text update
-    supabaseAdmin()
-      .from('conversations')
-      .update({
-        last_message_text: contentText || `[${message.type}]`,
-        last_message_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', conversation.id)
-      .then(({ error }) => {
-        if (error) console.error('Error updating conversation text:', error)
-      }),
-    // Broadcast reply flag
-    flagBroadcastReplyIfAny(userId, contactRecord.id),
-  ])
+      (async () => {
+        try {
+          const { error } = await supabaseAdmin().rpc('increment_unread', { conv_id: conversation.id })
+          if (error) console.error('Error incrementing unread_count via RPC:', error)
+        } catch (err) { console.error('increment_unread failed:', err) }
+      })(),
+      (async () => {
+        try {
+          const { error } = await supabaseAdmin()
+            .from('conversations')
+            .update({
+              last_message_text: contentText || `[${message.type}]`,
+              last_message_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversation.id)
+          if (error) console.error('Error updating conversation text:', error)
+        } catch (err) { console.error('conversation update failed:', err) }
+      })(),
+      flagBroadcastReplyIfAny(userId, contactRecord.id),
+    ])
+  } catch (err) {
+    console.error('[webhook] Promise.all failed, running automations anyway:', err)
+    flowResult = { consumed: false }
+  }
 
   // Content-level automations — fire after flow result is known so we can
   // suppress them when a flow consumed the message.
@@ -889,8 +896,27 @@ async function findOrCreateContact(
   const normalized = normalizePhone(phone)
   const db = supabaseAdmin()
 
-  // Server-side lookup using LIKE with the last 8 digits, then
-  // refine with phonesMatch. This avoids fetching ALL contacts.
+  // Try exact normalized phone match first (covers the common case)
+  const { data: exactMatch } = await db
+    .from('contacts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('phone', normalized)
+    .maybeSingle()
+
+  if (exactMatch) {
+    if (name && name !== exactMatch.name) {
+      await db
+        .from('contacts')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', exactMatch.id)
+    }
+    return { contact: exactMatch, wasCreated: false }
+  }
+
+  // Fallback: server-side lookup using LIKE with the last 8 digits,
+  // then refine with phonesMatch. This handles formatted phone numbers
+  // stored with spaces/dashes that the exact match misses.
   const suffix8 = normalized.slice(-8)
   const { data: candidates, error: contactsError } = await db
     .from('contacts')
@@ -915,30 +941,35 @@ async function findOrCreateContact(
     return { contact: existingContact, wasCreated: false }
   }
 
-  // No match — create new contact. Upsert on (user_id, phone) handles
-  // the race condition where two parallel webhook invocations both
-  // miss the lookup and try to INSERT simultaneously. The UNIQUE index
-  // uq_contacts_user_phone ensures only one succeeds; onConflict
-  // returns the existing row instead of erroring.
+  // No match — create new contact with normalized phone.
+  // On race (two webhooks for same new contact), the UNIQUE index
+  // uq_contacts_user_phone rejects the second INSERT. We catch this
+  // and re-fetch the winning row instead of returning null.
   const { data: newContact, error: createError } = await db
     .from('contacts')
-    .upsert(
-      { user_id: userId, phone, name: name || phone },
-      { onConflict: 'user_id,phone', ignoreDuplicates: true }
-    )
+    .insert({ user_id: userId, phone: normalized, name: name || phone })
     .select()
     .single()
 
   if (createError) {
+    // PGRST116 = .single() got 0 rows (race: other request won)
+    if (createError.code === 'PGRST116' || createError.message?.includes('PGRST116')) {
+      const { data: raceWinner } = await db
+        .from('contacts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('phone', normalized)
+        .maybeSingle()
+
+      if (raceWinner) {
+        return { contact: raceWinner, wasCreated: false }
+      }
+    }
     console.error('Error creating contact:', createError)
     return null
   }
 
-  // If upsert returned an existing row (ignoreDuplicates), it means
-  // another concurrent invocation won — check if we actually created it.
-  const wasCreated = newContact.name === (name || phone) || newContact.created_at === newContact.updated_at
-
-  return { contact: newContact, wasCreated }
+  return { contact: newContact, wasCreated: true }
 }
 
 async function findOrCreateConversation(userId: string, contactId: string) {
