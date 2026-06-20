@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Contact, CustomField, MessageTemplate } from '@/types';
+import { extractVariables, type TemplateVariable } from '@/lib/whatsapp/template-variables';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -105,29 +106,27 @@ export function Step3Personalize({
     };
   }, []);
 
-  const placeholders = useMemo(() => {
-    const matches = template.body_text.match(/\{\{(\d+)\}\}/g);
-    if (!matches) return [];
-    return [...new Set(matches)].sort();
-  }, [template.body_text]);
+  const templateVars = useMemo(
+    () => extractVariables(template.body_text),
+    [template.body_text]
+  );
 
-  /**
-   * A placeholder is "unmapped" if the user hasn't picked either a
-   * static value or a field/custom-field source. Blocks Next until
-   * every placeholder has something — otherwise the broadcast would
-   * ship with empty strings and confuse recipients.
-   */
+  const placeholders = useMemo(() => {
+    if (templateVars.length === 0) return [];
+    return templateVars.map((v) => `{{${v.name}}}`);
+  }, [templateVars]);
+
   const unmappedKeys = useMemo(() => {
     const missing: string[] = [];
-    for (const placeholder of placeholders) {
-      const key = placeholder.replace(/^\{\{|\}\}$/g, '');
+    for (const v of templateVars) {
+      const key = v.name;
       const mapping = variables[key];
       if (!mapping || !mapping.value?.trim()) {
-        missing.push(placeholder);
+        missing.push(`{{${key}}}`);
       }
     }
     return missing;
-  }, [placeholders, variables]);
+  }, [templateVars, variables]);
 
   function updateVariable(key: string, patch: Partial<VariableMapping>) {
     const current = variables[key] ?? { type: 'static' as VariableType, value: '' };
@@ -137,10 +136,6 @@ export function Step3Personalize({
     });
   }
 
-  /**
-   * Substitute placeholders using the first real contact where
-   * possible. Placeholders keyed by "{{N}}" map to variable key "N".
-   */
   const previewText = useMemo(() => {
     const contact = firstContact ?? SAMPLE_CONTACT;
     const customValues = firstContact
@@ -148,9 +143,9 @@ export function Step3Personalize({
       : new Map<string, string>();
 
     let text = template.body_text;
-    for (const placeholder of placeholders) {
-      const key = placeholder.replace(/^\{\{|\}\}$/g, '');
-      const mapping = variables[key];
+    for (const v of templateVars) {
+      const placeholder = `{{${v.name}}}`;
+      const mapping = variables[v.name];
       let replacement = placeholder;
 
       if (mapping) {
@@ -174,7 +169,7 @@ export function Step3Personalize({
   }, [
     template.body_text,
     variables,
-    placeholders,
+    templateVars,
     firstContact,
     firstContactCustomValues,
   ]);
@@ -201,8 +196,9 @@ export function Step3Personalize({
         </div>
       ) : (
         <div className="space-y-4">
-          {placeholders.map((placeholder) => {
-            const key = placeholder.replace(/^\{\{|\}\}$/g, '');
+          {templateVars.map((v) => {
+            const placeholder = `{{${v.name}}}`;
+            const key = v.name;
             const mapping = variables[key] ?? { type: 'static', value: '' };
 
             return (
