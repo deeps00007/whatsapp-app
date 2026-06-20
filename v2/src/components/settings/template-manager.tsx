@@ -251,33 +251,30 @@ export function TemplateManager() {
   }
 
   return (
-    <div className="space-y-4 mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Message Templates</h2>
-          <p className="text-sm text-slate-400">
-            Create templates and submit them to Meta for approval. Only approved templates can be sent.
-            Use &quot;Sync from Meta&quot; to refresh approval statuses.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={handleSyncFromMeta}
+          disabled={syncing}
+          className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
+        >
+          <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing…' : 'Sync from Meta'}
+        </Button>
+        <a
+          href="https://business.facebook.com/wa/manage/message-templates/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <Button
             variant="outline"
-            onClick={handleSyncFromMeta}
-            disabled={syncing}
             className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
           >
-            <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync from Meta'}
+            <ExternalLink className="size-4" />
+            Template on Meta
           </Button>
-          <Button
-            onClick={() => { setForm(emptyForm); setDialogOpen(true); }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Plus className="size-4" />
-            New Template
-          </Button>
-        </div>
+        </a>
       </div>
 
       {templates.length === 0 ? (
@@ -326,17 +323,6 @@ export function TemplateManager() {
                       )}
                       Check
                     </Button>
-                  )}
-                  {template.status === 'Pending' && (
-                    <a
-                      href="https://business.facebook.com/wa/manage/message-templates/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-blue-400 hover:bg-blue-950/30"
-                    >
-                      <ExternalLink className="size-3" />
-                      Meta Manager
-                    </a>
                   )}
                   <Button
                     variant="ghost"
