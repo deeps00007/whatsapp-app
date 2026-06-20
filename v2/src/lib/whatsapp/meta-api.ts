@@ -523,6 +523,14 @@ function validateInteractiveHeaderFooter(
 // Template creation
 // ============================================================
 
+export interface TemplateButton {
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'OTP'
+  text?: string
+  url?: string
+  phone_number?: string
+  method?: 'copy' | 'autofill'
+}
+
 export interface CreateMessageTemplateArgs {
   wabaId: string
   accessToken: string
@@ -533,6 +541,7 @@ export interface CreateMessageTemplateArgs {
   headerType?: string | null
   headerContent?: string | null
   footerText?: string | null
+  buttons?: TemplateButton[]
 }
 
 export interface CreateMessageTemplateResult {
@@ -547,6 +556,7 @@ export async function createMessageTemplate(
   const {
     wabaId, accessToken, name, category, language,
     bodyText, headerType, headerContent, footerText,
+    buttons,
   } = args
 
   const components: Record<string, unknown>[] = []
@@ -563,6 +573,22 @@ export async function createMessageTemplate(
 
   if (footerText) {
     components.push({ type: 'FOOTER', text: footerText })
+  }
+
+  if (buttons && buttons.length > 0) {
+    const btnComponents = buttons.map((btn) => {
+      if (btn.type === 'OTP') {
+        return { type: 'BUTTON', sub_type: 'FLOW', text: btn.method === 'autofill' ? 'Autofill' : 'Copy code' }
+      }
+      if (btn.type === 'URL') {
+        return { type: 'BUTTON', sub_type: 'url', text: btn.text || '', url: btn.url || btn.text || '' }
+      }
+      if (btn.type === 'PHONE_NUMBER') {
+        return { type: 'BUTTON', sub_type: 'call', text: btn.text || '', phone_number: btn.phone_number || btn.text || '' }
+      }
+      return { type: 'BUTTON', sub_type: 'quick_reply', text: btn.text || '' }
+    })
+    components.push(...btnComponents)
   }
 
   const metaCategory = category === 'Marketing' ? 'MARKETING'

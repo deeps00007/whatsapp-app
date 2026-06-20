@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, category, language, body_text, header_type, header_content, footer_text } = body
+    const { name, category, language, body_text, header_type, header_content, footer_text, buttons } = body
 
     if (!name || !category || !body_text) {
       return NextResponse.json({ error: 'name, category, and body_text are required' }, { status: 400 })
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       headerType: header_type || null,
       headerContent: header_content || null,
       footerText: footer_text?.trim() || null,
+      buttons: buttons || undefined,
     })
 
     const normalizedStatus = result.status === 'APPROVED' ? 'Approved'
