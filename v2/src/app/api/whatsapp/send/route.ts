@@ -93,6 +93,19 @@ export async function POST(request: Request) {
       )
     }
 
+    let templateHeaderType: string | null = null
+    let templateHeaderUrl: string | null = null
+    if (message_type === 'template' && template_name) {
+      const { data: tpl } = await supabase
+        .from('message_templates')
+        .select('header_type, header_content')
+        .eq('user_id', user.id)
+        .eq('name', template_name)
+        .maybeSingle()
+      templateHeaderType = tpl?.header_type ?? null
+      templateHeaderUrl = tpl?.header_content ?? null
+    }
+
     // Sanitize and validate phone
     const sanitizedPhone = sanitizePhoneForMeta(contact.phone)
     if (!isValidE164(sanitizedPhone)) {
@@ -165,6 +178,8 @@ export async function POST(request: Request) {
           to: phone,
           templateName: template_name,
           params: template_params || [],
+          headerType: templateHeaderType,
+          headerMediaUrl: templateHeaderUrl,
           contextMessageId,
         })
         return result.messageId

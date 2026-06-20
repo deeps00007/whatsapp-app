@@ -98,6 +98,19 @@ export async function POST(request: Request) {
 
     const accessToken = decrypt(config.access_token)
 
+    let templateHeaderType: string | null = null
+    let templateHeaderUrl: string | null = null
+    if (template_name) {
+      const { data: tpl } = await supabase
+        .from('message_templates')
+        .select('header_type, header_content')
+        .eq('user_id', user.id)
+        .eq('name', template_name)
+        .maybeSingle()
+      templateHeaderType = tpl?.header_type ?? null
+      templateHeaderUrl = tpl?.header_content ?? null
+    }
+
     let waMessageId = ''
     let contentText = ''
 
@@ -109,6 +122,8 @@ export async function POST(request: Request) {
         templateName: template_name,
         language: template_language || 'en_US',
         params: template_params || [],
+        headerType: templateHeaderType,
+        headerMediaUrl: templateHeaderUrl,
       })
       waMessageId = result.messageId
       contentText = `[template: ${template_name}]`

@@ -37,6 +37,7 @@ interface MetaTemplateComponent {
   type: string
   text?: string
   format?: string
+  example?: { header_url?: string[]; header_handle?: string[]; body_text?: string[] }
 }
 
 interface MetaTemplate {
@@ -178,7 +179,7 @@ export async function POST() {
         category: normalizeCategory(t.category),
         language: t.language,
         header_type: header?.format?.toLowerCase() ?? null,
-        header_content: header?.text ?? null,
+        header_content: header?.text ?? header?.example?.header_url?.[0] ?? header?.example?.header_handle?.[0] ?? null,
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
         status: normalizeStatus(t.status),

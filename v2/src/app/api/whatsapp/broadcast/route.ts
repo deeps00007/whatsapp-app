@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
     const { data: templateCheck } = await supabase
       .from('message_templates')
-      .select('status')
+      .select('status, header_type, header_content')
       .eq('user_id', user.id)
       .eq('name', template_name)
       .maybeSingle()
@@ -173,6 +173,8 @@ export async function POST(request: Request) {
             templateName: template_name,
             language: template_language || 'en_US',
             params: recipient.params ?? [],
+            headerType: templateCheck.header_type,
+            headerMediaUrl: templateCheck.header_content,
           })
           sentMessageId = result.messageId
           lastError = null

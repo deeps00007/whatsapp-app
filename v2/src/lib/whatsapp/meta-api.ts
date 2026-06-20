@@ -134,14 +134,11 @@ export interface SendTemplateMessageArgs {
   templateName: string
   language?: string
   params?: string[]
-  /** Meta's message_id of the message being replied to. */
+  headerType?: string | null
+  headerMediaUrl?: string | null
   contextMessageId?: string
 }
 
-/**
- * Send a pre-approved WhatsApp message template. Required outside
- * the 24-hour window and for any first-touch messaging.
- */
 export async function sendTemplateMessage(
   args: SendTemplateMessageArgs
 ): Promise<MetaSendResult> {
@@ -152,6 +149,8 @@ export async function sendTemplateMessage(
     templateName,
     language = 'en_US',
     params,
+    headerType,
+    headerMediaUrl,
     contextMessageId,
   } = args
   const url = `${META_API_BASE}/${phoneNumberId}/messages`
@@ -161,13 +160,28 @@ export async function sendTemplateMessage(
     language: { code: language },
   }
 
+  const components: Record<string, unknown>[] = []
+
+  if (headerType && ['image', 'video', 'document'].includes(headerType) && headerMediaUrl) {
+    const mediaKey = headerType === 'image' ? 'image' : headerType === 'video' ? 'video' : 'document'
+    components.push({
+      type: 'header',
+      parameters: [{
+        type: mediaKey,
+        [mediaKey]: { link: headerMediaUrl },
+      }],
+    })
+  }
+
   if (params && params.length > 0) {
-    template.components = [
-      {
-        type: 'body',
-        parameters: params.map((p) => ({ type: 'text', text: String(p) })),
-      },
-    ]
+    components.push({
+      type: 'body',
+      parameters: params.map((p) => ({ type: 'text', text: String(p) })),
+    })
+  }
+
+  if (components.length > 0) {
+    template.components = components
   }
 
   const body: Record<string, unknown> = {

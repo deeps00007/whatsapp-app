@@ -33,6 +33,8 @@ interface SendTemplateArgs {
   templateName: string
   language?: string
   params?: string[]
+  headerType?: string | null
+  headerMediaUrl?: string | null
 }
 
 export async function engineSendText(args: SendTextArgs): Promise<{ whatsapp_message_id: string }> {
@@ -95,6 +97,8 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
         templateName: input.templateName,
         language: input.language,
         params: input.params,
+        headerType: input.headerType,
+        headerMediaUrl: input.headerMediaUrl,
       })
       return r.messageId
     }

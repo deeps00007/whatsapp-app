@@ -366,6 +366,13 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
             })
             .map((k) => resolveValue(String(cfg.variables![k])))
         : []
+      const { data: templateInfo } = await db
+        .from('message_templates')
+        .select('header_type, header_content')
+        .eq('user_id', args.automation.user_id)
+        .eq('name', cfg.template_name)
+        .maybeSingle()
+
       const { whatsapp_message_id } = await engineSendTemplate({
         userId: args.automation.user_id,
         conversationId,
@@ -373,6 +380,8 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         templateName: cfg.template_name,
         language: cfg.language,
         params,
+        headerType: templateInfo?.header_type,
+        headerMediaUrl: templateInfo?.header_content,
       })
       return `template sent via Meta (${whatsapp_message_id})`
     }
