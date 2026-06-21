@@ -321,76 +321,85 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   <Info className="h-4 w-4" />
                   Pricing Info
                 </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-700 sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle className="text-white flex items-center gap-2">
-                      <IndianRupee className="h-5 w-5 text-primary" />
-                      Meta Messaging Rates — India
+                <DialogContent className="max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-700 sm:max-w-lg p-0">
+                  <DialogHeader className="p-5 pb-4 border-b border-slate-800">
+                    <DialogTitle className="text-white flex items-center gap-2.5 text-base">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <IndianRupee className="h-4 w-4 text-primary" />
+                      </div>
+                      Meta Messaging Rates
+                      <span className="ml-auto text-xs font-normal bg-primary/10 text-primary px-2 py-0.5 rounded-full">India</span>
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 pt-2">
-                    <div className="rounded-lg border border-slate-700 overflow-hidden">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-slate-700 bg-slate-800/60">
-                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Category</th>
-                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Rate (INR)</th>
-                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Use Case</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                          <tr>
-                            <td className="px-3 py-2 text-white font-medium">Marketing</td>
-                            <td className="px-3 py-2 text-amber-400">₹0.86 – ₹0.90</td>
-                            <td className="px-3 py-2 text-slate-400">Promotions, launches, re-engagement</td>
-                          </tr>
-                          <tr>
-                            <td className="px-3 py-2 text-white font-medium">Utility</td>
-                            <td className="px-3 py-2 text-emerald-400">₹0.11 – ₹0.15</td>
-                            <td className="px-3 py-2 text-slate-400">Confirmations, updates, alerts</td>
-                          </tr>
-                          <tr>
-                            <td className="px-3 py-2 text-white font-medium">Authentication</td>
-                            <td className="px-3 py-2 text-emerald-400">₹0.11 – ₹0.15</td>
-                            <td className="px-3 py-2 text-slate-400">OTPs, login codes, verification</td>
-                          </tr>
-                          <tr>
-                            <td className="px-3 py-2 text-white font-medium">Service</td>
-                            <td className="px-3 py-2 text-primary font-semibold">Free</td>
-                            <td className="px-3 py-2 text-slate-400">Replies within 24h customer window</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                  <div className="p-5 space-y-5">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="rounded-lg border border-amber-900/40 bg-amber-950/20 p-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Radio className="h-3.5 w-3.5 text-amber-400" />
+                          <span className="text-xs font-medium text-amber-300">Marketing</span>
+                        </div>
+                        <p className="text-lg font-bold text-amber-400">₹0.86<span className="text-xs font-normal text-amber-500"> – ₹0.90</span></p>
+                        <p className="text-[10px] text-amber-500/80 mt-1">Promos, launches, re-engagement</p>
+                      </div>
+                      <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-xs font-medium text-emerald-300">Utility</span>
+                        </div>
+                        <p className="text-lg font-bold text-emerald-400">₹0.11<span className="text-xs font-normal text-emerald-500"> – ₹0.15</span></p>
+                        <p className="text-[10px] text-emerald-500/80 mt-1">Confirmations, updates, alerts</p>
+                      </div>
+                      <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Shield className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-xs font-medium text-emerald-300">Authentication</span>
+                        </div>
+                        <p className="text-lg font-bold text-emerald-400">₹0.11<span className="text-xs font-normal text-emerald-500"> – ₹0.15</span></p>
+                        <p className="text-[10px] text-emerald-500/80 mt-1">OTPs, login codes, verification</p>
+                      </div>
+                      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-xs font-medium text-primary">Service</span>
+                        </div>
+                        <p className="text-lg font-bold text-primary">Free</p>
+                        <p className="text-[10px] text-primary/60 mt-1">Replies within 24h window</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-2.5">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Key Details</h4>
-                      <div className="space-y-2">
-                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
-                          <span className="shrink-0 text-primary text-xs">•</span>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Service Window:</span> Utility messages are free when sent within a 24-hour customer service window (after the customer messages you).</p>
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-primary">Pro Tip</span>
+                      </div>
+                      <p className="text-xs text-slate-300">Utility messages are <span className="text-emerald-400 font-medium">free</span> when sent within the 24-hour customer service window (after the customer messages you first).</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Things to Know</h4>
+                      <div className="space-y-1.5">
+                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
+                          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <span className="text-[9px] text-primary font-bold">72h</span>
+                          </div>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Click-to-WhatsApp Ads</span> — 72-hour free window opens for all message types when a customer contacts you via an ad.</p>
                         </div>
-                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
-                          <span className="shrink-0 text-primary text-xs">•</span>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Click-to-WhatsApp Ads:</span> A 72-hour free messaging window opens for all message types when a customer contacts you via an ad.</p>
+                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">BSP Markups</span> — Platforms like Interakt, WATI, AiSensy add 10–30% on top of these base rates.</p>
                         </div>
-                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
-                          <span className="shrink-0 text-amber-400 text-xs">•</span>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">BSP Markups:</span> If using a BSP (Interakt, WATI, AiSensy), expect 10–30% markup on top of these base rates plus subscription fees.</p>
+                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">International OTP</span> — Sending OTPs from a non-India WABA costs significantly more. Always use a locally registered WABA.</p>
                         </div>
-                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
-                          <span className="shrink-0 text-amber-400 text-xs">•</span>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">International OTP:</span> Sending OTPs to Indian numbers from a non-India WABA incurs significantly higher rates. Use a locally registered WABA.</p>
-                        </div>
-                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
-                          <span className="shrink-0 text-slate-500 text-xs">•</span>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Taxes:</span> 18% GST applies on top of your total monthly Meta bill.</p>
+                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
+                          <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">GST</span> — 18% GST applies on top of your total monthly Meta bill.</p>
                         </div>
                       </div>
                     </div>
 
                     <p className="text-[10px] text-slate-600 border-t border-slate-800 pt-3">
-                      Rates shown are Meta's base charges for India. Actual costs may vary. Last verified June 2026.
+                      Rates are Meta's base charges for India. Actual costs may vary. Verified June 2026.
                     </p>
                   </div>
                 </DialogContent>
