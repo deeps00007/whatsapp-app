@@ -25,7 +25,6 @@ import {
   Shield,
   Phone,
   FileText,
-  Info,
   IndianRupee,
 } from "lucide-react";
 import { useRealtimeTable, type RealtimeTableEvent } from "@/hooks/use-realtime-table";
@@ -42,13 +41,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface NavItem {
   href: string;
@@ -73,6 +65,7 @@ const navItems: NavItem[] = [
 ];
 
 const bottomNavItems = [
+  { href: "/pricing", label: "Pricing Info", icon: IndianRupee },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -311,100 +304,6 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <div className="my-4 border-t border-slate-800" />
 
           <ul className="flex flex-col gap-1">
-            <li>
-              <Dialog>
-                <DialogTrigger
-                  render={
-                    <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white lg:py-2" />
-                  }
-                >
-                  <Info className="h-4 w-4" />
-                  Pricing Info
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-700 sm:max-w-lg p-0">
-                  <DialogHeader className="p-5 pb-4 border-b border-slate-800">
-                    <DialogTitle className="text-white flex items-center gap-2.5 text-base">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <IndianRupee className="h-4 w-4 text-primary" />
-                      </div>
-                      Meta Messaging Rates
-                      <span className="ml-auto text-xs font-normal bg-primary/10 text-primary px-2 py-0.5 rounded-full">India</span>
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="p-5 space-y-5">
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="rounded-lg border border-amber-900/40 bg-amber-950/20 p-3">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Radio className="h-3.5 w-3.5 text-amber-400" />
-                          <span className="text-xs font-medium text-amber-300">Marketing</span>
-                        </div>
-                        <p className="text-lg font-bold text-amber-400">₹0.86<span className="text-xs font-normal text-amber-500"> – ₹0.90</span></p>
-                        <p className="text-[10px] text-amber-500/80 mt-1">Promos, launches, re-engagement</p>
-                      </div>
-                      <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Zap className="h-3.5 w-3.5 text-emerald-400" />
-                          <span className="text-xs font-medium text-emerald-300">Utility</span>
-                        </div>
-                        <p className="text-lg font-bold text-emerald-400">₹0.11<span className="text-xs font-normal text-emerald-500"> – ₹0.15</span></p>
-                        <p className="text-[10px] text-emerald-500/80 mt-1">Confirmations, updates, alerts</p>
-                      </div>
-                      <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Shield className="h-3.5 w-3.5 text-emerald-400" />
-                          <span className="text-xs font-medium text-emerald-300">Authentication</span>
-                        </div>
-                        <p className="text-lg font-bold text-emerald-400">₹0.11<span className="text-xs font-normal text-emerald-500"> – ₹0.15</span></p>
-                        <p className="text-[10px] text-emerald-500/80 mt-1">OTPs, login codes, verification</p>
-                      </div>
-                      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-xs font-medium text-primary">Service</span>
-                        </div>
-                        <p className="text-lg font-bold text-primary">Free</p>
-                        <p className="text-[10px] text-primary/60 mt-1">Replies within 24h window</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-semibold text-primary">Pro Tip</span>
-                      </div>
-                      <p className="text-xs text-slate-300">Utility messages are <span className="text-emerald-400 font-medium">free</span> when sent within the 24-hour customer service window (after the customer messages you first).</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Things to Know</h4>
-                      <div className="space-y-1.5">
-                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
-                          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                            <span className="text-[9px] text-primary font-bold">72h</span>
-                          </div>
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Click-to-WhatsApp Ads</span> — 72-hour free window opens for all message types when a customer contacts you via an ad.</p>
-                        </div>
-                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">BSP Markups</span> — Platforms like Interakt, WATI, AiSensy add 10–30% on top of these base rates.</p>
-                        </div>
-                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">International OTP</span> — Sending OTPs from a non-India WABA costs significantly more. Always use a locally registered WABA.</p>
-                        </div>
-                        <div className="flex items-start gap-2.5 rounded-md bg-slate-800/40 p-2.5">
-                          <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                          <p className="text-xs text-slate-300"><span className="text-white font-medium">GST</span> — 18% GST applies on top of your total monthly Meta bill.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-slate-600 border-t border-slate-800 pt-3">
-                      Rates are Meta's base charges for India. Actual costs may vary. Verified June 2026.
-                    </p>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </li>
             {bottomNavItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
