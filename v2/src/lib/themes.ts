@@ -19,6 +19,11 @@ export const THEME_IDS = [
   "cobalt",
   "amber",
   "rose",
+  "violet-light",
+  "emerald-light",
+  "cobalt-light",
+  "amber-light",
+  "rose-light",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];
@@ -70,6 +75,36 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
     name: "Rose",
     tagline: "Bold and modern — D2C, creator-economy, lifestyle.",
     swatch: "oklch(0.645 0.22 16)",
+  },
+  {
+    id: "violet-light",
+    name: "Violet Light",
+    tagline: "Violet accent on a clean light canvas.",
+    swatch: "oklch(0.526 0.247 293)",
+  },
+  {
+    id: "emerald-light",
+    name: "Emerald Light",
+    tagline: "Fresh and bright — ideal for daytime use.",
+    swatch: "oklch(0.52 0.14 162)",
+  },
+  {
+    id: "cobalt-light",
+    name: "Cobalt Light",
+    tagline: "Professional blue on a light backdrop.",
+    swatch: "oklch(0.485 0.18 254)",
+  },
+  {
+    id: "amber-light",
+    name: "Amber Light",
+    tagline: "Warm tones, light and inviting.",
+    swatch: "oklch(0.645 0.14 65)",
+  },
+  {
+    id: "rose-light",
+    name: "Rose Light",
+    tagline: "Playful pink in a softer palette.",
+    swatch: "oklch(0.545 0.2 16)",
   },
 ];
 

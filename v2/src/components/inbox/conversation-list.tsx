@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -44,7 +44,7 @@ interface ConversationListProps {
 const STATUS_COLORS: Record<ConversationStatus, string> = {
   open: "bg-primary",
   pending: "bg-amber-500",
-  closed: "bg-slate-500",
+  closed: "bg-muted",
 };
 
 const FILTER_OPTIONS: { label: string; value: ConversationStatus | "all" }[] = [
@@ -193,24 +193,24 @@ export function ConversationList({
     // w-full on mobile so the list occupies the whole viewport when it's
     // the single pane showing; fixed 320px on desktop where it shares the
     // row with the thread + contact sidebar.
-    <div className="flex h-full w-full flex-col border-r border-slate-800 bg-slate-900 lg:w-80">
+    <div className="flex h-full w-full flex-col border-r border-border bg-background lg:w-80">
       {/* Search + Filter */}
-      <div className="shrink-0 space-y-2 border-b border-slate-800 p-3">
+      <div className="shrink-0 space-y-2 border-b border-border p-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={handleSearchChange}
               placeholder="Search conversations..."
-              className="border-slate-700 bg-slate-800 pl-9 text-sm text-white placeholder-slate-500 focus:border-primary/50"
+              className="border-border bg-card pl-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary/50"
             />
           </div>
           <Button
             size="icon"
             variant="outline"
             onClick={() => setNewMsgOpen(true)}
-            className="shrink-0 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white"
+            className="shrink-0 border-border bg-transparent text-foreground hover:bg-accent hover:text-foreground"
             title="New message"
           >
             <MessageSquarePlus className="h-4 w-4" />
@@ -218,13 +218,13 @@ export function ConversationList({
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-slate-400 hover:text-white rounded-md hover:bg-slate-800">
+          <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-accent">
               {activeFilter?.label ?? "All"}
               <ChevronDown className="h-3 w-3" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
-            className="border-slate-700 bg-slate-800"
+            className="border-border bg-card"
           >
             {FILTER_OPTIONS.map((opt) => (
               <DropdownMenuItem
@@ -234,7 +234,7 @@ export function ConversationList({
                   "text-sm",
                   filter === opt.value
                     ? "text-primary"
-                    : "text-slate-300"
+                    : "text-foreground"
                 )}
               >
                 {opt.label}
@@ -253,7 +253,7 @@ export function ConversationList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <p className="text-sm text-slate-500">No conversations found</p>
+            <p className="text-sm text-muted-foreground">No conversations found</p>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -272,42 +272,42 @@ export function ConversationList({
 
       {/* New Message Dialog */}
       <Dialog open={newMsgOpen} onOpenChange={setNewMsgOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-md">
+        <DialogContent className="bg-background border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">New Message</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">New Message</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Send a WhatsApp message to any phone number.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-2">
-              <Label className="text-slate-300">Phone Number</Label>
+              <Label className="text-foreground">Phone Number</Label>
               <Input
                 placeholder="+91 98765 43210"
                 value={newMsgPhone}
                 onChange={(e) => setNewMsgPhone(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                className="bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Contact Name (optional)</Label>
+              <Label className="text-foreground">Contact Name (optional)</Label>
               <Input
                 placeholder="John Doe"
                 value={newMsgName}
                 onChange={(e) => setNewMsgName(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                className="bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Message</Label>
+              <Label className="text-foreground">Message</Label>
               <Textarea
                 placeholder="Type your message..."
                 value={newMsgText}
                 onChange={(e) => setNewMsgText(e.target.value)}
                 rows={3}
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+                className="bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Free-form text works within 24hrs of last customer message. For first contact, use a template.
               </p>
             </div>
@@ -316,7 +316,7 @@ export function ConversationList({
             <Button
               variant="outline"
               onClick={() => setNewMsgOpen(false)}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              className="border-border text-foreground hover:bg-accent"
             >
               Cancel
             </Button>
@@ -370,12 +370,12 @@ function ConversationItem({
     <button
       onClick={handleClick}
       className={cn(
-        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-slate-800/50",
-        isActive && "border-l-2 border-primary bg-slate-800/70"
+        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-accent/50",
+        isActive && "border-l-2 border-primary bg-card/70"
       )}
     >
       {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-medium text-white">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-foreground">
         {contact?.avatar_url ? (
           <img
             src={contact.avatar_url}
@@ -390,13 +390,13 @@ function ConversationItem({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-white">
+          <span className="truncate text-sm font-medium text-foreground">
             {displayName}
           </span>
-          <span className="shrink-0 text-[10px] text-slate-500">{timeAgo}</span>
+          <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-slate-400">
+          <p className="truncate text-xs text-muted-foreground">
             {conversation.last_message_text || "No messages yet"}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">

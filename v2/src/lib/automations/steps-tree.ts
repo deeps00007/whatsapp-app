@@ -37,13 +37,58 @@ export async function replaceSteps(
   automationId: string,
   input: BuilderStepInput[],
 ): Promise<string | null> {
-  const admin = supabaseAdmin()
-  const { error: delErr } = await admin
-    .from('automation_steps')
-    .delete()
-    .eq('automation_id', automationId)
-  if (delErr) return delErr.message
-  return insertSteps(automationId, input)
+  if (!input || input.length === 0) {
+    const { error: delErr } = await supabaseAdmin()
+      .from('automation_steps')
+      .delete()
+      .eq('automation_id', automationId)
+    return delErr?.message ?? null
+  }
+
+  const looksFlat = input.some(
+    (s) => s.branch !== undefined || s.parent_index !== undefined,
+  )
+  const tree = looksFlat ? seedsToTree(input) : input
+
+  const rows: InsertRow[] = []
+  function walk(
+    steps: BuilderStepInput[],
+    parentId: string | null,
+    branch: 'yes' | 'no' | null,
+  ) {
+    steps.forEach((s, idx) => {
+      const id = s.id ?? uid()
+      rows.push({
+        id,
+        automation_id: automationId,
+        parent_step_id: parentId,
+        branch,
+        step_type: s.step_type,
+        step_config: s.step_config ?? {},
+        position: idx,
+      })
+      if (s.step_type === 'condition' && s.branches) {
+        if (s.branches.yes) walk(s.branches.yes, id, 'yes')
+        if (s.branches.no) walk(s.branches.no, id, 'no')
+      }
+    })
+  }
+  walk(tree, null, null)
+
+  if (rows.length === 0) return null
+
+  const { error: rpcErr } = await supabaseAdmin().rpc('replace_automation_steps', {
+    p_automation_id: automationId,
+    p_steps: rows.map(r => ({
+      id: r.id,
+      parent_step_id: r.parent_step_id,
+      branch: r.branch,
+      step_type: r.step_type,
+      step_config: r.step_config,
+      position: r.position,
+    })),
+  })
+  return rpcErr?.message ?? null
 }
 
 export async function insertSteps(

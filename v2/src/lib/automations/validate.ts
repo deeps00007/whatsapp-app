@@ -161,13 +161,26 @@ export function validateTriggerForActivation(
       })
     }
   } else if (triggerType === 'time_based') {
-    if (!nonEmpty(cfg.schedule)) {
-      issues.push({ path: 'trigger.schedule', message: 'schedule is required' })
+    if (!nonEmpty(cfg.time)) {
+      issues.push({ path: 'trigger.time', message: 'time (HH:mm) is required' })
+    }
+    if (!['daily', 'weekly', 'monthly'].includes(String(cfg.frequency))) {
+      issues.push({ path: 'trigger.frequency', message: 'frequency must be daily, weekly, or monthly' })
+    }
+    if (cfg.frequency === 'weekly') {
+      const days = cfg.days as number[] | undefined
+      if (!Array.isArray(days) || days.length === 0) {
+        issues.push({ path: 'trigger.days', message: 'at least one day is required for weekly frequency' })
+      }
+    }
+    if (cfg.frequency === 'monthly') {
+      const dom = cfg.day_of_month as number | undefined
+      if (typeof dom !== 'number' || dom < 1 || dom > 31) {
+        issues.push({ path: 'trigger.day_of_month', message: 'day of month must be between 1 and 31' })
+      }
     }
   } else if (triggerType === 'tag_added') {
-    if (!nonEmpty(cfg.tag_id)) {
-      issues.push({ path: 'trigger.tag_id', message: 'tag is required' })
-    }
+    // tag_added fires for any tag — no required config
   }
 
   return issues

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Plus, FileText } from "lucide-react"
@@ -21,8 +21,8 @@ export default function TemplatesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Templates</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-foreground">Templates</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Create and manage WhatsApp message templates for broadcasts and automations.
           </p>
         </div>

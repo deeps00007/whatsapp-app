@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -456,7 +456,7 @@ export function WhatsAppConfig() {
                         placeholder="Enter 6-digit code"
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                        className="w-48 border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900"
+                        className="w-48 border-amber-300 dark:border-amber-700 bg-white dark:bg-background"
                         autoFocus
                       />
                       <Button

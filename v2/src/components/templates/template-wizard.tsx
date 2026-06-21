@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useMemo, useEffect, useCallback } from "react"
 import {
@@ -414,7 +414,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
   return (
     <div className="space-y-5">
       {/* Stepper */}
-      <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 px-4 py-3">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3">
         {STEPS.map((label, i) => {
           const n = i + 1
           const active = step === n
@@ -423,15 +423,15 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
             <div key={label} className="flex items-center gap-2">
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-[11px] font-semibold ${
-                  active ? "border-primary text-primary" : done ? "border-primary bg-primary text-primary-foreground" : "border-slate-600 text-slate-500"
+                  active ? "border-primary text-primary" : done ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"
                 }`}
               >
                 {done ? <Check className="h-3.5 w-3.5" /> : n}
               </div>
-              <span className={`text-sm font-medium ${active ? "text-primary" : done ? "text-slate-200" : "text-slate-500"}`}>
+              <span className={`text-sm font-medium ${active ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"}`}>
                 {label}
               </span>
-              {n < STEPS.length && <span className="mx-2 h-px w-8 bg-slate-700" />}
+              {n < STEPS.length && <span className="mx-2 h-px w-8 bg-secondary" />}
             </div>
           )
         })}
@@ -439,33 +439,33 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* MAIN PANEL */}
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+        <div className="rounded-lg border border-border bg-background p-6">
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-base font-semibold text-white">Set up your template</h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <h2 className="text-base font-semibold text-foreground">Set up your template</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Choose the category that best describes your message template.
                   Then select the type of message you want to send.
                 </p>
               </div>
 
-              <div className="flex rounded-lg border border-slate-700 text-sm overflow-hidden">
+              <div className="flex rounded-lg border border-border text-sm overflow-hidden">
                 {CATEGORY_TABS.map((c, i) => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => resetForCategory(c)}
                     className={`flex-1 px-4 py-2.5 font-medium transition ${
-                      category === c ? "bg-slate-800 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800/50"
-                    } ${i !== 0 ? "border-l border-slate-700" : ""}`}
+                      category === c ? "bg-card text-foreground" : "bg-background text-muted-foreground hover:bg-accent/50"
+                    } ${i !== 0 ? "border-l border-border" : ""}`}
                   >
                     {c}
                   </button>
                 ))}
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-slate-700">
+              <div className="overflow-hidden rounded-lg border border-border">
                 {CATEGORY_OPTIONS[category].map((opt, i) => (
                   <button
                     key={opt.value}
@@ -473,28 +473,28 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                     disabled={!opt.enabled}
                     onClick={() => setSubtype(opt.value)}
                     className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
-                      i !== 0 ? "border-t border-slate-700" : ""
+                      i !== 0 ? "border-t border-border" : ""
                     } ${
                       subtype === opt.value
                         ? "bg-primary/5"
                         : opt.enabled
-                          ? "hover:bg-slate-800/50"
+                          ? "hover:bg-accent/50"
                           : "opacity-50"
                     }`}
                   >
                     <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                      subtype === opt.value ? "border-primary" : "border-slate-600"
+                      subtype === opt.value ? "border-primary" : "border-border"
                     }`}>
                       {subtype === opt.value && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                         {opt.label}
                         {!opt.enabled && (
-                          <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-700">Coming soon</Badge>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">Coming soon</Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500">{opt.desc}</p>
+                      <p className="text-xs text-muted-foreground">{opt.desc}</p>
                     </div>
                   </button>
                 ))}
@@ -504,26 +504,26 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="text-base font-semibold text-white">Edit template</h2>
+              <h2 className="text-base font-semibold text-foreground">Edit template</h2>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1 text-xs text-slate-400">Template name</Label>
+                  <Label className="mb-1 text-xs text-muted-foreground">Template name</Label>
                   <Input
                     value={name}
                     onChange={(e) => { setName(e.target.value); setTouched((t) => ({ ...t, name: true })) }}
                     placeholder="order_shipped_update"
-                    className={`bg-slate-800 border-slate-700 text-slate-100 ${touched.name && step2Errors.name ? "border-red-500" : ""}`}
+                    className={`bg-card border-border text-foreground ${touched.name && step2Errors.name ? "border-red-500" : ""}`}
                   />
                   {touched.name && step2Errors.name && <p className="mt-1 text-xs text-red-400">{step2Errors.name}</p>}
                 </div>
                 <div>
-                  <Label className="mb-1 text-xs text-slate-400">Language</Label>
+                  <Label className="mb-1 text-xs text-muted-foreground">Language</Label>
                   <Select value={language} onValueChange={(v: string | null) => { if (v) setLanguage(v) }}>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                    <SelectTrigger className="bg-card border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectContent className="bg-card border-border">
                       {LANGUAGES.map((l) => (
                         <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
                       ))}
@@ -533,9 +533,9 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
               </div>
 
               {category === "Authentication" ? (
-                <div className="space-y-4 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+                <div className="space-y-4 rounded-lg border border-border bg-accent/50 p-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-200">Code delivery method</p>
+                    <p className="text-sm font-medium text-foreground">Code delivery method</p>
                     <div className="mt-2 flex gap-2">
                       {([
                         { v: "copy" as const, l: "Copy code" },
@@ -546,7 +546,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                           type="button"
                           onClick={() => setAuthMethod(m.v)}
                           className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
-                            authMethod === m.v ? "border-primary bg-primary/10 text-primary" : "border-slate-600 text-slate-400"
+                            authMethod === m.v ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
                           }`}
                         >
                           {m.l}
@@ -560,30 +560,30 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                       </p>
                     )}
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <label className="flex items-center gap-2 text-sm text-foreground">
                     <input type="checkbox" checked={authSecurityNote} onChange={(e) => setAuthSecurityNote(e.target.checked)} className="accent-primary" />
                     Add security recommendation
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <label className="flex items-center gap-2 text-sm text-foreground">
                     <input type="checkbox" checked={authExpiry} onChange={(e) => setAuthExpiry(e.target.checked)} className="accent-primary" />
                     Add code expiration time
                   </label>
                   {authExpiry && (
                     <div className="flex items-center gap-2 pl-6">
-                      <Input type="number" min={1} max={90} value={authExpiryMinutes} onChange={(e) => setAuthExpiryMinutes(e.target.value)} className="w-20 bg-slate-800 border-slate-700 text-slate-100" />
-                      <span className="text-xs text-slate-500">minutes</span>
+                      <Input type="number" min={1} max={90} value={authExpiryMinutes} onChange={(e) => setAuthExpiryMinutes(e.target.value)} className="w-20 bg-card border-border text-foreground" />
+                      <span className="text-xs text-muted-foreground">minutes</span>
                     </div>
                   )}
-                  <div className="rounded-md bg-slate-800 px-3 py-2 text-xs text-slate-400">
+                  <div className="rounded-md bg-card px-3 py-2 text-xs text-muted-foreground">
                     Body text is fixed by Meta for authentication templates:
                     <br />
-                    <span className="font-mono text-[11px] text-slate-300">{authBody}</span>
+                    <span className="font-mono text-[11px] text-foreground">{authBody}</span>
                   </div>
                 </div>
               ) : (
                 <>
                   <section className="space-y-3">
-                    <h3 className="text-sm font-semibold text-slate-200">Header <span className="font-normal text-slate-500">(optional)</span></h3>
+                    <h3 className="text-sm font-semibold text-foreground">Header <span className="font-normal text-muted-foreground">(optional)</span></h3>
                     <div className="flex flex-wrap gap-2">
                       {HEADER_TYPES.map((h) => {
                         const Icon = h.icon
@@ -593,7 +593,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                             type="button"
                             onClick={() => setHeaderType(h.value)}
                             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
-                              headerType === h.value ? "border-primary bg-primary/10 text-primary" : "border-slate-700 text-slate-400 hover:border-slate-600"
+                              headerType === h.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-border"
                             }`}
                           >
                             <Icon className="h-3.5 w-3.5" />
@@ -609,10 +609,10 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                           value={headerContent}
                           onChange={(e) => setHeaderContent(e.target.value)}
                           placeholder="Your order is on its way"
-                          className="bg-slate-800 border-slate-700 text-slate-100"
+                          className="bg-card border-border text-foreground"
                         />
-                        <div className="mt-1 flex justify-between text-xs text-slate-500">
-                          <button type="button" onClick={() => insertVariable(headerRef, setHeaderContent, headerContent)} className="flex items-center gap-1 hover:text-slate-200">
+                        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                          <button type="button" onClick={() => insertVariable(headerRef, setHeaderContent, headerContent)} className="flex items-center gap-1 hover:text-foreground">
                             <Plus className="h-3 w-3" /> Insert variable
                           </button>
                           <span className={headerContent.length > HEADER_TEXT_MAX ? "text-red-400" : ""}>{headerContent.length}/{HEADER_TEXT_MAX}</span>
@@ -634,28 +634,28 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                             onDrop={onDrop}
                             onDragOver={onDragOver}
                             onClick={() => !uploading && fileInputRef.current?.click()}
-                            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-700 bg-slate-800/50 px-4 py-6 transition ${
-                              uploading ? "pointer-events-none opacity-60" : "hover:border-primary/50 hover:bg-slate-800"
+                            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-accent/50 px-4 py-6 transition ${
+                              uploading ? "pointer-events-none opacity-60" : "hover:border-primary/50 hover:bg-accent"
                             }`}
                           >
                             {uploading ? (
                               <Loader2 className="h-6 w-6 animate-spin text-primary" />
                             ) : (
                               <>
-                                {headerType === "image" && <ImageIcon className="h-6 w-6 text-slate-500" />}
-                                {headerType === "video" && <Video className="h-6 w-6 text-slate-500" />}
-                                {headerType === "document" && <FileText className="h-6 w-6 text-slate-500" />}
+                                {headerType === "image" && <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+                                {headerType === "video" && <Video className="h-6 w-6 text-muted-foreground" />}
+                                {headerType === "document" && <FileText className="h-6 w-6 text-muted-foreground" />}
                               </>
                             )}
                             <div className="text-center">
                               {uploading ? (
-                                <p className="text-sm text-slate-400">Uploading...</p>
+                                <p className="text-sm text-muted-foreground">Uploading...</p>
                               ) : (
                                 <>
-                                  <p className="text-sm font-medium text-slate-300">
+                                  <p className="text-sm font-medium text-foreground">
                                     <span className="text-primary">Click to upload</span> or drag and drop
                                   </p>
-                                  <p className="mt-0.5 text-[11px] text-slate-500">
+                                  <p className="mt-0.5 text-[11px] text-muted-foreground">
                                     {headerType === "image" && "PNG, JPG or WebP (max 1MB)"}
                                     {headerType === "video" && "MP4 or 3GP (max 16MB)"}
                                     {headerType === "document" && "PDF (max 5MB)"}
@@ -677,21 +677,21 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                                   : headerType === "video" ? "https://example.com/video.mp4"
                                   : "https://example.com/document.pdf"
                                 }
-                                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 text-xs"
+                                className="flex-1 bg-card border-border text-foreground text-xs"
                               />
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={() => { setHeaderContent(""); setMediaPreviewError(false); setUploadError(null) }}
-                                className="shrink-0 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-800 h-8 px-2"
+                                className="shrink-0 border-border text-muted-foreground hover:text-red-400 hover:border-red-800 h-8 px-2"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </div>
 
                             {headerType === "image" && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
-                              <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                              <div className="overflow-hidden rounded-lg border border-border bg-card">
                                 <img
                                   src={headerContent}
                                   alt="Preview"
@@ -701,7 +701,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                               </div>
                             )}
                             {headerType === "video" && /^https?:\/\//i.test(headerContent) && !mediaPreviewError && (
-                              <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-800">
+                              <div className="overflow-hidden rounded-lg border border-border bg-card">
                                 <video
                                   src={headerContent}
                                   className="max-h-32 w-full object-cover"
@@ -727,7 +727,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
                         {!headerContent && (
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-slate-500">or paste a URL:</span>
+                            <span className="text-[11px] text-muted-foreground">or paste a URL:</span>
                             <Input
                               value=""
                               onChange={(e) => { if (e.target.value) { setHeaderContent(e.target.value); setMediaPreviewError(false) } }}
@@ -736,7 +736,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                                 : headerType === "video" ? "https://example.com/video.mp4"
                                 : "https://example.com/document.pdf"
                               }
-                              className="flex-1 h-7 bg-slate-800 border-slate-700 text-slate-100 text-xs"
+                              className="flex-1 h-7 bg-card border-border text-foreground text-xs"
                             />
                           </div>
                         )}
@@ -747,8 +747,8 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
                   <section className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-200">Body</h3>
-                      <button type="button" onClick={() => insertVariable(bodyRef, setBodyText, bodyText)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-200">
+                      <h3 className="text-sm font-semibold text-foreground">Body</h3>
+                      <button type="button" onClick={() => insertVariable(bodyRef, setBodyText, bodyText)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
                         <Plus className="h-3 w-3" /> Insert variable
                       </button>
                     </div>
@@ -758,28 +758,28 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                       onChange={(e) => { setBodyText(e.target.value); setTouched((t) => ({ ...t, bodyText: true })) }}
                       rows={5}
                       placeholder={PLACEHOLDER_BODY[category]}
-                      className={`bg-slate-800 border-slate-700 text-slate-100 resize-none ${touched.bodyText && step2Errors.bodyText ? "border-red-500" : ""}`}
+                      className={`bg-card border-border text-foreground resize-none ${touched.bodyText && step2Errors.bodyText ? "border-red-500" : ""}`}
                     />
-                    <div className="flex justify-between text-xs text-slate-500">
+                    <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Can't start or end with a variable</span>
                       <span className={bodyText.length > BODY_MAX ? "text-red-400" : ""}>{bodyText.length}/{BODY_MAX}</span>
                     </div>
                     {touched.bodyText && step2Errors.bodyText && <p className="text-xs text-red-400">{step2Errors.bodyText}</p>}
 
                     {allVariables.length > 0 && (
-                      <div className="mt-2 space-y-2 rounded-lg bg-slate-800/50 p-3">
-                        <p className="flex items-center gap-1 text-xs font-medium text-slate-400">
+                      <div className="mt-2 space-y-2 rounded-lg bg-accent/50 p-3">
+                        <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                           <Info className="h-3 w-3" /> Sample values for preview
                         </p>
                         {allVariables.map((v) => (
                           <div key={v} className="flex items-center gap-2">
-                            <span className="w-12 shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-center text-[11px] font-mono text-slate-300">
+                            <span className="w-12 shrink-0 rounded bg-secondary px-1.5 py-0.5 text-center text-[11px] font-mono text-foreground">
                               {`{{${v}}}`}
                             </span>
                             <Input
                               value={sampleValues[v] || ""}
                               onChange={(e) => setSampleValues((s) => ({ ...s, [v]: e.target.value }))}
-                              className="flex-1 h-7 bg-slate-800 border-slate-700 text-slate-100 text-xs"
+                              className="flex-1 h-7 bg-card border-border text-foreground text-xs"
                             />
                           </div>
                         ))}
@@ -788,14 +788,14 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                   </section>
 
                   <section className="space-y-1">
-                    <h3 className="text-sm font-semibold text-slate-200">Footer <span className="font-normal text-slate-500">(optional)</span></h3>
+                    <h3 className="text-sm font-semibold text-foreground">Footer <span className="font-normal text-muted-foreground">(optional)</span></h3>
                     <Input
                       value={footerText}
                       onChange={(e) => setFooterText(e.target.value)}
                       placeholder="Reply STOP to unsubscribe"
-                      className="bg-slate-800 border-slate-700 text-slate-100"
+                      className="bg-card border-border text-foreground"
                     />
-                    <div className="flex justify-between text-xs text-slate-500">
+                    <div className="flex justify-between text-xs text-muted-foreground">
                       <span>No variables allowed</span>
                       <span className={footerText.length > FOOTER_MAX ? "text-red-400" : ""}>{footerText.length}/{FOOTER_MAX}</span>
                     </div>
@@ -804,35 +804,35 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
                   <section className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-200">Buttons <span className="font-normal text-slate-500">(optional, up to 3)</span></h3>
+                      <h3 className="text-sm font-semibold text-foreground">Buttons <span className="font-normal text-muted-foreground">(optional, up to 3)</span></h3>
                       {buttons.length < 3 && (
-                        <button type="button" onClick={addButton} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-200">
+                        <button type="button" onClick={addButton} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
                           <Plus className="h-3 w-3" /> Add button
                         </button>
                       )}
                     </div>
                     {buttons.map((btn) => (
-                      <div key={btn.id} className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/50 p-2">
+                      <div key={btn.id} className="flex items-start gap-2 rounded-lg border border-border bg-accent/50 p-2">
                         <Select value={btn.type} onValueChange={(v: string | null) => { if (v) updateButton(btn.id, { type: v, value: "" }) }}>
-                          <SelectTrigger className="w-36 h-8 bg-slate-800 border-slate-700 text-slate-100 text-xs">
+                          <SelectTrigger className="w-36 h-8 bg-card border-border text-foreground text-xs">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700">
+                          <SelectContent className="bg-card border-border">
                             {BUTTON_TYPES.map((t) => (
                               <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <div className="flex-1 space-y-1">
-                          <Input value={btn.text} onChange={(e) => updateButton(btn.id, { text: e.target.value })} placeholder="Button label" className="h-7 bg-slate-800 border-slate-700 text-slate-100 text-xs" />
+                          <Input value={btn.text} onChange={(e) => updateButton(btn.id, { text: e.target.value })} placeholder="Button label" className="h-7 bg-card border-border text-foreground text-xs" />
                           {btn.type !== "QUICK_REPLY" && (
-                            <Input value={btn.value} onChange={(e) => updateButton(btn.id, { value: e.target.value })} placeholder={btn.type === "URL" ? "https://example.com" : "+91XXXXXXXXXX"} className="h-7 bg-slate-800 border-slate-700 text-slate-100 text-xs" />
+                            <Input value={btn.value} onChange={(e) => updateButton(btn.id, { value: e.target.value })} placeholder={btn.type === "URL" ? "https://example.com" : "+91XXXXXXXXXX"} className="h-7 bg-card border-border text-foreground text-xs" />
                           )}
                           {(step2Errors[`button_${btn.id}`] || step2Errors[`button_${btn.id}_value`]) && (
                             <p className="text-[11px] text-red-400">{step2Errors[`button_${btn.id}`] || step2Errors[`button_${btn.id}_value`]}</p>
                           )}
                         </div>
-                        <button type="button" onClick={() => removeButton(btn.id)} className="text-slate-500 hover:text-red-400 mt-0.5">
+                        <button type="button" onClick={() => removeButton(btn.id)} className="text-muted-foreground hover:text-red-400 mt-0.5">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -845,10 +845,10 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-white">Submit for review</h2>
-              <p className="text-sm text-slate-400">Review your template before sending it to Meta for approval.</p>
+              <h2 className="text-base font-semibold text-foreground">Submit for review</h2>
+              <p className="text-sm text-muted-foreground">Review your template before sending it to Meta for approval.</p>
 
-              <dl className="divide-y divide-slate-800 rounded-lg border border-slate-700">
+              <dl className="divide-y divide-border rounded-lg border border-border">
                 {([
                   ["Name", name || "—"],
                   ["Category", category],
@@ -859,8 +859,8 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                   ["Buttons", category === "Authentication" ? (authMethod === "copy" ? "Copy code" : "One-tap autofill") : buttons.length ? buttons.map((b) => b.text).join(", ") : "None"],
                 ] as [string, string][]).map(([k, v]) => (
                   <div key={k} className="flex gap-4 px-4 py-2.5 text-sm">
-                    <dt className="w-28 shrink-0 text-slate-500">{k}</dt>
-                    <dd className="whitespace-pre-wrap text-slate-200">{v}</dd>
+                    <dt className="w-28 shrink-0 text-muted-foreground">{k}</dt>
+                    <dd className="whitespace-pre-wrap text-foreground">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -885,18 +885,18 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
 
         {/* PREVIEW */}
         <div className="lg:sticky lg:top-8 lg:self-start">
-          <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-            <p className="mb-3 text-sm font-semibold text-slate-200">Template Preview</p>
+          <div className="rounded-lg border border-border bg-background p-4">
+            <p className="mb-3 text-sm font-semibold text-foreground">Template Preview</p>
             <div
               className="relative min-h-[300px] overflow-hidden rounded-lg px-3 py-4"
               style={{ backgroundColor: "#0b141a", backgroundImage: "radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "14px 14px" }}
             >
-              <div className="ml-auto max-w-[92%] rounded-xl rounded-tr-sm bg-slate-700 px-3 py-2">
+              <div className="ml-auto max-w-[92%] rounded-xl rounded-tr-sm bg-secondary px-3 py-2">
                 {headerType === "text" && headerContent && (
-                  <p className="mb-1 text-[13px] font-semibold text-slate-100">{previewHeaderText}</p>
+                  <p className="mb-1 text-[13px] font-semibold text-foreground">{previewHeaderText}</p>
                 )}
                 {headerType === "image" && (
-                  <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-slate-600">
+                  <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError ? (
                       <img
                         src={headerContent}
@@ -905,12 +905,12 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                         onError={() => setMediaPreviewError(true)}
                       />
                     ) : (
-                      <ImageIcon className="h-6 w-6 text-slate-400" />
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                 )}
                 {headerType === "video" && (
-                  <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-slate-600">
+                  <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {headerContent && /^https?:\/\//i.test(headerContent) && !mediaPreviewError ? (
                       <video
                         src={headerContent}
@@ -920,35 +920,35 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
                         playsInline
                       />
                     ) : (
-                      <Video className="h-6 w-6 text-slate-400" />
+                      <Video className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                 )}
                 {headerType === "document" && (
-                  <div className="mb-2 flex items-center gap-2 rounded-lg bg-slate-600 px-3 py-2">
-                    <FileText className="h-4 w-4 text-slate-400" />
-                    <span className="text-xs text-slate-300">document.pdf</span>
+                  <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-foreground">document.pdf</span>
                   </div>
                 )}
 
-                <p className={`whitespace-pre-wrap text-[13px] leading-snug ${isPlaceholderContent ? "text-slate-500" : "text-slate-100"}`}>
+                <p className={`whitespace-pre-wrap text-[13px] leading-snug ${isPlaceholderContent ? "text-muted-foreground" : "text-foreground"}`}>
                   {previewBody}
                 </p>
 
-                {footerText && <p className="mt-1 text-[11px] text-slate-400">{footerText}</p>}
+                {footerText && <p className="mt-1 text-[11px] text-muted-foreground">{footerText}</p>}
 
                 <div className="mt-1 flex items-center justify-end gap-1">
-                  <span className="text-[10px] text-slate-400">11:59</span>
+                  <span className="text-[10px] text-muted-foreground">11:59</span>
                   <CheckCheck className="h-3 w-3 text-sky-400" />
                 </div>
               </div>
 
               {previewButtons.length > 0 && (
-                <div className="ml-auto mt-1 max-w-[92%] space-y-px overflow-hidden rounded-lg bg-slate-700">
+                <div className="ml-auto mt-1 max-w-[92%] space-y-px overflow-hidden rounded-lg bg-secondary">
                   {previewButtons.map((b, i) => {
                     const Icon = b.icon
                     return (
-                      <div key={i} className="flex items-center justify-center gap-1.5 border-t border-slate-600 py-2 text-[12px] font-medium text-primary first:border-t-0">
+                      <div key={i} className="flex items-center justify-center gap-1.5 border-t border-border py-2 text-[12px] font-medium text-primary first:border-t-0">
                         <Icon className="h-3.5 w-3.5" />
                         {b.label}
                       </div>
@@ -960,24 +960,24 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
           </div>
 
           {step === 1 && (
-            <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900 p-4 text-xs">
-              <p className="font-semibold text-slate-200">This template is good for</p>
-              <p className="mt-1 text-slate-400">{CATEGORY_META[category].goodFor}</p>
-              <p className="mt-3 font-semibold text-slate-200">Template areas you can customize</p>
-              <p className="mt-1 text-slate-400">{CATEGORY_META[category].customize}</p>
+            <div className="mt-3 rounded-lg border border-border bg-background p-4 text-xs">
+              <p className="font-semibold text-foreground">This template is good for</p>
+              <p className="mt-1 text-muted-foreground">{CATEGORY_META[category].goodFor}</p>
+              <p className="mt-3 font-semibold text-foreground">Template areas you can customize</p>
+              <p className="mt-1 text-muted-foreground">{CATEGORY_META[category].customize}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* FOOTER BAR */}
-      <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-4 py-3">
-        <Button variant="outline" onClick={() => { discard(); onComplete?.() }} className="border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white">
+      <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+        <Button variant="outline" onClick={() => { discard(); onComplete?.() }} className="border-border text-muted-foreground hover:bg-accent hover:text-foreground">
           Discard
         </Button>
         <div className="flex gap-2">
           {step > 1 && (
-            <Button variant="outline" onClick={() => setStep((s) => s - 1)} className="border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white">
+            <Button variant="outline" onClick={() => setStep((s) => s - 1)} className="border-border text-muted-foreground hover:bg-accent hover:text-foreground">
               Back
             </Button>
           )}

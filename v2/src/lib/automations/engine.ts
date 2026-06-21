@@ -107,7 +107,7 @@ export async function resumePendingExecution(pending: {
   }
 
   try {
-    await executeStepsFrom({
+    const ok = await executeStepsFrom({
       automation: automation as Automation,
       contactId: pending.contact_id,
       context: pending.context ?? {},
@@ -117,7 +117,7 @@ export async function resumePendingExecution(pending: {
       logId: pending.log_id,
       triggerEvent: 'resumed_wait',
     })
-    await markPending(pending.id, 'done')
+    await markPending(pending.id, ok ? 'done' : 'failed')
   } catch (err) {
     console.error('[automations] resume failed:', err)
     await markPending(pending.id, 'failed')
@@ -183,7 +183,7 @@ interface ExecuteArgs {
   triggerEvent: string
 }
 
-async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
+async function executeStepsFrom(args: ExecuteArgs): Promise<boolean> {
   const db = supabaseAdmin()
 
   const baseQuery = db
@@ -202,13 +202,13 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
 
   if (stepsErr) {
     await finalizeLog(args.logId, 'failed', stepsErr.message)
-    return
+    return false
   }
   if (!steps || steps.length === 0) {
     if (args.parentStepId === null && args.logId) {
       await finalizeLog(args.logId, 'success', null)
     }
-    return
+    return true
   }
 
   const results: AutomationLogStepResult[] = []
@@ -216,8 +216,6 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   let errorMessage: string | null = null
 
   for (const step of steps as AutomationStep[]) {
-    // `wait` is the suspension point: enqueue and stop processing this
-    // scope. The cron endpoint will pick it up later.
     if (step.step_type === 'wait') {
       const cfg = step.step_config as WaitStepConfig
       const ms = waitMs(cfg)
@@ -241,7 +239,7 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
       })
       status = 'partial'
       await appendResults(args.logId, results, status, errorMessage)
-      return
+      return true
     }
 
     try {
@@ -254,15 +252,18 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
           status: 'success',
           detail: `branch=${taken ? 'yes' : 'no'}`,
         })
-        // Recurse into the chosen branch at position 0 (children use their
-        // own ordering within the branch scope).
-        await executeStepsFrom({
+        const branchOk = await executeStepsFrom({
           ...args,
           parentStepId: step.id,
           branch: taken ? 'yes' : 'no',
           startPosition: 0,
           logId: args.logId,
         })
+        if (!branchOk) {
+          status = 'failed'
+          errorMessage = 'condition branch failed'
+          break
+        }
         continue
       }
 
@@ -290,9 +291,10 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   if (args.parentStepId === null) {
     await appendResults(args.logId, results, status, errorMessage)
   } else {
-    // Nested branch — just append results; parent scope decides final status.
     await appendResults(args.logId, results, null, errorMessage)
   }
+
+  return status !== 'failed'
 }
 
 async function verifyContactOwnership(contactId: string, userId: string): Promise<void> {
@@ -440,8 +442,16 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
           .from('profiles')
           .select('user_id')
           .eq('user_id', args.automation.user_id)
-          .limit(1)
-        agentId = profiles?.[0]?.user_id
+        const agents = profiles?.map((p: { user_id: string }) => p.user_id) ?? []
+        if (agents.length === 0) return 'no agents available for round-robin'
+        const meta = (args.automation as Automation & { metadata?: Record<string, unknown> }).metadata ?? {}
+        const lastIdx = typeof meta.round_robin_index === 'number' ? meta.round_robin_index : -1
+        const nextIdx = (lastIdx + 1) % agents.length
+        agentId = agents[nextIdx]
+        await db
+          .from('automations')
+          .update({ metadata: { ...meta, round_robin_index: nextIdx } })
+          .eq('id', args.automation.id)
       }
       if (!agentId) return 'no agent resolved'
       await db
@@ -539,16 +549,23 @@ async function resolveConversationId(args: ExecuteArgs): Promise<string> {
 }
 
 function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
-  if (automation.trigger_type !== 'keyword_match') return true
-  const cfg = automation.trigger_config as KeywordMatchTriggerConfig
-  if (!cfg?.keywords || cfg.keywords.length === 0) return false
-  const text = (ctx?.message_text ?? '').toString()
-  if (!text) return false
-  const haystack = cfg.case_sensitive ? text : text.toLowerCase()
-  return cfg.keywords.some((raw) => {
-    const k = cfg.case_sensitive ? raw : raw.toLowerCase()
-    return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
-  })
+  if (automation.trigger_type === 'keyword_match') {
+    const cfg = automation.trigger_config as KeywordMatchTriggerConfig
+    if (!cfg?.keywords || cfg.keywords.length === 0) return false
+    const text = (ctx?.message_text ?? '').toString()
+    if (!text) return false
+    const haystack = cfg.case_sensitive ? text : text.toLowerCase()
+    return cfg.keywords.some((raw) => {
+      const k = cfg.case_sensitive ? raw : raw.toLowerCase()
+      return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
+    })
+  }
+  if (automation.trigger_type === 'tag_added') {
+    const cfg = automation.trigger_config as Record<string, unknown> | null
+    const filterTagId = cfg?.tag_id as string | undefined
+    if (filterTagId && ctx?.tag_id !== filterTagId) return false
+  }
+  return true
 }
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {

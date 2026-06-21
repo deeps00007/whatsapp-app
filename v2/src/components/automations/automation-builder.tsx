@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -85,7 +85,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   assign_conversation: { label: "Assign Conversation", icon: UserCheck, border: "border-l-primary" },
   update_contact_field: { label: "Update Contact Field", icon: PencilLine, border: "border-l-primary" },
   create_deal: { label: "Create Deal", icon: Briefcase, border: "border-l-primary" },
-  wait: { label: "Wait", icon: Hourglass, border: "border-l-slate-500" },
+  wait: { label: "Wait", icon: Hourglass, border: "border-l-muted-foreground" },
   condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
   close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
@@ -246,15 +246,15 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-950">
+    <div className="fixed inset-0 flex flex-col bg-background">
       {/* Top bar. At sub-sm widths the "Active" label is hidden and the
           switch moves to the right of the save button, so the name input
           gets maximum width. */}
-      <header className="flex flex-shrink-0 items-center gap-2 border-b border-slate-800 bg-slate-900/80 px-3 py-3 sm:gap-3 sm:px-4">
+      <header className="flex flex-shrink-0 items-center gap-2 border-b border-border bg-background/80 px-3 py-3 sm:gap-3 sm:px-4">
         <button
           type="button"
           onClick={() => router.push("/automations")}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label="Back to automations"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -263,9 +263,9 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
           value={state.name}
           onChange={(e) => patchTop("name", e.target.value)}
           placeholder="Untitled automation"
-          className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-white placeholder:text-slate-500 focus:bg-slate-800 focus:outline-none sm:text-base"
+          className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-accent focus:outline-none sm:text-base"
         />
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="hidden sm:inline">Active</span>
           <Switch
             checked={state.is_active}
@@ -329,7 +329,7 @@ function TriggerCard({
     // Card width: full on mobile, fixed 320px on sm+. The canvas wrapper
     // (max-w-2xl + px-4) keeps this tidy on tablet/desktop.
     <div className="z-10 w-full max-w-[320px] sm:w-80">
-      <div className="rounded-lg border border-slate-800 border-l-4 border-l-blue-500 bg-slate-900 shadow-lg">
+      <div className="rounded-lg border border-border border-l-4 border-l-blue-500 bg-background shadow-lg">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -340,24 +340,24 @@ function TriggerCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[11px] uppercase tracking-wide text-blue-300">Trigger</div>
-            <div className="truncate text-sm font-medium text-white">
+            <div className="truncate text-sm font-medium text-foreground">
               {TRIGGER_OPTIONS.find((o) => o.value === type)?.label ?? type}
             </div>
           </div>
           <ChevronDown
-            className={cn("h-4 w-4 text-slate-400 transition-transform", open && "rotate-180")}
+            className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")}
           />
         </button>
         {open && (
-          <div className="space-y-3 border-t border-slate-800 px-4 py-3">
+          <div className="space-y-3 border-t border-border px-4 py-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Trigger type
               </label>
               <select
                 value={type}
                 onChange={(e) => onTypeChange(e.target.value as AutomationTriggerType)}
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white focus:border-primary focus:outline-none"
+                className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
               >
                 {TRIGGER_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -365,7 +365,7 @@ function TriggerCard({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-muted-foreground">
                 {TRIGGER_OPTIONS.find((o) => o.value === type)?.hint}
               </p>
             </div>
@@ -376,23 +376,14 @@ function TriggerCard({
               />
             )}
             {type === "tag_added" && (
-              <Input
-                placeholder="Tag id"
-                value={(config.tag_id as string) ?? ""}
-                onChange={(e) =>
-                  onConfigChange({ ...config, tag_id: e.target.value })
-                }
-                className="bg-slate-800 text-white"
-              />
+              <p className="text-xs text-muted-foreground">
+                Fires when any tag is added to a contact via the UI or an automation step.
+              </p>
             )}
             {type === "time_based" && (
-              <Input
-                placeholder="Cron expression or HH:mm"
-                value={(config.schedule as string) ?? ""}
-                onChange={(e) =>
-                  onConfigChange({ ...config, schedule: e.target.value })
-                }
-                className="bg-slate-800 text-white"
+              <TimeBasedConfig
+                config={config}
+                onChange={onConfigChange}
               />
             )}
           </div>
@@ -413,7 +404,7 @@ function KeywordMatchConfig({
   return (
     <div className="space-y-2">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-400">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Keywords (comma-separated)
         </label>
         <Input
@@ -427,22 +418,99 @@ function KeywordMatchConfig({
                 .filter(Boolean),
             })
           }
-          className="bg-slate-800 text-white"
+          className="bg-card text-foreground"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-400">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Match type
         </label>
         <select
           value={config?.match_type ?? "contains"}
           onChange={(e) => onChange({ ...config, match_type: e.target.value as "exact" | "contains" })}
-          className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white focus:outline-none"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:outline-none"
         >
           <option value="contains">Contains</option>
           <option value="exact">Exact</option>
         </select>
       </div>
+    </div>
+  )
+}
+
+function TimeBasedConfig({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>
+  onChange: (c: Record<string, unknown>) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">Frequency</label>
+        <select
+          value={(config.frequency as string) ?? "daily"}
+          onChange={(e) => onChange({ ...config, frequency: e.target.value })}
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground"
+        >
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">Time (UTC)</label>
+        <Input
+          type="time"
+          value={(config.time as string) ?? "09:00"}
+          onChange={(e) => onChange({ ...config, time: e.target.value })}
+          className="bg-card text-foreground"
+        />
+      </div>
+      {config.frequency === "weekly" && (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Days</label>
+          <div className="flex flex-wrap gap-1">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => {
+              const days = (config.days as number[]) ?? []
+              const active = days.includes(i)
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      ...config,
+                      days: active ? days.filter((x: number) => x !== i) : [...days, i],
+                    })
+                  }
+                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {d}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {config.frequency === "monthly" && (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Day of month</label>
+          <Input
+            type="number"
+            min={1}
+            max={31}
+            value={String((config.day_of_month as number) ?? 1)}
+            onChange={(e) => onChange({ ...config, day_of_month: Number(e.target.value) })}
+            className="bg-card text-foreground"
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -536,7 +604,7 @@ function StepRenderer({
       <div className={cn("z-10 flex flex-col", width)}>
         <div
           className={cn(
-            "rounded-lg border border-slate-800 border-l-4 bg-slate-900 shadow-lg",
+            "rounded-lg border border-border border-l-4 bg-background shadow-lg",
             meta.border,
           )}
         >
@@ -545,28 +613,28 @@ function StepRenderer({
             onClick={() => props.setExpandedId(expanded ? null : step.cid)}
             className="flex w-full items-center gap-3 px-4 py-3 text-left"
           >
-            <GripVertical className="h-4 w-4 flex-shrink-0 text-slate-600" aria-hidden />
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-slate-300">
+            <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden />
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-card text-foreground">
               <Icon className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] uppercase tracking-wide text-slate-400">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 {isCondition ? "Condition" : step.step_type === "wait" ? "Wait" : "Action"}
               </div>
-              <div className="truncate text-sm font-medium text-white">{meta.label}</div>
-              <div className="truncate text-[11px] text-slate-500">{previewFor(step)}</div>
+              <div className="truncate text-sm font-medium text-foreground">{meta.label}</div>
+              <div className="truncate text-[11px] text-muted-foreground">{previewFor(step)}</div>
             </div>
             <ChevronDown
-              className={cn("h-4 w-4 text-slate-400 transition-transform", expanded && "rotate-180")}
+              className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")}
             />
           </button>
           {expanded && (
-            <div className="border-t border-slate-800 px-4 py-3">
+            <div className="border-t border-border px-4 py-3">
               <StepEditor
                 step={step}
                 onChange={(next) => props.updateStep(path, () => next)}
               />
-              <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
@@ -668,17 +736,17 @@ function BranchColumn({
 function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
   return (
     <div className="relative flex flex-col items-center">
-      <div className="h-4 w-[2px] bg-slate-700" aria-hidden />
+      <div className="h-4 w-[2px] bg-secondary" aria-hidden />
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-slate-700 bg-slate-950 text-slate-400 transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[popup-open]:border-primary data-[popup-open]:bg-primary/20 data-[popup-open]:text-primary"
+          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[popup-open]:border-primary data-[popup-open]:bg-primary/20 data-[popup-open]:text-primary"
           aria-label="Add step"
         >
           <Plus className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="max-h-80 min-w-56 overflow-y-auto border-slate-700 bg-slate-900"
+          className="max-h-80 min-w-56 overflow-y-auto border-border bg-background"
         >
           {ADDABLE_STEPS.map((t) => {
             const Icon = STEP_META[t].icon
@@ -691,7 +759,7 @@ function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="h-4 w-[2px] bg-slate-700" aria-hidden />
+      <div className="h-4 w-[2px] bg-secondary" aria-hidden />
     </div>
   )
 }
@@ -719,7 +787,7 @@ function StepEditor({
             value={(cfg.text as string) ?? ""}
             onChange={(e) => set({ text: e.target.value })}
             placeholder="Hi! Thanks for reaching out…"
-            className="min-h-24 bg-slate-800 text-white"
+            className="min-h-24 bg-card text-foreground"
           />
         </FieldBlock>
       )
@@ -732,7 +800,7 @@ function StepEditor({
             <Input
               value={(cfg.template_name as string) ?? ""}
               onChange={(e) => set({ template_name: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
               placeholder="e.g. welcome_greeting"
             />
           </FieldBlock>
@@ -740,14 +808,14 @@ function StepEditor({
             <Input
               value={(cfg.language as string) ?? ""}
               onChange={(e) => set({ language: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
               placeholder="en_US"
             />
           </FieldBlock>
           <FieldBlock label="Variables">
             <div className="space-y-2">
               {varKeys.length === 0 && (
-                <p className="text-xs text-slate-500">No variables configured. Add one below.</p>
+                <p className="text-xs text-muted-foreground">No variables configured. Add one below.</p>
               )}
               {varKeys.map((k) => (
                 <div key={k} className="flex items-center gap-2">
@@ -760,13 +828,13 @@ function StepEditor({
                       }
                       set({ variables: next })
                     }}
-                    className="w-28 bg-slate-800 text-white text-xs"
+                    className="w-28 bg-card text-foreground text-xs"
                     placeholder="{{1}} or {{name}}"
                   />
                   <Input
                     value={templateVars[k]}
                     onChange={(e) => set({ variables: { ...templateVars, [k]: e.target.value } })}
-                    className="flex-1 bg-slate-800 text-white text-xs"
+                    className="flex-1 bg-card text-foreground text-xs"
                     placeholder='Value or contact field like {{contact.name}}'
                   />
                   <button
@@ -776,7 +844,7 @@ function StepEditor({
                       delete next[k]
                       set({ variables: next })
                     }}
-                    className="text-slate-500 hover:text-red-400"
+                    className="text-muted-foreground hover:text-red-400"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -788,12 +856,12 @@ function StepEditor({
                   const nextKey = String(varKeys.length + 1)
                   set({ variables: { ...templateVars, [nextKey]: "" } })
                 }}
-                className="flex items-center gap-1 text-xs text-slate-500 hover:text-white"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3 w-3" /> Add variable
               </button>
-              <p className="text-[11px] text-slate-600">
-                Use <code className="text-slate-400">{"{{contact.name}}"}</code>, <code className="text-slate-400">{"{{contact.phone}}"}</code>, <code className="text-slate-400">{"{{contact.email}}"}</code> to auto-fill from contact record.
+              <p className="text-[11px] text-muted-foreground">
+                Use <code className="text-muted-foreground">{"{{contact.name}}"}</code>, <code className="text-muted-foreground">{"{{contact.phone}}"}</code>, <code className="text-muted-foreground">{"{{contact.email}}"}</code> to auto-fill from contact record.
               </p>
             </div>
           </FieldBlock>
@@ -806,7 +874,7 @@ function StepEditor({
           <Input
             value={(cfg.tag_id as string) ?? ""}
             onChange={(e) => set({ tag_id: e.target.value })}
-            className="bg-slate-800 text-white"
+            className="bg-card text-foreground"
           />
         </FieldBlock>
       )
@@ -817,7 +885,7 @@ function StepEditor({
             <select
               value={(cfg.mode as string) ?? "round_robin"}
               onChange={(e) => set({ mode: e.target.value })}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+              className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground"
             >
               <option value="round_robin">Round-robin</option>
               <option value="specific">Specific agent</option>
@@ -828,7 +896,7 @@ function StepEditor({
               <Input
                 value={(cfg.agent_id as string) ?? ""}
                 onChange={(e) => set({ agent_id: e.target.value })}
-                className="bg-slate-800 text-white"
+                className="bg-card text-foreground"
               />
             </FieldBlock>
           )}
@@ -841,7 +909,7 @@ function StepEditor({
             <select
               value={(cfg.field as string) ?? "name"}
               onChange={(e) => set({ field: e.target.value })}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+              className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground"
             >
               <option value="name">Name</option>
               <option value="email">Email</option>
@@ -852,7 +920,7 @@ function StepEditor({
             <Input
               value={(cfg.value as string) ?? ""}
               onChange={(e) => set({ value: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
         </>
@@ -864,21 +932,21 @@ function StepEditor({
             <Input
               value={(cfg.pipeline_id as string) ?? ""}
               onChange={(e) => set({ pipeline_id: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           <FieldBlock label="Stage id">
             <Input
               value={(cfg.stage_id as string) ?? ""}
               onChange={(e) => set({ stage_id: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           <FieldBlock label="Title">
             <Input
               value={(cfg.title as string) ?? ""}
               onChange={(e) => set({ title: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           <FieldBlock label="Value">
@@ -886,7 +954,7 @@ function StepEditor({
               type="number"
               value={(cfg.value as number) ?? 0}
               onChange={(e) => set({ value: Number(e.target.value) })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
         </>
@@ -900,14 +968,14 @@ function StepEditor({
               min={1}
               value={(cfg.amount as number) ?? 1}
               onChange={(e) => set({ amount: Math.max(1, Number(e.target.value)) })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           <FieldBlock label="Unit">
             <select
               value={(cfg.unit as string) ?? "hours"}
               onChange={(e) => set({ unit: e.target.value })}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+              className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground"
             >
               <option value="minutes">Minutes</option>
               <option value="hours">Hours</option>
@@ -923,7 +991,7 @@ function StepEditor({
             <select
               value={(cfg.subject as string) ?? "tag_presence"}
               onChange={(e) => set({ subject: e.target.value })}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+              className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground"
             >
               <option value="tag_presence">Tag presence</option>
               <option value="contact_field">Contact field</option>
@@ -944,7 +1012,7 @@ function StepEditor({
               }
               value={(cfg.operand as string) ?? ""}
               onChange={(e) => set({ operand: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           {(cfg.subject === "contact_field" || cfg.subject === "message_content") && (
@@ -952,7 +1020,7 @@ function StepEditor({
               <Input
                 value={(cfg.value as string) ?? ""}
                 onChange={(e) => set({ value: e.target.value })}
-                className="bg-slate-800 text-white"
+                className="bg-card text-foreground"
               />
             </FieldBlock>
           )}
@@ -965,21 +1033,21 @@ function StepEditor({
             <Input
               value={(cfg.url as string) ?? ""}
               onChange={(e) => set({ url: e.target.value })}
-              className="bg-slate-800 text-white"
+              className="bg-card text-foreground"
             />
           </FieldBlock>
           <FieldBlock label="Body template (JSON)">
             <Textarea
               value={(cfg.body_template as string) ?? ""}
               onChange={(e) => set({ body_template: e.target.value })}
-              className="min-h-20 bg-slate-800 font-mono text-xs text-white"
+              className="min-h-20 bg-card font-mono text-xs text-foreground"
             />
           </FieldBlock>
         </>
       )
     case "close_conversation":
       return (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Sets the conversation status to &quot;closed&quot;. No configuration needed.
         </p>
       )
@@ -997,7 +1065,7 @@ function FieldBlock({
 }) {
   return (
     <div className="mb-2 last:mb-0">
-      <label className="mb-1 block text-xs font-medium text-slate-400">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
   )
