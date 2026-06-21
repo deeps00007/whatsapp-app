@@ -25,6 +25,8 @@ import {
   Shield,
   Phone,
   FileText,
+  Info,
+  IndianRupee,
 } from "lucide-react";
 import { useRealtimeTable, type RealtimeTableEvent } from "@/hooks/use-realtime-table";
 import type { WhatsAppConfig } from "@/types";
@@ -40,6 +42,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface NavItem {
   href: string;
@@ -302,6 +311,91 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <div className="my-4 border-t border-slate-800" />
 
           <ul className="flex flex-col gap-1">
+            <li>
+              <Dialog>
+                <DialogTrigger
+                  render={
+                    <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white lg:py-2" />
+                  }
+                >
+                  <Info className="h-4 w-4" />
+                  Pricing Info
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-700 sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-white flex items-center gap-2">
+                      <IndianRupee className="h-5 w-5 text-primary" />
+                      Meta Messaging Rates — India
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div className="rounded-lg border border-slate-700 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-700 bg-slate-800/60">
+                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Category</th>
+                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Rate (INR)</th>
+                            <th className="px-3 py-2 text-left text-slate-300 font-medium">Use Case</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                          <tr>
+                            <td className="px-3 py-2 text-white font-medium">Marketing</td>
+                            <td className="px-3 py-2 text-amber-400">₹0.86 – ₹0.90</td>
+                            <td className="px-3 py-2 text-slate-400">Promotions, launches, re-engagement</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-2 text-white font-medium">Utility</td>
+                            <td className="px-3 py-2 text-emerald-400">₹0.11 – ₹0.15</td>
+                            <td className="px-3 py-2 text-slate-400">Confirmations, updates, alerts</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-2 text-white font-medium">Authentication</td>
+                            <td className="px-3 py-2 text-emerald-400">₹0.11 – ₹0.15</td>
+                            <td className="px-3 py-2 text-slate-400">OTPs, login codes, verification</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-2 text-white font-medium">Service</td>
+                            <td className="px-3 py-2 text-primary font-semibold">Free</td>
+                            <td className="px-3 py-2 text-slate-400">Replies within 24h customer window</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Key Details</h4>
+                      <div className="space-y-2">
+                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
+                          <span className="shrink-0 text-primary text-xs">•</span>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Service Window:</span> Utility messages are free when sent within a 24-hour customer service window (after the customer messages you).</p>
+                        </div>
+                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
+                          <span className="shrink-0 text-primary text-xs">•</span>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Click-to-WhatsApp Ads:</span> A 72-hour free messaging window opens for all message types when a customer contacts you via an ad.</p>
+                        </div>
+                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
+                          <span className="shrink-0 text-amber-400 text-xs">•</span>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">BSP Markups:</span> If using a BSP (Interakt, WATI, AiSensy), expect 10–30% markup on top of these base rates plus subscription fees.</p>
+                        </div>
+                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
+                          <span className="shrink-0 text-amber-400 text-xs">•</span>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">International OTP:</span> Sending OTPs to Indian numbers from a non-India WABA incurs significantly higher rates. Use a locally registered WABA.</p>
+                        </div>
+                        <div className="flex gap-2 rounded-md bg-slate-800/50 p-2.5">
+                          <span className="shrink-0 text-slate-500 text-xs">•</span>
+                          <p className="text-xs text-slate-300"><span className="text-white font-medium">Taxes:</span> 18% GST applies on top of your total monthly Meta bill.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-600 border-t border-slate-800 pt-3">
+                      Rates shown are Meta's base charges for India. Actual costs may vary. Last verified June 2026.
+                    </p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </li>
             {bottomNavItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
