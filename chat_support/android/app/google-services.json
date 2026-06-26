@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "637445564742",
+    "firebase_url": "https://chatt-5bab4-default-rtdb.firebaseio.com",
+    "project_id": "chatt-5bab4",
+    "storage_bucket": "chatt-5bab4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637445564742:android:00eb101b3bd5a63f501d47",
+        "android_client_info": {
+          "package_name": "app.seller.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvg2Kw0o-TjNjuJoELmzR33J8BWxq9M8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637445564742:android:aed86c0021061baf501d47",
+        "android_client_info": {
+          "package_name": "com.chatt.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvg2Kw0o-TjNjuJoELmzR33J8BWxq9M8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637445564742:android:9879babe8d9594c0501d47",
+        "android_client_info": {
+          "package_name": "com.growbychat.chat_support"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvg2Kw0o-TjNjuJoELmzR33J8BWxq9M8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
