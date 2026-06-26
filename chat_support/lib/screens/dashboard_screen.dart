@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import 'admin_panel_screen.dart';
 import 'chat_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
+  int _currentIndex = 0;
   Stats? _stats;
   List<Conversation> _conversations = [];
   bool _loading = true;
@@ -130,12 +132,35 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _surface,
-      body: Column(
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
-          _buildHeader(),
-          if (_stats != null) _buildStatsRow(),
-          _buildFilterRow(),
-          Expanded(child: _buildConversationList()),
+          Column(
+            children: [
+              _buildHeader(),
+              if (_stats != null) _buildStatsRow(),
+              _buildFilterRow(),
+              Expanded(child: _buildConversationList()),
+            ],
+          ),
+          AdminPanelScreen(api: widget.api),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        selectedItemColor: const Color(0xFF075E54),
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.support_agent),
+            label: 'Support',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admin Panel',
+          ),
         ],
       ),
     );

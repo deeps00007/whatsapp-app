@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const Text(
-                      'Support Admin',
+                      'Admin & Support Panel',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,

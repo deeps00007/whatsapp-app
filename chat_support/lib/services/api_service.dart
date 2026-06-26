@@ -136,4 +136,26 @@ class ApiService {
     );
     return res.statusCode == 200;
   }
+
+  Future<Map<String, dynamic>> getAdminUsers() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/admin/users'),
+      headers: _headers,
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load users: ${res.statusCode}');
+    }
+    return json.decode(res.body);
+  }
+
+  Future<Map<String, dynamic>> getAdminUserDetails(String userId) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/admin/users/$userId'),
+      headers: _headers,
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load user details: ${res.statusCode}');
+    }
+    return json.decode(res.body);
+  }
 }
