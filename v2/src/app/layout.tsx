@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Raleway } from "next/font/google";
 import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -11,15 +11,21 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const raleway = Raleway({
+  variable: "--font-heading",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "wacrm",
-    template: "%s — wacrm",
+    default: "Grow by Chat — WhatsApp CRM & Automation Platform",
+    template: "%s — Grow by Chat",
   },
-  description: "Self-hostable CRM template for WhatsApp.",
+  description: "Verified Meta Tech Provider. WhatsApp CRM with automation, broadcasts, templates, flows, and real-time support. No Meta Developer setup. Pay Meta directly — zero markup.",
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
   },
   icons: {
     icon: [{ url: "/icon" }],
@@ -32,8 +38,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
-  colorScheme: "dark",
+  themeColor: "#ffffff",
+  colorScheme: "light",
 };
 
 // Inline boot script — runs before React hydrates so the user's
@@ -69,7 +75,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme={DEFAULT_THEME}
-      className={`${inter.variable} h-full antialiased`}
+      className={`${inter.variable} ${raleway.variable} h-full antialiased`}
     >
       <head>
         <Script

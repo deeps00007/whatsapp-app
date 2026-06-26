@@ -107,7 +107,7 @@ export async function resumePendingExecution(pending: {
   }
 
   try {
-    const ok = await executeStepsFrom({
+    const result = await executeStepsFrom({
       automation: automation as Automation,
       contactId: pending.contact_id,
       context: pending.context ?? {},
@@ -117,7 +117,7 @@ export async function resumePendingExecution(pending: {
       logId: pending.log_id,
       triggerEvent: 'resumed_wait',
     })
-    await markPending(pending.id, ok ? 'done' : 'failed')
+    await markPending(pending.id, result === false ? 'failed' : 'done')
   } catch (err) {
     console.error('[automations] resume failed:', err)
     await markPending(pending.id, 'failed')
@@ -183,7 +183,7 @@ interface ExecuteArgs {
   triggerEvent: string
 }
 
-async function executeStepsFrom(args: ExecuteArgs): Promise<boolean> {
+async function executeStepsFrom(args: ExecuteArgs): Promise<boolean | 'wait'> {
   const db = supabaseAdmin()
 
   const baseQuery = db
@@ -239,7 +239,7 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<boolean> {
       })
       status = 'partial'
       await appendResults(args.logId, results, status, errorMessage)
-      return true
+      return 'wait'
     }
 
     try {
@@ -252,14 +252,19 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<boolean> {
           status: 'success',
           detail: `branch=${taken ? 'yes' : 'no'}`,
         })
-        const branchOk = await executeStepsFrom({
+        const branchResult = await executeStepsFrom({
           ...args,
           parentStepId: step.id,
           branch: taken ? 'yes' : 'no',
           startPosition: 0,
           logId: args.logId,
         })
-        if (!branchOk) {
+        if (branchResult === 'wait') {
+          status = 'partial'
+          await appendResults(args.logId, results, status, errorMessage)
+          return 'wait'
+        }
+        if (branchResult === false) {
           status = 'failed'
           errorMessage = 'condition branch failed'
           break
@@ -321,7 +326,10 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'send_message': {
       const cfg = step.step_config as SendMessageStepConfig
       if (!args.contactId) throw new Error('send_message needs a contact')
-      const text = interpolate(cfg.text, args)
+      const contactData = args.contactId
+        ? (await db.from('contacts').select('name,phone,email,company,address,city,state,country,notes').eq('id', args.contactId).maybeSingle()).data
+        : null
+      const text = interpolate(cfg.text, args, contactData)
       if (!text.trim()) throw new Error('send_message has empty text')
       const conversationId = await resolveConversationId(args)
       const { whatsapp_message_id } = await engineSendText({
@@ -412,6 +420,12 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
           { contact_id: args.contactId, tag_id: cfg.tag_id },
           { onConflict: 'contact_id,tag_id', ignoreDuplicates: true },
         )
+      runAutomationsForTrigger({
+        userId: args.automation.user_id,
+        triggerType: 'tag_added',
+        contactId: args.contactId,
+        context: { tag_id: cfg.tag_id },
+      }).catch((err) => console.error('[automations] tag_added dispatch from add_tag step failed:', err))
       return `tag ${cfg.tag_id} added`
     }
 
@@ -509,11 +523,20 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
 
     case 'close_conversation': {
       if (!args.contactId) throw new Error('close_conversation needs a contact')
-      await db
-        .from('conversations')
-        .update({ status: 'closed', updated_at: new Date().toISOString() })
-        .eq('user_id', args.automation.user_id)
-        .eq('contact_id', args.contactId)
+      const convId = args.context.conversation_id
+      if (convId) {
+        await db
+          .from('conversations')
+          .update({ status: 'closed', updated_at: new Date().toISOString() })
+          .eq('id', convId)
+          .eq('user_id', args.automation.user_id)
+      } else {
+        await db
+          .from('conversations')
+          .update({ status: 'closed', updated_at: new Date().toISOString() })
+          .eq('user_id', args.automation.user_id)
+          .eq('contact_id', args.contactId)
+      }
       return 'conversation closed'
     }
 
@@ -628,11 +651,18 @@ function waitMs(cfg: WaitStepConfig): number {
   return Math.max(1_000, cfg.amount * unitMs)
 }
 
-function interpolate(s: string, args: ExecuteArgs): string {
+function interpolate(
+  s: string,
+  args: ExecuteArgs,
+  contactData?: Record<string, unknown> | null,
+): string {
   return s.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
     const [ns, prop] = String(key).split('.')
     if (ns === 'message' && prop === 'text') return String(args.context.message_text ?? '')
     if (ns === 'vars' && prop) return String(args.context.vars?.[prop] ?? '')
+    if (ns === 'contact' && prop && contactData) {
+      return String(contactData[prop] ?? '')
+    }
     return ''
   })
 }

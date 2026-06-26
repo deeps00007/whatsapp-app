@@ -31,8 +31,7 @@ export async function middleware(request: NextRequest) {
   if (user && (
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/signup' ||
-    request.nextUrl.pathname === '/forgot-password' ||
-    request.nextUrl.pathname === '/reset-password'
+    request.nextUrl.pathname === '/forgot-password'
   )) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
@@ -41,7 +40,7 @@ export async function middleware(request: NextRequest) {
 
   // Protected pages - redirect to login if not authenticated
   const publicPaths = ['/', '/privacy', '/terms', '/privacy.html', '/terms.html', '/auth/callback']
-  const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/settings']
+  const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/settings', '/pricing', '/flows', '/templates']
   const isPublic = publicPaths.includes(request.nextUrl.pathname)
   if (!user && !isPublic && protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
     const url = request.nextUrl.clone()

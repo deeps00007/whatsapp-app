@@ -13,6 +13,7 @@ export interface Profile {
    * the `profiles` row.
    */
   beta_features?: string[];
+  subscription_expires_at?: string | null;
   created_at: string;
 }
 
@@ -26,6 +27,20 @@ export interface Contact {
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ContactList {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface ContactListMember {
+  id: string;
+  contact_id: string;
+  list_id: string;
 }
 
 export interface Tag {

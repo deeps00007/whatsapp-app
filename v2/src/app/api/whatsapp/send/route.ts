@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       content_text,
       media_url,
       template_name,
+      template_language,
       template_params,
       reply_to_message_id,
     } = body
@@ -97,10 +98,11 @@ export async function POST(request: Request) {
     let templateHeaderType: string | null = null
     let templateHeaderUrl: string | null = null
     let templateParamNames: string[] = []
+    let resolvedTemplateLanguage = template_language
     if (message_type === 'template' && template_name) {
       const { data: tpl } = await supabase
         .from('message_templates')
-        .select('header_type, header_content, body_text')
+        .select('header_type, header_content, body_text, language')
         .eq('user_id', user.id)
         .eq('name', template_name)
         .maybeSingle()
@@ -110,6 +112,9 @@ export async function POST(request: Request) {
         templateParamNames = extractVariables(tpl.body_text)
           .filter(v => v.isNamed)
           .map(v => v.name)
+      }
+      if (!resolvedTemplateLanguage && tpl?.language) {
+        resolvedTemplateLanguage = tpl.language
       }
     }
 
@@ -184,6 +189,7 @@ export async function POST(request: Request) {
           accessToken,
           to: phone,
           templateName: template_name,
+          language: resolvedTemplateLanguage || 'en_US',
           params: template_params || [],
           paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
           headerType: templateHeaderType,
@@ -229,6 +235,23 @@ export async function POST(request: Request) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
       console.error('Meta API send failed for all variants:', message)
+
+      // Save the failed message so it appears in the thread
+      await supabase
+        .from('messages')
+        .insert({
+          conversation_id,
+          sender_type: 'agent',
+          content_type: message_type,
+          content_text: content_text || null,
+          media_url: media_url || null,
+          template_name: template_name || null,
+          message_id: null,
+          status: 'failed',
+          error_message: message,
+          reply_to_message_id: reply_to_message_id || null,
+        })
+
       return NextResponse.json(
         { error: `Meta API error: ${message}` },
         { status: 502 }

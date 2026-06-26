@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin-client'
+import { decrypt } from '@/lib/whatsapp/encryption'
+import { uploadTemplateMediaToMeta } from '@/lib/whatsapp/meta-api'
 
 const MAX_SIZES: Record<string, number> = {
   image: 1 * 1024 * 1024,
@@ -96,13 +98,49 @@ export async function POST(request: Request) {
       .from('template-media')
       .getPublicUrl(filePath)
 
+    // Also upload to Meta to get a handle for template creation
+    let metaMediaHandle: string | null = null
+    let metaUploadError: string | null = null
+    try {
+      const { data: config } = await supabase
+        .from('whatsapp_config')
+        .select('phone_number_id, access_token, waba_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      console.log('[upload-media] config', {
+        phoneNumberId: config?.phone_number_id,
+        wabaId: config?.waba_id,
+        hasToken: !!config?.access_token,
+      })
+
+      if (config?.access_token) {
+        const accessToken = decrypt(config.access_token)
+        metaMediaHandle = await uploadTemplateMediaToMeta(
+          accessToken,
+          buffer,
+          file.type,
+          { phoneNumberId: config.phone_number_id || undefined, wabaId: config.waba_id || undefined },
+        )
+      } else {
+        metaUploadError = 'Missing access_token'
+      }
+    } catch (err) {
+      metaUploadError = err instanceof Error ? err.message : String(err)
+      console.error('[upload-media] Meta upload failed:', metaUploadError)
+    }
+
+    console.log('[upload-media] returning', { metaHandle: metaMediaHandle, metaUploadError })
+
     return NextResponse.json({
       url: urlData.publicUrl,
       path: filePath,
       mediaType: mType,
+      metaHandle: metaMediaHandle,
+      metaUploadError: metaUploadError,
     })
   } catch (err: any) {
     console.error('[upload-media] Error:', err.message)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
   }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CustomField, Tag } from '@/types';
+import { CustomField, Tag, ContactList } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Users,
@@ -13,9 +13,10 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  List,
 } from 'lucide-react';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv';
+type AudienceType = 'all' | 'tags' | 'list' | 'custom_field' | 'csv';
 type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
 interface CustomFieldFilter {
@@ -27,6 +28,7 @@ interface CustomFieldFilter {
 interface AudienceConfig {
   type: AudienceType;
   tagIds?: string[];
+  listId?: string;
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
@@ -58,6 +60,12 @@ const audienceOptions: {
     icon: Tags,
   },
   {
+    type: 'list',
+    label: 'Contact List',
+    description: 'Send to a specific contact list',
+    icon: List,
+  },
+  {
     type: 'custom_field',
     label: 'Custom Field',
     description: 'Filter by a custom field value',
@@ -84,6 +92,7 @@ export function Step2SelectAudience({
   onBack,
 }: Step2Props) {
   const [tags, setTags] = useState<Tag[]>([]);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
@@ -104,6 +113,18 @@ export function Step2SelectAudience({
       }
     }
     fetchTags();
+  }, []);
+
+  // Load contact lists on mount
+  useEffect(() => {
+    async function fetchLists() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('contact_lists').select('*').order('name');
+        setContactLists(data ?? []);
+      } catch {}
+    }
+    fetchLists();
   }, []);
 
   // Lazy-load custom fields only when that audience type is active.
@@ -144,6 +165,15 @@ export function Step2SelectAudience({
           .from('contact_tags')
           .select('contact_id')
           .in('tag_id', audience.tagIds);
+        baseIds = new Set((data ?? []).map((r) => r.contact_id));
+      } else if (
+        audience.type === 'list' &&
+        audience.listId
+      ) {
+        const { data } = await supabase
+          .from('contact_list_members')
+          .select('contact_id')
+          .eq('list_id', audience.listId);
         baseIds = new Set((data ?? []).map((r) => r.contact_id));
       } else if (
         audience.type === 'custom_field' &&
@@ -202,6 +232,7 @@ export function Step2SelectAudience({
   }, [
     audience.type,
     audience.tagIds,
+    audience.listId,
     audience.customField,
     audience.csvContacts,
     audience.excludeTagIds,
@@ -239,6 +270,7 @@ export function Step2SelectAudience({
   const isValid =
     audience.type === 'all' ||
     (audience.type === 'tags' && audience.tagIds && audience.tagIds.length > 0) ||
+    (audience.type === 'list' && !!audience.listId) ||
     (audience.type === 'custom_field' &&
       !!audience.customField?.fieldId &&
       audience.customField.value.length > 0) ||
@@ -266,9 +298,8 @@ export function Step2SelectAudience({
                 onUpdate({
                   ...audience,
                   type: option.type,
-                  // Wipe shape fields from other types to avoid stale
-                  // config leaking across selections.
                   tagIds: option.type === 'tags' ? audience.tagIds : undefined,
+                  listId: option.type === 'list' ? audience.listId : undefined,
                   customField:
                     option.type === 'custom_field'
                       ? audience.customField
@@ -334,6 +365,34 @@ export function Step2SelectAudience({
                   </button>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {audience.type === 'list' && (
+        <div className="rounded-xl border border-border bg-background/50 p-4">
+          <p className="mb-3 text-sm font-medium text-foreground">Select a List</p>
+          {contactLists.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No lists found. Create lists from the Contacts page.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {contactLists.map((lst) => (
+                <button
+                  key={lst.id}
+                  onClick={() => onUpdate({ ...audience, listId: lst.id })}
+                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                    audience.listId === lst.id
+                      ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/30'
+                      : 'text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <List className="size-4" />
+                  {lst.name}
+                </button>
+              ))}
             </div>
           )}
         </div>

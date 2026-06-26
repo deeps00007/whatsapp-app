@@ -44,6 +44,7 @@ async function throwMetaError(response: Response, fallback: string): Promise<nev
       if (err.error_user_msg) parts.push(err.error_user_msg)
       else if (err.message) parts.push(err.message)
       if (err.error_subcode) parts.push(`(subcode ${err.error_subcode})`)
+      if (err.code) parts.push(`(code ${err.code})`)
       if (parts.length > 0) message = parts.join(' ')
     }
   } catch {
@@ -545,6 +546,76 @@ function validateInteractiveHeaderFooter(
 }
 
 // ============================================================
+// Meta Media Upload (for template headers)
+// ============================================================
+
+export async function uploadMediaToMeta(
+  phoneNumberId: string,
+  accessToken: string,
+  mediaUrl: string,
+  wabaId?: string,
+): Promise<string> {
+  const fileRes = await fetch(mediaUrl)
+  if (!fileRes.ok) throw new Error(`Failed to download media: ${fileRes.status}`)
+  const contentType = fileRes.headers.get('content-type') || 'image/png'
+  const buffer = Buffer.from(await fileRes.arrayBuffer())
+  return uploadTemplateMediaToMeta(accessToken, buffer, contentType, { phoneNumberId })
+}
+
+export async function uploadTemplateMediaToMeta(
+  accessToken: string,
+  buffer: Buffer,
+  contentType: string,
+  ctx?: { phoneNumberId?: string; wabaId?: string },
+): Promise<string> {
+  if (!ctx?.phoneNumberId) {
+    throw new Error('phoneNumberId is required for media upload')
+  }
+
+  console.log('[uploadTemplateMediaToMeta] uploading to phone media', ctx.phoneNumberId, 'type', contentType, 'size', buffer.length)
+
+  const extMap: Record<string, string> = {
+    'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp',
+    'video/mp4': '.mp4', 'video/3gpp': '.3gp', 'application/pdf': '.pdf',
+  }
+  const ext = extMap[contentType as string] || '.png'
+  const filename = `template-media${ext}`
+
+  const boundary = '----FormBoundary' + Math.random().toString(36).slice(2)
+  const parts: Buffer[] = []
+  parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="messaging_product"\r\n\r\nwhatsapp\r\n`))
+  parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\n${contentType}\r\n`))
+  parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${contentType}\r\n\r\n`))
+  parts.push(buffer)
+  parts.push(Buffer.from(`\r\n--${boundary}--\r\n`))
+  const body = Buffer.concat(parts)
+
+  const uploadUrl = `${META_API_BASE}/${ctx.phoneNumberId}/media`
+  const response = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
+    },
+    body,
+  })
+
+  const respText = await response.text()
+  console.log('[uploadTemplateMediaToMeta] response', response.status, respText.slice(0, 500))
+
+  if (!response.ok) {
+    throw new Error(`Media upload failed: ${response.status} - ${respText}`)
+  }
+
+  const data = JSON.parse(respText)
+  if (!data.id) {
+    throw new Error(`Media upload returned no id: ${respText}`)
+  }
+
+  return data.id as string
+}
+
+// ============================================================
 // Template creation
 // ============================================================
 
@@ -554,10 +625,12 @@ export interface TemplateButton {
   url?: string
   phone_number?: string
   method?: 'copy' | 'autofill'
+  value?: string
 }
 
 export interface CreateMessageTemplateArgs {
   wabaId: string
+  phoneNumberId?: string
   accessToken: string
   name: string
   category: string
@@ -565,8 +638,10 @@ export interface CreateMessageTemplateArgs {
   bodyText: string
   headerType?: string | null
   headerContent?: string | null
+  headerMetaHandle?: string | null
   footerText?: string | null
   buttons?: TemplateButton[]
+  sampleValues?: string[]
 }
 
 export interface CreateMessageTemplateResult {
@@ -579,46 +654,109 @@ export async function createMessageTemplate(
   args: CreateMessageTemplateArgs
 ): Promise<CreateMessageTemplateResult> {
   const {
-    wabaId, accessToken, name, category, language,
-    bodyText, headerType, headerContent, footerText,
-    buttons,
+    wabaId, phoneNumberId, accessToken, name, category, language,
+    bodyText, headerType, headerContent, headerMetaHandle, footerText,
+    buttons, sampleValues,
   } = args
 
   const components: Record<string, unknown>[] = []
 
+  // ── HEADER ──────────────────────────────────────────────────
   if (headerType && headerType !== 'none') {
     const headerComp: Record<string, unknown> = { type: 'HEADER', format: headerType.toUpperCase() }
     if (headerType === 'text' && headerContent) {
       headerComp.text = headerContent
+      if (/\{\{.+?\}\}/.test(headerContent)) {
+        const headerVars = [...headerContent.matchAll(/\{\{(.+?)\}\}/g)]
+        const uniqueHeaderVars: string[] = []
+        const seenHeader = new Set<string>()
+        for (const m of headerVars) {
+          if (!seenHeader.has(m[1])) {
+            seenHeader.add(m[1])
+            uniqueHeaderVars.push(`sample_${m[1]}`)
+          }
+        }
+        headerComp.example = { header_text: uniqueHeaderVars }
+      }
     } else if (headerContent && ['image', 'video', 'document'].includes(headerType)) {
-      const isUrl = /^https?:\/\//i.test(headerContent)
-      headerComp.example = isUrl
-        ? { header_url: [headerContent] }
-        : { header_handle: [headerContent] }
+      // Use pre-uploaded Meta handle if available, otherwise try uploading now
+      if (headerMetaHandle) {
+        headerComp.example = { header_handle: [headerMetaHandle] }
+      } else if (phoneNumberId) {
+        try {
+          const handle = await uploadMediaToMeta(phoneNumberId, accessToken, headerContent, wabaId)
+          headerComp.example = { header_handle: [handle] }
+        } catch (err) {
+          console.error('[createMessageTemplate] Media upload failed:', err)
+          throw new Error('Failed to upload media to Meta. Please try again or use a text header.')
+        }
+      }
     }
     components.push(headerComp)
   }
 
-  components.push({ type: 'BODY', text: bodyText })
+  // ── BODY ────────────────────────────────────────────────────
+  // Meta requires an `example` field when the body contains variables.
+  const hasVariables = /\{\{.+?\}\}/.test(bodyText)
+  const bodyComp: Record<string, unknown> = { type: 'BODY', text: bodyText }
 
+  if (hasVariables) {
+    if (sampleValues && sampleValues.length > 0) {
+      bodyComp.example = { body_text: [sampleValues] }
+    } else {
+      // Auto-generate sample values from variable names
+      const vars = [...bodyText.matchAll(/\{\{(.+?)\}\}/g)]
+      const uniqueVars: string[] = []
+      const seen = new Set<string>()
+      for (const m of vars) {
+        if (!seen.has(m[1])) {
+          seen.add(m[1])
+          const isNumber = /^\d+$/.test(m[1])
+          uniqueVars.push(isNumber ? `sample_${m[1]}` : m[1])
+        }
+      }
+      bodyComp.example = { body_text: [uniqueVars] }
+    }
+  }
+
+  components.push(bodyComp)
+
+  // ── FOOTER ──────────────────────────────────────────────────
   if (footerText) {
     components.push({ type: 'FOOTER', text: footerText })
   }
 
+  // ── BUTTONS ─────────────────────────────────────────────────
   if (buttons && buttons.length > 0) {
-    const btnComponents = buttons.map((btn) => {
+    const btns = buttons.map((btn) => {
       if (btn.type === 'OTP') {
-        return { type: 'BUTTON', sub_type: 'FLOW', text: btn.method === 'autofill' ? 'Autofill' : 'Copy code' }
+        // Authentication templates use URL button type with variable
+        return { type: 'URL', text: btn.method === 'autofill' ? 'Autofill' : 'Copy code', url: '{{1}}' }
       }
       if (btn.type === 'URL') {
-        return { type: 'BUTTON', sub_type: 'url', text: btn.text || '', url: btn.url || btn.text || '' }
+        const url = btn.url || btn.value || ''
+        return { type: 'URL', text: btn.text || '', url }
       }
       if (btn.type === 'PHONE_NUMBER') {
-        return { type: 'BUTTON', sub_type: 'call', text: btn.text || '', phone_number: btn.phone_number || btn.text || '' }
+        const phone = (btn.phone_number || btn.value || '').replace(/[^\d+]/g, '')
+        return { type: 'PHONE_NUMBER', text: btn.text || '', phone_number: phone }
       }
-      return { type: 'BUTTON', sub_type: 'quick_reply', text: btn.text || '' }
+      return { type: 'QUICK_REPLY', text: btn.text || '' }
     })
-    components.push(...btnComponents)
+
+    // URL buttons with variables need example
+    const urlBtnExample: string[] = []
+    for (const btn of buttons) {
+      if (btn.type === 'OTP' || (btn.type === 'URL' && /\{\{.+?\}\}/.test(btn.url || btn.value || ''))) {
+        urlBtnExample.push('https://example.com')
+      }
+    }
+
+    const buttonsComp: Record<string, unknown> = { type: 'BUTTONS', buttons: btns }
+    if (urlBtnExample.length > 0) {
+      buttonsComp.example = urlBtnExample
+    }
+    components.push(buttonsComp)
   }
 
   const metaCategory = category === 'Marketing' ? 'MARKETING'
@@ -641,6 +779,14 @@ export async function createMessageTemplate(
   })
 
   if (!response.ok) {
+    let errorMsg = ''
+    try {
+      const errData = await response.json()
+      errorMsg = errData?.error?.error_subcode === 2494102
+        ? 'Media template creation failed — your phone number must be verified first. Go to Settings → WhatsApp to verify your phone number, then try again.'
+        : ''
+    } catch {}
+    if (errorMsg) throw new Error(errorMsg)
     await throwMetaError(response, `Template creation failed: ${response.status}`)
   }
 

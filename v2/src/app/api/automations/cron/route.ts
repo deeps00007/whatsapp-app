@@ -16,17 +16,28 @@ function shouldFireTimeBased(cfg: TimeBasedConfig, now: Date, lastFired: string 
   const [hh, mm] = (cfg.time ?? '00:00').split(':').map(Number)
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) return false
 
+  // Use timezone if provided (e.g. "Asia/Kolkata"), otherwise fall back to UTC
+  let localNow = now
+  if (cfg.timezone) {
+    try {
+      const tzNow = new Date(now.toLocaleString('en-US', { timeZone: cfg.timezone }))
+      localNow = tzNow
+    } catch {
+      // invalid timezone string — fall back to UTC
+    }
+  }
+
   const fireMinute = hh * 60 + mm
-  const currentMinute = now.getUTCHours() * 60 + now.getUTCMinutes()
+  const currentMinute = localNow.getUTCHours() * 60 + localNow.getUTCMinutes()
 
   if (cfg.frequency === 'daily') {
     if (currentMinute !== fireMinute) return false
   } else if (cfg.frequency === 'weekly') {
-    const day = now.getUTCDay()
+    const day = localNow.getUTCDay()
     if (!(cfg.days ?? []).includes(day)) return false
     if (currentMinute !== fireMinute) return false
   } else if (cfg.frequency === 'monthly') {
-    const dom = now.getUTCDate()
+    const dom = localNow.getUTCDate()
     if (dom !== (cfg.day_of_month ?? 1)) return false
     if (currentMinute !== fireMinute) return false
   } else {
@@ -49,16 +60,19 @@ function shouldFireTimeBased(cfg: TimeBasedConfig, now: Date, lastFired: string 
   return true
 }
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(request: Request) {
   const expected = process.env.AUTOMATION_CRON_SECRET
   if (!expected) {
-    return NextResponse.json({ error: 'cron not configured' }, { status: 503 })
+    return NextResponse.json({ error: 'cron not configured' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
   }
   const supplied = request.headers.get('x-cron-secret') ?? ''
   const expectedBuf = Buffer.from(expected)
   const suppliedBuf = Buffer.from(supplied)
   if (suppliedBuf.length !== expectedBuf.length || !timingSafeEqual(suppliedBuf, expectedBuf)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const admin = supabaseAdmin()
@@ -123,14 +137,34 @@ export async function GET(request: Request) {
         .update({ metadata: { ...meta, last_time_fired: now.toISOString() } })
         .eq('id', auto.id)
 
-      runAutomationsForTrigger({
-        userId: auto.user_id,
-        triggerType: 'time_based',
-        context: {},
-      }).catch((err) => console.error('[automations] time_based dispatch failed:', err))
+      // Fetch all contacts for this user so the automation can send messages
+      const { data: contacts } = await admin
+        .from('contacts')
+        .select('id')
+        .eq('user_id', auto.user_id)
+        .order('created_at', { ascending: true })
+        .limit(500)
+
+      if (contacts && contacts.length > 0) {
+        for (const contact of contacts) {
+          runAutomationsForTrigger({
+            userId: auto.user_id,
+            triggerType: 'time_based',
+            contactId: contact.id,
+            context: {},
+          }).catch((err) => console.error('[automations] time_based dispatch failed for contact', contact.id, err))
+        }
+      } else {
+        // Fire without contact for non-message automations (e.g. send_webhook only)
+        runAutomationsForTrigger({
+          userId: auto.user_id,
+          triggerType: 'time_based',
+          context: {},
+        }).catch((err) => console.error('[automations] time_based dispatch failed:', err))
+      }
       timeBasedFired++
     }
   }
 
-  return NextResponse.json({ processed, time_based_fired: timeBasedFired })
+  return NextResponse.json({ processed, time_based_fired: timeBasedFired }, { headers: { 'Cache-Control': 'no-store' } })
 }

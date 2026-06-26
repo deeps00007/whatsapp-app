@@ -116,7 +116,7 @@ export async function POST(request: Request) {
 
     const { data: templateCheck } = await supabase
       .from('message_templates')
-      .select('status, header_type, header_content, body_text')
+      .select('status, header_type, header_content, body_text, language')
       .eq('user_id', user.id)
       .eq('name', template_name)
       .maybeSingle()
@@ -127,6 +127,8 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const resolvedTemplateLanguage = template_language || templateCheck.language || 'en_US'
 
     const templateParamNames = templateCheck.body_text
       ? extractVariables(templateCheck.body_text)
@@ -196,7 +198,7 @@ export async function POST(request: Request) {
             accessToken,
             to: variant,
             templateName: template_name,
-            language: template_language || 'en_US',
+            language: resolvedTemplateLanguage,
             params: recipient.params ?? [],
             paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
             headerType: templateCheck.header_type,

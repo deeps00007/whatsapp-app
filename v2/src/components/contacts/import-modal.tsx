@@ -18,6 +18,8 @@ interface ImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImported: () => void;
+  listId?: string | null;
+  listName?: string;
 }
 
 interface ParsedRow {
@@ -77,7 +79,7 @@ function parseCSV(text: string): ParsedRow[] {
   return rows;
 }
 
-export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps) {
+export function ImportModal({ open, onOpenChange, onImported, listId, listName }: ImportModalProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +132,7 @@ export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps
 
       let imported = 0;
       let failed = 0;
+      const allInsertedIds: string[] = [];
 
       // Batch insert in chunks of 50
       const chunkSize = 50;
@@ -151,15 +154,34 @@ export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps
         if (error) {
           // Try individual inserts for this chunk
           for (const row of rows) {
-            const { error: singleErr } = await supabase.from('contacts').insert(row);
+            const { data: singleData, error: singleErr } = await supabase
+              .from('contacts')
+              .insert(row)
+              .select('id');
             if (singleErr) {
               failed++;
             } else {
               imported++;
+              if (singleData?.[0]?.id) allInsertedIds.push(singleData[0].id);
             }
           }
         } else {
           imported += data?.length ?? chunk.length;
+          if (data) allInsertedIds.push(...data.map((d) => d.id));
+        }
+      }
+
+      // Add all imported contacts to the list if listId is set
+      if (listId && allInsertedIds.length > 0) {
+        const memberRows = allInsertedIds.map((cid) => ({
+          contact_id: cid,
+          list_id: listId,
+        }));
+        const { error: memberErr } = await supabase
+          .from('contact_list_members')
+          .upsert(memberRows, { onConflict: 'contact_id,list_id', ignoreDuplicates: true });
+        if (memberErr) {
+          console.error('Failed to add contacts to list:', memberErr.message);
         }
       }
 
@@ -185,7 +207,9 @@ export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="bg-background border-border text-foreground sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Import Contacts</DialogTitle>
+          <DialogTitle className="text-foreground">
+            Import Contacts{listName ? ` to "${listName}"` : ''}
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             Upload a CSV file with a &quot;phone&quot; column (required). Optional columns:
             name, email, company.

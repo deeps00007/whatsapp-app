@@ -139,6 +139,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
   const [language, setLanguage] = useState("en_US")
   const [headerType, setHeaderType] = useState("none")
   const [headerContent, setHeaderContent] = useState("")
+  const [headerMetaHandle, setHeaderMetaHandle] = useState<string | null>(null)
   const [bodyText, setBodyText] = useState("")
   const [footerText, setFooterText] = useState("")
   const [buttons, setButtons] = useState<Array<{ id: string; type: string; text: string; value: string }>>([])
@@ -247,6 +248,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
       }
 
       setHeaderContent(data.url)
+      setHeaderMetaHandle(data.metaHandle || null)
       toast.success("Media uploaded successfully")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Upload failed"
@@ -330,8 +332,12 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
       body_text: effectiveBody,
       header_type: headerType === "none" ? null : headerType,
       header_content: headerType !== "none" ? headerContent.trim() : null,
+      header_meta_handle: headerMetaHandle,
       footer_text: footerText.trim() || null,
       buttons: category === "Authentication" ? [{ type: "OTP", method: authMethod }] : buttons,
+      sample_values: Object.keys(sampleValues).length > 0
+        ? Object.keys(sampleValues).sort((a, b) => Number(a) - Number(b)).map(k => sampleValues[Number(k)])
+        : undefined,
     }
 
     try {
@@ -364,6 +370,7 @@ export function TemplateWizard({ onComplete }: TemplateWizardProps) {
     setLanguage("en_US")
     setHeaderType("none")
     setHeaderContent("")
+    setHeaderMetaHandle(null)
     setBodyText("")
     setFooterText("")
     setButtons([])

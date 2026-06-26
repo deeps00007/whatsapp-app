@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, category, language, body_text, header_type, header_content, footer_text, buttons } = body
+    const { name, category, language, body_text, header_type, header_content, header_meta_handle, footer_text, buttons, sample_values } = body
 
     if (!name || !category || !body_text) {
       return NextResponse.json({ error: 'name, category, and body_text are required' }, { status: 400 })
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('waba_id, access_token')
+      .select('waba_id, phone_number_id, access_token')
       .eq('user_id', user.id)
       .single()
 
@@ -39,8 +39,19 @@ export async function POST(request: Request) {
 
     const accessToken = decrypt(config.access_token)
 
+    console.log('[templates/create] creating template', {
+      name: name.trim(),
+      category,
+      language,
+      header_type,
+      header_content,
+      headerMetaHandle: header_meta_handle || null,
+      buttonsCount: buttons?.length,
+    })
+
     const result = await createMessageTemplate({
       wabaId: config.waba_id,
+      phoneNumberId: config.phone_number_id,
       accessToken,
       name: name.trim(),
       category,
@@ -48,8 +59,10 @@ export async function POST(request: Request) {
       bodyText: body_text.trim(),
       headerType: header_type || null,
       headerContent: header_content || null,
+      headerMetaHandle: header_meta_handle || null,
       footerText: footer_text?.trim() || null,
       buttons: buttons || undefined,
+      sampleValues: sample_values,
     })
 
     const normalizedStatus = result.status === 'APPROVED' ? 'Approved'
@@ -83,6 +96,6 @@ export async function POST(request: Request) {
     })
   } catch (err: any) {
     console.error('[templates/create] Error:', err.message)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
   }
 }

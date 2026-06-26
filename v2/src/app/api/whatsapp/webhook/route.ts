@@ -6,6 +6,7 @@ import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
+import type { KeywordMatchTriggerConfig } from '@/types'
 
 interface WhatsAppMessage {
   id: string
@@ -512,39 +513,73 @@ async function processMessage(
   // from the CRM (i.e., the SaaS has already sent an outbound message
   // to this contact). Personal messages from friends should go to the
   // mobile app only, not clutter the CRM inbox or contact list.
+  //
+  // EXCEPTION: If the incoming message matches a keyword from any
+  // active keyword_match automation, we bypass the filter. This lets
+  // new people trigger auto-replies (e.g. texting "pricing" or "info")
+  // without needing prior CRM history. The customer opening the
+  // session means our auto-reply is free within the 24h window.
   if (coexistenceMode) {
     const db = supabaseAdmin()
+    const incomingText = (message.text?.body ?? '').toLowerCase()
 
-    // Find existing contact by exact phone match
-    const { data: existingContact } = await db
-      .from('contacts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('phone', senderPhone)
-      .maybeSingle()
-
-    let hasCrmConversation = false
-    if (existingContact) {
-      const { data: conv } = await db
-        .from('conversations')
-        .select('id')
+    let bypassFilter = false
+    if (incomingText) {
+      const { data: keywordAutomations } = await db
+        .from('automations')
+        .select('trigger_config')
         .eq('user_id', userId)
-        .eq('contact_id', existingContact.id)
-        .maybeSingle()
+        .eq('trigger_type', 'keyword_match')
+        .eq('is_active', true)
 
-      if (conv) {
-        const { count } = await db
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id)
-          .in('sender_type', ['agent', 'bot'])
-        hasCrmConversation = (count ?? 0) > 0
+      if (keywordAutomations && keywordAutomations.length > 0) {
+        for (const auto of keywordAutomations) {
+          const cfg = auto.trigger_config as KeywordMatchTriggerConfig | null
+          if (!cfg?.keywords || cfg.keywords.length === 0) continue
+          const haystack = cfg.case_sensitive ? incomingText : incomingText
+          const matched = cfg.keywords.some((raw) => {
+            const k = cfg.case_sensitive ? raw : raw.toLowerCase()
+            return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
+          })
+          if (matched) {
+            bypassFilter = true
+            break
+          }
+        }
       }
     }
 
-    if (!hasCrmConversation) {
-      console.log('[webhook] coexistence: skipping personal message from', senderPhone)
-      return
+    if (!bypassFilter) {
+      const { data: existingContact } = await db
+        .from('contacts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('phone', senderPhone)
+        .maybeSingle()
+
+      let hasCrmConversation = false
+      if (existingContact) {
+        const { data: conv } = await db
+          .from('conversations')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('contact_id', existingContact.id)
+          .maybeSingle()
+
+        if (conv) {
+          const { count } = await db
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .in('sender_type', ['agent', 'bot'])
+          hasCrmConversation = (count ?? 0) > 0
+        }
+      }
+
+      if (!hasCrmConversation) {
+        console.log('[webhook] coexistence: skipping personal message from', senderPhone)
+        return
+      }
     }
   }
 

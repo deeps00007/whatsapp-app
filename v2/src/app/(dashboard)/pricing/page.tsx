@@ -217,14 +217,14 @@ const TIPS = [
 ]
 
 const WARNINGS = [
-  {
-    icon: AlertTriangle,
-    iconCls: "text-amber-400",
-    bgCls: "bg-amber-950/15 border-amber-900/30",
-    title: "BSP Markups",
-    description:
-      "Business Solution Providers (Interakt, WATI, AiSensy) add 10–30% markup on top of Meta's base rates, plus platform subscription fees.",
-  },
+      {
+        icon: AlertTriangle,
+        iconCls: "text-amber-400",
+        bgCls: "bg-amber-950/15 border-amber-900/30",
+        title: "BSP Markups",
+        description:
+          "Business Solution Providers (Zoho ₹1.08/msg, WATI ₹1/msg, Interakt ₹0.78/msg) add per-message markup on top of Meta's base rates, plus platform subscription fees. Grow by Chat charges zero per-message markup — only ₹899/month platform fee.",
+      },
   {
     icon: Globe,
     iconCls: "text-amber-400",
@@ -378,26 +378,66 @@ export default function PricingPage() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-background p-4">
-        <div className="flex items-center justify-between">
+      {/* Competitor comparison */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <IndianRupee className="h-5 w-5 text-primary" />
+          Platform Fee Comparison
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Other platforms add per-message markup on top of Meta's base rate. Grow by Chat charges a flat ₹899/month — zero per-message fees.
+        </p>
+        <div className="rounded-xl border border-border overflow-hidden">
+          <div className="grid grid-cols-5 bg-secondary/50 border-b border-border">
+            <div className="p-3 text-xs font-bold text-muted-foreground uppercase tracking-wide">Platform</div>
+            <div className="p-3 text-xs font-bold text-muted-foreground uppercase tracking-wide text-center">Per Message</div>
+            <div className="p-3 text-xs font-bold text-muted-foreground uppercase tracking-wide text-center">Platform Fee</div>
+            <div className="p-3 text-xs font-bold text-muted-foreground uppercase tracking-wide text-center hidden sm:block">10K msgs/mo</div>
+            <div className="p-3 text-xs font-bold text-muted-foreground uppercase tracking-wide text-right">You Save</div>
+          </div>
+          {[
+            { name: "Zoho Cliq", perMsg: "₹1.08", fee: "₹2,000/mo", total: "₹12,800", save: "₹11,901", highlight: false, logo: "/zoho.png" },
+            { name: "WATI", perMsg: "₹1.00", fee: "₹2,400/mo", total: "₹12,400", save: "₹11,501", highlight: false, logo: "/wati.png" },
+            { name: "Interakt", perMsg: "₹0.78", fee: "₹2,500/mo", total: "₹10,300", save: "₹9,401", highlight: false, logo: "/interakt.png" },
+            { name: "AiSensy", perMsg: "₹0.65", fee: "₹1,999/mo", total: "₹8,499", save: "₹7,600", highlight: false, logo: "/aisensy.png" },
+            { name: "Grow by Chat", perMsg: "₹0.00", fee: "₹899/mo", total: "₹899", save: "—", highlight: true, logo: null },
+          ].map((row) => (
+            <div key={row.name} className={`grid grid-cols-5 border-b border-border last:border-0 ${row.highlight ? "bg-primary/5" : ""}`}>
+              <div className={`p-3 text-sm font-bold flex items-center gap-2.5 ${row.highlight ? "text-primary" : "text-foreground"}`}>
+                {row.logo && (
+                  <img src={row.logo} alt={`${row.name} logo`} width={22} height={22} className="shrink-0 rounded object-contain" />
+                )}
+                {row.name}
+              </div>
+              <div className={`p-3 text-sm text-center ${row.highlight ? "text-primary font-bold" : "text-muted-foreground"}`}>{row.perMsg}</div>
+              <div className={`p-3 text-sm text-center ${row.highlight ? "text-primary font-bold" : "text-muted-foreground"}`}>{row.fee}</div>
+              <div className={`p-3 text-sm text-center hidden sm:block ${row.highlight ? "text-primary font-bold" : "text-muted-foreground"}`}>{row.total}</div>
+              <div className={`p-3 text-sm text-right font-bold ${row.highlight ? "text-primary" : "text-emerald-500"}`}>{row.save}</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Comparison based on 10,000 marketing messages/month. Grow by Chat charges only Meta's base rate (₹0.70-0.90/conversation) — zero per-message markup. You pay Meta directly.
+        </p>
+      </div>
+
+      {/* Platform pricing */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="text-sm font-medium text-foreground">
-              Rate Calculation Example
+            <h3 className="text-base font-bold text-primary">
+              Grow by Chat Platform Fee
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              1,000 marketing messages delivered in a month
+            <p className="text-sm text-foreground mt-1">
+              Flat ₹899/month. Unlimited contacts, broadcasts, automations, and team inbox.
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">
-              1,000 × ₹0.88 = <span className="text-foreground font-medium">₹880</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              + 18% GST = <span className="text-foreground">₹158.40</span>
-            </p>
-            <p className="text-sm font-bold text-foreground mt-1">
-              Total: ₹1,038.40
-            </p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-primary">₹899</span>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">No per-message charges</p>
           </div>
         </div>
       </div>

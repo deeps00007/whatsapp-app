@@ -102,10 +102,11 @@ export async function POST(request: Request) {
     let templateHeaderType: string | null = null
     let templateHeaderUrl: string | null = null
     let templateParamNames: string[] = []
+    let resolvedTemplateLanguage = template_language
     if (template_name) {
       const { data: tpl } = await supabase
         .from('message_templates')
-        .select('header_type, header_content, body_text')
+        .select('header_type, header_content, body_text, language')
         .eq('user_id', user.id)
         .eq('name', template_name)
         .maybeSingle()
@@ -115,6 +116,9 @@ export async function POST(request: Request) {
         templateParamNames = extractVariables(tpl.body_text)
           .filter(v => v.isNamed)
           .map(v => v.name)
+      }
+      if (!resolvedTemplateLanguage && tpl?.language) {
+        resolvedTemplateLanguage = tpl.language
       }
     }
 
@@ -127,7 +131,7 @@ export async function POST(request: Request) {
         accessToken,
         to: sanitizedPhone,
         templateName: template_name,
-        language: template_language || 'en_US',
+        language: resolvedTemplateLanguage || 'en_US',
         params: template_params || [],
         paramNames: templateParamNames.length > 0 ? templateParamNames : undefined,
         headerType: templateHeaderType,

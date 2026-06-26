@@ -26,10 +26,13 @@ import { resolveFallbackPolicy } from '@/lib/flows/fallback'
  * default; once per hour would also be acceptable for low-volume
  * tenants.
  */
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(request: Request) {
   const expected = process.env.AUTOMATION_CRON_SECRET
   if (!expected) {
-    return NextResponse.json({ error: 'cron not configured' }, { status: 503 })
+    return NextResponse.json({ error: 'cron not configured' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
   }
   // Constant-time compare so an attacker who can hit the endpoint
   // can't recover the secret byte-by-byte from response-time deltas.
@@ -42,7 +45,7 @@ export async function GET(request: Request) {
     suppliedBuf.length !== expectedBuf.length ||
     !timingSafeEqual(suppliedBuf, expectedBuf)
   ) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const admin = supabaseAdmin()
@@ -62,7 +65,7 @@ export async function GET(request: Request) {
     console.error('[flows-cron] active-run scan failed:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  if (!runs?.length) return NextResponse.json({ swept: 0 })
+  if (!runs?.length) return NextResponse.json({ swept: 0 }, { headers: { 'Cache-Control': 'no-store' } })
 
   type Row = {
     id: string
@@ -108,5 +111,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ swept })
+  return NextResponse.json({ swept }, { headers: { 'Cache-Control': 'no-store' } })
 }

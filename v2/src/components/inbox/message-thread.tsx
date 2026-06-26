@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { extractVariables } from "@/lib/whatsapp/template-variables";
 import type {
   Conversation,
   Message,
@@ -46,10 +47,14 @@ interface ReplyDraft {
 }
 
 function renderTemplateBody(body: string, params: string[]): string {
-  return body.replace(/\{\{(\d+)\}\}/g, (_, raw) => {
-    const idx = Number(raw) - 1;
-    return params[idx] ?? `{{${raw}}}`;
-  });
+  const vars = extractVariables(body);
+  let out = body;
+  for (const v of vars) {
+    const pattern = `{{${v.name}}}`;
+    const value = params[v.index]?.trim() || pattern;
+    out = out.split(pattern).join(value);
+  }
+  return out;
 }
 
 interface MessageThreadProps {
@@ -571,6 +576,7 @@ export function MessageThread({
             conversation_id: conversation.id,
             message_type: "template",
             template_name: template.name,
+            template_language: template.language ?? "en_US",
             template_params: params,
             content_text: renderedBody,
           }),

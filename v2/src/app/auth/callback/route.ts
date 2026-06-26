@@ -20,7 +20,12 @@ export async function GET(request: Request) {
     | 'email_change'
     | null
 
-  const next = sanitizeRedirect(searchParams.get('next'))
+  let next = sanitizeRedirect(searchParams.get('next'))
+  // Password reset emails lose the `next` param in the redirect chain,
+  // so infer it from the OTP type instead of relying on the query string.
+  if (type === 'recovery') {
+    next = '/reset-password'
+  }
 
   if (code) {
     const supabase = await createClient()
