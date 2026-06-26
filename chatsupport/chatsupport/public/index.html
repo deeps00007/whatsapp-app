@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Chat Support</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="customer-page">
+
+  <!-- SETUP OVERLAY (Runs first to register customer name) -->
+  <div id="setupOverlay" class="modal-overlay">
+    <div class="setup-card">
+      <h2>Welcome to Customer Support</h2>
+      <p>Please enter your name below to start chatting with our support assistant.</p>
+      <input type="text" id="customerNameInput" class="input-field" placeholder="e.g. John Doe" required autocomplete="off">
+      <button id="startChatBtn" class="action-btn">Start Live Chat</button>
+    </div>
+  </div>
+
+  <!-- MAIN CHAT INTERFACE -->
+  <div id="chatBox" class="chat-box" style="display: none;">
+    
+    <!-- Chat Header -->
+    <div class="chat-header">
+      <div class="header-identity">
+        <div id="statusIndicator" class="brand-dot"></div>
+        <div class="header-info">
+          <h3>Support Desk</h3>
+          <p id="chatSubStatus">Connecting to services...</p>
+        </div>
+      </div>
+      <button id="resetSessionBtn" class="quick-btn" style="padding: 4px 10px; font-size: 0.7rem; opacity: 0.6;">Reset Session</button>
+    </div>
+
+    <!-- Chat Messages Scroller -->
+    <div id="chatMessages" class="chat-messages">
+      <!-- Chat logs dynamically injected here -->
+    </div>
+
+    <!-- Typing Indicator -->
+    <div id="typingIndicator" class="message bot" style="display: none; align-self: flex-start; margin-left: 24px; margin-bottom: 12px;">
+      <div class="typing-bubble">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+      </div>
+    </div>
+
+    <!-- Bot Quick Selections -->
+    <div id="quickRepliesPanel" class="quick-replies">
+      <button class="quick-btn" data-value="1">🕒 Business Hours</button>
+      <button class="quick-btn" data-value="2">💳 Billing & Orders</button>
+      <button class="quick-btn" data-value="3">💻 Technical Help</button>
+      <button class="quick-btn" data-value="4">🤝 Talk to Human Agent</button>
+    </div>
+
+    <!-- Text Input Area -->
+    <div class="chat-input-area">
+      <form id="chatForm" class="chat-form">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type your message..." autocomplete="off" disabled>
+        <button type="submit" id="sendBtn" class="send-btn" disabled>
+          <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Socket.io connection client library served automatically by Socket.io server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/customer.js"></script>
+</body>
+</html>
