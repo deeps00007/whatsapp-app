@@ -247,7 +247,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   _buildPill(
                     isConnected ? 'Connected' : 'Disconnected',
                     isConnected ? const Color(0xFF25D366) : const Color(0xFFFF6B6B),
-                    Icons.whatsapp,
+                    Icons.phone_android,
                   ),
                   const SizedBox(width: 8),
                   _buildPill(
