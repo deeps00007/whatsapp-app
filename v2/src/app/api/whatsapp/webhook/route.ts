@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin-client'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
+
+export const maxDuration = 120
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
@@ -181,10 +183,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Process asynchronously so we can ack Meta within their timeout.
-  processWebhook(body).catch((error) => {
+  // Process the webhook — MUST await so Vercel doesn't kill the function
+  // before processing completes. maxDuration is set to 120s above.
+  // Meta's timeout is ~10s, but with AI coexistence bypass the processing
+  // is fast (1 DB query + message save). AI itself runs fire-and-forget
+  // inside processMessage so it doesn't block the response.
+  try {
+    await processWebhook(body)
+  } catch (error) {
     console.error('Error processing webhook:', error)
-  })
+  }
 
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
@@ -251,13 +259,14 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
         const message = value.messages[i]
         const contact = value.contacts[i] || value.contacts[0]
 
-        await processMessage(
+        // Fire-and-forget — don't block the next message or Meta's retry
+        processMessage(
           message,
           contact,
           config.user_id,
           decryptedAccessToken,
           config.coexistence_mode
-        )
+        ).catch((err) => console.error('[webhook] processMessage error:', err))
       }
     }
   }
@@ -523,8 +532,19 @@ async function processMessage(
     const db = supabaseAdmin()
     const incomingText = (message.text?.body ?? '').toLowerCase()
 
-    let bypassFilter = false
-    if (incomingText) {
+    // Check if AI Assistant is enabled in "all_messages" mode.
+    // If so, bypass coexistence filter entirely — no DB checks needed.
+    const { data: aiSettings } = await db
+      .from('ai_settings')
+      .select('enabled, mode')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (aiSettings?.enabled && aiSettings.mode === 'all_messages') {
+      // AI handles everything — skip all coexistence filtering
+    } else if (incomingText) {
+      // Check keyword automation bypass
+      let bypassFilter = false
       const { data: keywordAutomations } = await db
         .from('automations')
         .select('trigger_config')
@@ -547,9 +567,41 @@ async function processMessage(
           }
         }
       }
-    }
 
-    if (!bypassFilter) {
+      if (!bypassFilter) {
+        const { data: existingContact } = await db
+          .from('contacts')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('phone', senderPhone)
+          .maybeSingle()
+
+        let hasCrmConversation = false
+        if (existingContact) {
+          const { data: conv } = await db
+            .from('conversations')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('contact_id', existingContact.id)
+            .maybeSingle()
+
+          if (conv) {
+            const { count } = await db
+              .from('messages')
+              .select('id', { count: 'exact', head: true })
+              .eq('conversation_id', conv.id)
+              .in('sender_type', ['agent', 'bot'])
+            hasCrmConversation = (count ?? 0) > 0
+          }
+        }
+
+        if (!hasCrmConversation) {
+          console.log('[webhook] coexistence: skipping personal message from', senderPhone)
+          return
+        }
+      }
+    } else {
+      // No text and no AI bypass — apply standard coexistence filter
       const { data: existingContact } = await db
         .from('contacts')
         .select('id')
@@ -577,7 +629,7 @@ async function processMessage(
       }
 
       if (!hasCrmConversation) {
-        console.log('[webhook] coexistence: skipping personal message from', senderPhone)
+        console.log('[webhook] coexistence: skipping non-text message from', senderPhone)
         return
       }
     }
@@ -764,6 +816,20 @@ async function processMessage(
           conversation_id: conversation.id,
         },
       }).catch((err) => console.error('[automations] dispatch failed:', err))
+    }
+
+    // AI Assistant layer — fully fire-and-forget. All AI logic (settings check,
+    // double-reply prevention, RAG, Sarvam, send) runs in the background.
+    // The webhook returns 200 to Meta immediately — no blocking.
+    if (inboundText) {
+      console.log('[webhook] Triggering AI assistant for:', inboundText.slice(0, 50), 'from:', senderPhone)
+      handleAIAssistant({
+        userId,
+        conversationId: conversation.id,
+        contactId: contactRecord.id,
+        customerMessage: inboundText,
+        accessToken,
+      }).catch((err) => console.error('[webhook] AI assistant error:', err))
     }
   }
 }
@@ -1036,4 +1102,153 @@ async function findOrCreateConversation(userId: string, contactId: string) {
   }
 
   return newConv
+}
+
+// ============================================================
+// AI Assistant — RAG-based auto-reply for WhatsApp messages
+// Entire function is fire-and-forget — never blocks the webhook.
+// ============================================================
+
+async function handleAIAssistant(args: {
+  userId: string
+  conversationId: string
+  contactId: string
+  customerMessage: string
+  accessToken: string
+}): Promise<void> {
+  console.log('[handleAIAssistant] started for:', args.customerMessage.slice(0, 50))
+  const { shouldAIRespond, generateBusinessAIResponse, logAIConversation, pauseAIForConversation } = await import('@/lib/ai/business-ai')
+
+  // 1. Check if AI should respond (settings, paused, usage)
+  const { respond, settings } = await shouldAIRespond(args.userId, args.conversationId)
+  console.log('[handleAIAssistant] shouldAIRespond:', respond, 'mode:', settings?.mode, 'paused:', settings?.ai_paused_conversations?.length, 'usage:', settings?.monthly_request_count)
+  if (!respond || !settings) {
+    console.log('[handleAIAssistant] AI not responding — exiting')
+    return
+  }
+
+  // 2. Double-reply prevention (inside background task — does NOT block webhook)
+  // For "fallback_only" mode: wait 2s for automations to settle, then check if any
+  // bot/agent message was already sent in the last 10 seconds.
+  if (settings.mode === 'fallback_only') {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    const admin = supabaseAdmin()
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
+
+    const { data: recentReplies } = await admin
+      .from('messages')
+      .select('id')
+      .eq('conversation_id', args.conversationId)
+      .in('sender_type', ['bot', 'agent'])
+      .gte('created_at', tenSecondsAgo)
+      .limit(1)
+
+    if (recentReplies && recentReplies.length > 0) {
+      return // automation already replied — skip AI
+    }
+  }
+
+  // 3. Generate AI response with RAG
+  console.log('[handleAIAssistant] generating AI response...')
+  const aiResult = await generateBusinessAIResponse({
+    userId: args.userId,
+    conversationId: args.conversationId,
+    contactId: args.contactId,
+    customerMessage: args.customerMessage,
+    settings,
+  })
+  console.log('[handleAIAssistant] AI result — confidence:', aiResult.confidence, 'escalated:', aiResult.escalated, 'reply:', aiResult.reply?.slice(0, 60), 'latency:', aiResult.latencyMs + 'ms')
+
+  // 4. Log the conversation
+  await logAIConversation({
+    userId: args.userId,
+    conversationId: args.conversationId,
+    contactId: args.contactId,
+    customerMessage: args.customerMessage,
+    aiResponse: aiResult,
+  })
+  console.log('[handleAIAssistant] logged to DB')
+
+  // 5. If escalated (low confidence or AI unsure), notify owner and pause AI
+  if (aiResult.escalated) {
+    console.log('[handleAIAssistant] AI escalated — confidence:', aiResult.confidence)
+    if (settings.escalation_enabled && settings.escalation_phone) {
+      try {
+        const { sendTextMessage } = await import('@/lib/whatsapp/meta-api')
+        const admin = (await import('@/lib/supabase/admin-client')).supabaseAdmin()
+        const { data: config } = await admin
+          .from('whatsapp_config')
+          .select('phone_number_id')
+          .eq('user_id', args.userId)
+          .maybeSingle()
+
+        if (config?.phone_number_id) {
+          await sendTextMessage({
+            phoneNumberId: config.phone_number_id,
+            accessToken: args.accessToken,
+            to: settings.escalation_phone,
+            text: `🔔 AI Escalation: A customer asked "${args.customerMessage}" which I couldn't answer. Please check your inbox.`,
+          })
+        }
+      } catch (err) {
+        console.error('[webhook] AI escalation notification failed:', err)
+      }
+    }
+    await pauseAIForConversation(args.userId, args.conversationId)
+    return
+  }
+
+  // 6. Send AI reply to customer via WhatsApp
+  if (aiResult.reply) {
+    console.log('[handleAIAssistant] sending AI reply to customer...')
+    try {
+      const { sendTextMessage } = await import('@/lib/whatsapp/meta-api')
+      const admin = (await import('@/lib/supabase/admin-client')).supabaseAdmin()
+      const { data: config } = await admin
+        .from('whatsapp_config')
+        .select('phone_number_id')
+        .eq('user_id', args.userId)
+        .maybeSingle()
+
+      console.log('[handleAIAssistant] config phone_number_id:', config?.phone_number_id)
+
+      if (config?.phone_number_id) {
+        const { data: contactData } = await admin
+          .from('contacts')
+          .select('phone')
+          .eq('id', args.contactId)
+          .maybeSingle()
+
+        console.log('[handleAIAssistant] contact phone:', contactData?.phone)
+
+        if (contactData?.phone) {
+          const sendResult = await sendTextMessage({
+            phoneNumberId: config.phone_number_id,
+            accessToken: args.accessToken,
+            to: contactData.phone,
+            text: aiResult.reply,
+          })
+          console.log('[handleAIAssistant] Meta send result:', sendResult.messageId)
+
+          await admin.from('messages').insert({
+            conversation_id: args.conversationId,
+            sender_type: 'bot',
+            content_type: 'text',
+            content_text: aiResult.reply,
+            message_id: sendResult.messageId || null,
+            status: 'sent',
+            source: 'webhook',
+          })
+          console.log('[handleAIAssistant] bot message saved to DB — DONE')
+        } else {
+          console.error('[handleAIAssistant] No phone number found for contact')
+        }
+      } else {
+        console.error('[handleAIAssistant] No phone_number_id found in whatsapp_config')
+      }
+    } catch (err) {
+      console.error('[handleAIAssistant] AI reply send failed:', err instanceof Error ? err.message : err)
+    }
+  }
 }

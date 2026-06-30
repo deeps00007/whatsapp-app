@@ -329,6 +329,7 @@ export async function generateAIResponse(
         model: 'sarvam-30b',
         messages: formattedMessages,
         temperature: 0.6,
+        reasoning_effort: null,
       }),
     })
 
