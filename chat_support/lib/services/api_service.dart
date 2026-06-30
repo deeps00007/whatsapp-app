@@ -158,4 +158,67 @@ class ApiService {
     }
     return json.decode(res.body);
   }
+
+  /// Manually assign or revoke a subscription plan for a user.
+  /// [days] sets the expiry from now. Pass [active]=false to revoke.
+  Future<Map<String, dynamic>> manageSubscription(
+    String userId, {
+    bool active = true,
+    int days = 30,
+    String plan = 'manual',
+  }) async {
+    final body = <String, dynamic>{
+      'active': active,
+      'days': days,
+      'plan': plan,
+    };
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/admin/users/$userId/subscription'),
+      headers: _headers,
+      body: json.encode(body),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(
+          'Failed to update subscription: ${res.statusCode} — ${res.body}');
+    }
+    return json.decode(res.body);
+  }
+
+  /// List configurable subscription plans.
+  Future<List<Map<String, dynamic>>> getPlans() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/admin/plans'),
+      headers: _headers,
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load plans: ${res.statusCode}');
+    }
+    final data = json.decode(res.body);
+    final list = data['plans'] as List? ?? [];
+    return list.cast<Map<String, dynamic>>();
+  }
+
+  /// Update a subscription plan price or visibility.
+  Future<Map<String, dynamic>> updatePlan(
+    String planId, {
+    int? amount,
+    bool? active,
+    String? label,
+  }) async {
+    final body = <String, dynamic>{};
+    if (amount != null) body['amount'] = amount;
+    if (active != null) body['active'] = active;
+    if (label != null) body['label'] = label;
+
+    final res = await http.patch(
+      Uri.parse('$baseUrl/api/admin/plans/$planId'),
+      headers: _headers,
+      body: json.encode(body),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update plan: ${res.statusCode} - ${res.body}');
+    }
+    return json.decode(res.body);
+  }
 }
+

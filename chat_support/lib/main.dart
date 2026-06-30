@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'screens/login_screen.dart';
@@ -16,13 +17,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Initialize local notifications for foreground FCM display
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const initSettings = InitializationSettings(android: androidSettings);
   await _localNotifications.initialize(
     initSettings,
     onDidReceiveNotificationResponse: (NotificationResponse response) {
-      // Handle notification tap
       final payload = response.payload;
       if (payload != null) {
         // Could navigate to specific conversation
@@ -30,7 +29,6 @@ void main() async {
     },
   );
 
-  // Create notification channels
   await _createNotificationChannels();
 
   final config = await StorageService.getConfig();
@@ -46,7 +44,6 @@ void main() async {
 }
 
 Future<void> _createNotificationChannels() async {
-  // Normal support messages channel
   await _localNotifications
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
@@ -57,7 +54,6 @@ Future<void> _createNotificationChannels() async {
         importance: Importance.high,
       ));
 
-  // Urgent escalation channel
   await _localNotifications
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
@@ -91,16 +87,17 @@ Future<void> _initFCM() async {
 
   FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
 
-  // Handle foreground notifications — THIS is what was missing
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     final notification = message.notification;
     final data = message.data;
     final isUrgent = data['type'] == 'human_escalation';
 
-    // Show local notification even when app is in foreground
     _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      notification?.title ?? (isUrgent ? '🔔 URGENT: Human support requested' : 'New support message'),
+      notification?.title ??
+          (isUrgent
+              ? '🔔 URGENT: Human support requested'
+              : 'New support message'),
       notification?.body ?? 'A user sent a new message',
       NotificationDetails(
         android: AndroidNotificationDetails(
@@ -112,7 +109,7 @@ Future<void> _initFCM() async {
           importance: isUrgent ? Importance.max : Importance.high,
           priority: isUrgent ? Priority.max : Priority.high,
           icon: '@mipmap/ic_launcher',
-          color: isUrgent ? const Color(0xFFFF0000) : const Color(0xFF25D366),
+          color: isUrgent ? const Color(0xFFFF5252) : const Color(0xFF6C63FF),
           enableVibration: true,
           fullScreenIntent: isUrgent,
         ),
@@ -121,12 +118,8 @@ Future<void> _initFCM() async {
     );
   });
 
-  // Handle notification tap when app was in background
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    final conversationId = message.data['conversation_id'];
-    if (conversationId != null) {
-      // The app will load the conversation when the dashboard refreshes
-    }
+    // Conversation will reload when dashboard refreshes
   });
 }
 
@@ -140,23 +133,123 @@ class ChatSupportApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = GoogleFonts.interTextTheme();
     return MaterialApp(
       title: 'Grow by Chat Support',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF075E54),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF25D366),
-          primary: const Color(0xFF075E54),
-        ),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6C63FF),
+          primary: const Color(0xFF0A2540),
+          secondary: const Color(0xFF6C63FF),
+          surface: const Color(0xFFF0F2F8),
+          onSurface: const Color(0xFF0A2540),
+        ),
+        textTheme: textTheme,
+        primaryTextTheme: textTheme,
+        scaffoldBackgroundColor: const Color(0xFFF0F2F8),
+        appBarTheme: AppBarTheme(
+          backgroundColor: const Color(0xFF0A2540),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          titleTextStyle: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8F9FF),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide:
+                const BorderSide(color: Color(0xFF6C63FF), width: 1.8),
+          ),
+          labelStyle: GoogleFonts.inter(
+            fontSize: 14,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: Color(0xFF6C63FF),
+          unselectedItemColor: Colors.grey,
+          elevation: 0,
+        ),
+        dividerTheme: DividerThemeData(
+          color: Colors.grey.shade100,
+          thickness: 1,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
       home: FutureBuilder<bool>(
         future: StorageService.isConfigured(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: Color(0xFF25D366))),
+            return Scaffold(
+              backgroundColor: const Color(0xFF0A2540),
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6C63FF), Color(0xFF4F83F1)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(Icons.support_agent_rounded,
+                          color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(height: 24),
+                    const CircularProgressIndicator(
+                        color: Color(0xFF6C63FF)),
+                  ],
+                ),
+              ),
             );
           }
           if (snapshot.data!) {

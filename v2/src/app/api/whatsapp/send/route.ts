@@ -340,6 +340,14 @@ export async function POST(request: Request) {
       )
     }
 
+    // Pause AI Assistant for this conversation — human takes over
+    try {
+      const { pauseAIForConversation } = await import('@/lib/ai/business-ai')
+      await pauseAIForConversation(user.id, conversation_id)
+    } catch (err) {
+      console.error('[ai] pause-on-agent-send failed:', err instanceof Error ? err.message : err)
+    }
+
     return NextResponse.json({
       success: true,
       message_id: messageRecord.id,

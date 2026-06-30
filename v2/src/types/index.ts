@@ -14,6 +14,7 @@ export interface Profile {
    */
   beta_features?: string[];
   subscription_expires_at?: string | null;
+  subscription_plan?: string | null;
   created_at: string;
 }
 

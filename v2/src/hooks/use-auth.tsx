@@ -19,6 +19,7 @@ interface Profile {
   role: string | null;
   beta_features: string[];
   subscription_expires_at: string | null;
+  subscription_plan: string | null;
 }
 
 interface AuthContextValue {
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, role, beta_features, subscription_expires_at")
+        .select("id, full_name, email, avatar_url, role, beta_features, subscription_expires_at, subscription_plan")
         .eq("user_id", userId)
         .maybeSingle();
 

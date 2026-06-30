@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import 'admin_panel_screen.dart';
 import 'chat_screen.dart';
+import 'pricing_plans_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final ApiService api;
@@ -25,19 +27,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
-  // Brand colors
+  // Design tokens
   static const Color _accent = Color(0xFF6C63FF);
-  static const Color _surface = Color(0xFFF7F8FC);
-  static const Color _cardBg = Colors.white;
+  static const Color _surface = Color(0xFFF0F2F8);
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 500),
     );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _loadData();
     _refreshTimer =
         Timer.periodic(const Duration(seconds: 10), (_) => _loadData());
@@ -75,9 +77,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       final now = DateTime.now();
       final diff = now.difference(dt);
       if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      return '${diff.inDays}d ago';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+      if (diff.inHours < 24) return '${diff.inHours}h';
+      return '${diff.inDays}d';
     } catch (_) {
       return '';
     }
@@ -90,7 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       case 'agent_assigned':
         return const Color(0xFF4F83F1);
       case 'resolved':
-        return const Color(0xFF27AE60);
+        return const Color(0xFF25D366);
       case 'closed':
         return const Color(0xFF9E9E9E);
       default:
@@ -135,44 +137,113 @@ class _DashboardScreenState extends State<DashboardScreen>
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          Column(
-            children: [
-              _buildHeader(),
-              if (_stats != null) _buildStatsRow(),
-              _buildFilterRow(),
-              Expanded(child: _buildConversationList()),
-            ],
-          ),
+          _buildInboxTab(),
           AdminPanelScreen(api: widget.api),
+          PricingPlansScreen(api: widget.api),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: const Color(0xFF075E54),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.support_agent),
-            label: 'Support',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings),
-            label: 'Admin Panel',
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
         ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              _buildNavItem(0, Icons.inbox_rounded, Icons.inbox_rounded, 'Inbox'),
+              _buildNavItem(1, Icons.admin_panel_settings_rounded,
+                  Icons.admin_panel_settings_rounded, 'Admin'),
+              _buildNavItem(2, Icons.currency_rupee_rounded,
+                  Icons.currency_rupee_rounded, 'Pricing'),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final selected = _currentIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _currentIndex = index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? _accent.withOpacity(0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  selected ? activeIcon : icon,
+                  color: selected ? _accent : Colors.grey.shade400,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? _accent : Colors.grey.shade400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInboxTab() {
+    return Column(
+      children: [
+        _buildHeader(),
+        if (_stats != null) _buildStatsRow(),
+        _buildFilterRow(),
+        Expanded(child: _buildConversationList()),
+      ],
+    );
+  }
+
   Widget _buildHeader() {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1F36), Color(0xFF2D3561)],
+          colors: [Color(0xFF0A2540), Color(0xFF1A1F50)],
         ),
       ),
       child: SafeArea(
@@ -181,39 +252,51 @@ class _DashboardScreenState extends State<DashboardScreen>
           padding: const EdgeInsets.fromLTRB(20, 16, 16, 24),
           child: Row(
             children: [
-              // Logo / avatar
+              // Logo
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: _accent,
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF6C63FF), Color(0xFF4F83F1)],
+                  ),
+                  borderRadius: BorderRadius.circular(13),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6C63FF).withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.support_agent_rounded,
                   color: Colors.white,
-                  size: 22,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      'Support Inbox',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.3,
+                      '$greeting 👋',
+                      style: GoogleFonts.inter(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     Text(
-                      'Manage customer conversations',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
+                      'Support Inbox',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ],
@@ -221,16 +304,16 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               // Refresh button
               Material(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     setState(() => _loading = true);
                     _loadData();
                   },
                   child: const Padding(
-                    padding: EdgeInsets.all(8),
+                    padding: EdgeInsets.all(10),
                     child: Icon(Icons.refresh_rounded,
                         color: Colors.white70, size: 20),
                   ),
@@ -251,18 +334,18 @@ class _DashboardScreenState extends State<DashboardScreen>
           Icons.fiber_new_rounded),
       _StatData('Active', _stats!.agentAssigned, const Color(0xFF4F83F1),
           Icons.headset_mic_rounded),
-      _StatData('Resolved', _stats!.resolved, const Color(0xFF27AE60),
+      _StatData('Resolved', _stats!.resolved, const Color(0xFF25D366),
           Icons.check_circle_rounded),
     ];
 
     return Container(
-      color: const Color(0xFF1A1F36),
+      color: const Color(0xFF0A2540),
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFF7F8FC),
+          color: Color(0xFFF0F2F8),
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
           ),
         ),
         child: Padding(
@@ -284,27 +367,43 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildStatCard(_StatData data) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
-        color: data.color.withOpacity(0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: data.color.withOpacity(0.15), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: data.color.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: data.color.withOpacity(0.12)),
       ),
       child: Column(
         children: [
-          Icon(data.icon, color: data.color, size: 20),
-          const SizedBox(height: 6),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(data.icon, color: data.color, size: 16),
+          ),
+          const SizedBox(height: 8),
           Text(
             data.value.toString(),
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: data.color,
+              letterSpacing: -0.5,
             ),
           ),
           Text(
             data.label,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 10,
               color: data.color.withOpacity(0.7),
               fontWeight: FontWeight.w600,
@@ -319,15 +418,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildFilterRow() {
     final filters = [
       ('all', 'All'),
-      ('open', 'Open'),
-      ('agent_assigned', 'Active'),
-      ('resolved', 'Resolved'),
-      ('closed', 'Closed'),
+      ('open', '🔴 Open'),
+      ('agent_assigned', '🔵 Active'),
+      ('resolved', '✅ Resolved'),
+      ('closed', '⚫ Closed'),
     ];
 
     return Container(
       color: _surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -344,42 +443,46 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildFilterChip(String value, String label) {
     final selected = _filter == value;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _filter = value;
-            _loading = true;
-          });
-          _loadData();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? _accent : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected ? _accent : Colors.grey.shade200,
-              width: 1.5,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: _accent.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    )
-                  ]
-                : [],
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _filter = value;
+          _loading = true;
+        });
+        _loadData();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? _accent : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: selected ? _accent : Colors.grey.shade200,
+            width: 1.5,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: _accent.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: selected ? Colors.white : Colors.grey.shade600,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 13,
           ),
         ),
       ),
@@ -388,16 +491,11 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildConversationList() {
     if (_loading) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: _accent),
-            const SizedBox(height: 12),
-            Text('Loading conversations...',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-          ],
-        ),
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, __) => _buildSkeletonCard(),
       );
     }
 
@@ -407,27 +505,34 @@ class _DashboardScreenState extends State<DashboardScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.08),
+                gradient: LinearGradient(
+                  colors: [
+                    _accent.withOpacity(0.1),
+                    _accent.withOpacity(0.05),
+                  ],
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.inbox_rounded,
-                  size: 48, color: _accent.withOpacity(0.6)),
+                  size: 40, color: _accent.withOpacity(0.5)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
-              'No conversations yet',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+              'All caught up!',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF0A2540),
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              'New support requests will appear here',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              'No conversations match this filter',
+              style: GoogleFonts.inter(
+                  color: Colors.grey.shade400, fontSize: 14),
             ),
           ],
         ),
@@ -440,13 +545,69 @@ class _DashboardScreenState extends State<DashboardScreen>
         onRefresh: _loadData,
         color: _accent,
         child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           itemCount: _conversations.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             return _buildConversationCard(_conversations[index]);
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 14,
+                  width: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 12,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 12,
+                  width: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -460,15 +621,15 @@ class _DashboardScreenState extends State<DashboardScreen>
         ? name.substring(0, 2).toUpperCase()
         : name[0].toUpperCase();
 
-    // Avatar background colors based on initials
-    final avatarColors = [
-      const Color(0xFF6C63FF),
-      const Color(0xFF4F83F1),
-      const Color(0xFFFF7849),
-      const Color(0xFF27AE60),
-      const Color(0xFFE91E8C),
+    final avatarGradients = [
+      [const Color(0xFF6C63FF), const Color(0xFF4F83F1)],
+      [const Color(0xFFFF7849), const Color(0xFFFF5252)],
+      [const Color(0xFF27AE60), const Color(0xFF25D366)],
+      [const Color(0xFFE91E8C), const Color(0xFFAD1457)],
+      [const Color(0xFF0288D1), const Color(0xFF0097A7)],
     ];
-    final avatarColor = avatarColors[name.codeUnitAt(0) % avatarColors.length];
+    final gradColors =
+        avatarGradients[name.codeUnitAt(0) % avatarGradients.length];
 
     return Material(
       color: Colors.transparent,
@@ -483,59 +644,65 @@ class _DashboardScreenState extends State<DashboardScreen>
                 position: Tween<Offset>(
                   begin: const Offset(1, 0),
                   end: Offset.zero,
-                ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+                ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
                 child: child,
               ),
+              transitionDuration: const Duration(milliseconds: 350),
             ),
           ).then((_) => _loadData());
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _cardBg,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isOpen
-                  ? statusColor.withOpacity(0.3)
+                  ? statusColor.withOpacity(0.25)
                   : Colors.grey.shade100,
               width: isOpen ? 1.5 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: isOpen
+                    ? statusColor.withOpacity(0.08)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: isOpen ? 12 : 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Row(
             children: [
-              // Avatar with status indicator
+              // Avatar with status dot
               Stack(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: avatarColor,
-                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: gradColors,
+                      ),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Center(
                       child: Text(
                         initials,
-                        style: const TextStyle(
+                        style: GoogleFonts.inter(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 16,
                         ),
                       ),
                     ),
                   ),
-                  // Status dot
                   Positioned(
-                    right: -2,
-                    bottom: -2,
+                    right: -1,
+                    bottom: -1,
                     child: Container(
                       width: 16,
                       height: 16,
@@ -544,7 +711,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: Icon(statusIcon, size: 8, color: Colors.white),
+                      child: Center(
+                        child: Icon(statusIcon, size: 7, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -560,12 +729,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         Expanded(
                           child: Text(
                             name,
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontWeight: isOpen
                                   ? FontWeight.w700
                                   : FontWeight.w600,
                               fontSize: 14,
-                              color: const Color(0xFF1A1F36),
+                              color: const Color(0xFF0A2540),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -574,7 +743,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         const SizedBox(width: 8),
                         Text(
                           _formatTime(convo.updatedAt),
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             color: Colors.grey.shade400,
                             fontWeight: FontWeight.w500,
@@ -585,44 +754,51 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const SizedBox(height: 3),
                     Text(
                       convo.userEmail,
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: Colors.grey.shade400,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
                             convo.subject ?? 'General Support',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontSize: 13,
-                              color: Colors.grey.shade600,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Status badge
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                              horizontal: 9, vertical: 4),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.12),
+                            color: statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            _statusLabel(convo.status),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: statusColor,
-                              letterSpacing: 0.3,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(statusIcon,
+                                  size: 9, color: statusColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                _statusLabel(convo.status),
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

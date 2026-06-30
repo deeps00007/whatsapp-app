@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Menu, Settings as SettingsIcon, User } from "lucide-react";
+import { LogOut, Menu, Settings as SettingsIcon, User, CreditCard } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -25,6 +25,9 @@ const pageTitles: Record<string, string> = {
   "/broadcasts": "Broadcasts",
   "/automations": "Automations",
   "/templates": "Templates",
+  "/flows": "Flows",
+  "/ai-assistant": "AI Assistant",
+  "/billing": "Billing",
   "/pricing": "Pricing Info",
   "/settings": "Settings",
 };
@@ -104,6 +107,17 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             </p>
           </div>
           <DropdownMenuSeparator className="bg-card" />
+          <DropdownMenuItem
+            render={
+              <Link
+                href="/billing"
+                className="text-foreground focus:bg-accent focus:text-foreground"
+              />
+            }
+          >
+            <CreditCard className="size-4" />
+            Billing
+          </DropdownMenuItem>
           <DropdownMenuItem
             render={
               <Link

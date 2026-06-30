@@ -1,53 +1,10 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
-import { CreditCard, Loader2, CheckCircle2, Headphones, Users, FileText, Radio, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { CreditCard, Loader2, CheckCircle2, Headphones, Users, FileText, Radio, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoLockup } from "@/components/logo-lockup";
-import { useAuth } from "@/hooks/use-auth";
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill: { name: string; email: string };
-  theme: { color: string };
-  handler: (response: {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }) => void;
-  modal: { ondismiss: () => void };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-}
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+import { useRazorpayCheckout } from "@/hooks/use-razorpay-checkout";
+import { useSubscriptionPlans } from "@/hooks/use-subscription-plans";
 
 const FEATURES = [
   { icon: Headphones, label: "Real person chat support" },
@@ -57,113 +14,13 @@ const FEATURES = [
   { icon: Zap, label: "Unlimited automations" },
 ];
 
-const PLANS = [
-  {
-    id: "monthly",
-    label: "Monthly",
-    amount: 899,
-    periodDays: 30,
-    suffix: "/month",
-  },
-  {
-    id: "quarterly",
-    label: "Quarterly",
-    amount: 899 * 3,
-    periodDays: 90,
-    suffix: "/quarter",
-  },
-  {
-    id: "yearly",
-    label: "Yearly",
-    amount: 899 * 12,
-    periodDays: 365,
-    suffix: "/year",
-  },
-];
-
 interface PaymentGateProps {
   onSuccess: () => Promise<void>;
 }
 
 export function PaymentGate({ onSuccess }: PaymentGateProps) {
-  const { user, profile } = useAuth();
-  const [paying, setPaying] = useState<string | null>(null);
-
-  const handlePay = async (plan: (typeof PLANS)[number]) => {
-    setPaying(plan.id);
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded || !window.Razorpay) {
-        toast.error("Failed to load Razorpay checkout. Check your connection.");
-        setPaying(null);
-        return;
-      }
-
-      const orderRes = await fetch("/api/payments/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: plan.id, amount: plan.amount }),
-      });
-      if (!orderRes.ok) {
-        const err = await orderRes.json().catch(() => ({}));
-        toast.error(err.error || "Failed to create payment order");
-        setPaying(null);
-        return;
-      }
-
-      const order = await orderRes.json();
-
-      const rzp = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: "Grow by Chat",
-        description: `${plan.label} platform subscription`,
-        order_id: order.orderId,
-        prefill: {
-          name: profile?.full_name || "",
-          email: user?.email || "",
-        },
-        theme: { color: "#25D366" },
-        handler: async (response) => {
-          try {
-            const verifyRes = await fetch("/api/payments/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                periodDays: plan.periodDays,
-              }),
-            });
-
-            if (verifyRes.ok) {
-              toast.success("Payment successful! Welcome to Grow by Chat.");
-              await onSuccess();
-            } else {
-              const err = await verifyRes.json().catch(() => ({}));
-              toast.error(err.error || "Payment verification failed. Contact support if money was debited.");
-            }
-          } catch {
-            toast.error("Payment verification failed. Contact support if money was debited.");
-          }
-          setPaying(null);
-        },
-        modal: {
-          ondismiss: () => {
-            toast.info("Payment cancelled. Complete the payment to access your dashboard.");
-            setPaying(null);
-          },
-        },
-      });
-
-      rzp.open();
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-      setPaying(null);
-    }
-  };
+  const { pay, paying } = useRazorpayCheckout({ onSuccess });
+  const { plans, loading, error } = useSubscriptionPlans();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white text-slate-800">
@@ -183,9 +40,25 @@ export function PaymentGate({ onSuccess }: PaymentGateProps) {
           </p>
         </div>
 
+        {loading && (
+          <div className="flex flex-col items-center gap-3 py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+            <p className="text-sm text-slate-500">Loading plans...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="mx-auto max-w-xl rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 mb-8">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p>Failed to load plans: {error}. Please refresh.</p>
+            </div>
+          </div>
+        )}
+
         {/* Plan cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <div
               key={plan.id}
               className={`relative rounded-3xl border bg-white p-6 sm:p-8 flex flex-col justify-between transition-all hover:shadow-xl hover:shadow-emerald-100 hover:-translate-y-1 ${
@@ -210,8 +83,8 @@ export function PaymentGate({ onSuccess }: PaymentGateProps) {
                 </div>
                 <p className="text-xs text-slate-500 mb-6">
                   {plan.id === "monthly" && "Billed every month"}
-                  {plan.id === "quarterly" && `Billed every 3 months (₹899 × 3)`}
-                  {plan.id === "yearly" && `Billed every year (₹899 × 12)`}
+                  {plan.id === "quarterly" && `Billed every 3 months (₹${Math.round(plan.amount / 3).toLocaleString("en-IN")} x 3)`}
+                  {plan.id === "yearly" && `Billed every year (₹${Math.round(plan.amount / 12).toLocaleString("en-IN")} x 12)`}
                 </p>
               </div>
 
@@ -227,7 +100,7 @@ export function PaymentGate({ onSuccess }: PaymentGateProps) {
               </div>
 
               <Button
-                onClick={() => handlePay(plan)}
+                onClick={() => pay(plan)}
                 disabled={!!paying}
                 size="lg"
                 className={`w-full text-base font-bold h-12 ${

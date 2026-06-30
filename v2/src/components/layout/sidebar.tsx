@@ -28,6 +28,7 @@ import {
   IndianRupee,
   Sun,
   Moon,
+  Bot,
 } from "lucide-react";
 import { useRealtimeTable, type RealtimeTableEvent } from "@/hooks/use-realtime-table";
 import { useTheme } from "@/hooks/use-theme";
@@ -65,9 +66,11 @@ const navItems: NavItem[] = [
   { href: "/templates", label: "Templates", icon: FileText },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/flows", label: "Flows", icon: Workflow, beta: true },
+  { href: "/ai-assistant", label: "AI Assistant", icon: Bot, beta: true },
 ];
 
 const bottomNavItems = [
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/pricing", label: "Pricing Info", icon: IndianRupee },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -336,10 +339,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 </li>
               );
             })}
-           </ul>
-
-           <AccountStatus />
-         </nav>
+            </ul>
+          </nav>
 
         {/* User section */}
         <div className="shrink-0 border-t border-sidebar-border p-3">
@@ -381,6 +382,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 {isLight ? "Dark mode" : "Light mode"}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                render={
+                  <Link
+                    href="/billing"
+                    onClick={onClose}
+                    className="focus:bg-accent focus:text-accent-foreground"
+                  />
+                }
+              >
+                <CreditCard className="size-4" />
+                Billing
+              </DropdownMenuItem>
               <DropdownMenuItem
                 render={
                   <Link
